@@ -7,6 +7,7 @@ Floaty - это сервис для упрощения жизни его пол�
 Среди возможностей ожидается smth
 
 server - Crow (framework for cpp) \
+build system - CMake \
 DB - MySQL \
 frontend - native html && css \
 simple logic - js \
