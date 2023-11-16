@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/goradef/Floaty/build",
+  "command": "/usr/sbin/clang++ -g -o src/server_route/CMakeFiles/server_route.dir/crow.cpp.o -c /home/goradef/Floaty/src/server_route/crow.cpp",
+  "file": "/home/goradef/Floaty/src/server_route/crow.cpp",
+  "output": "src/server_route/CMakeFiles/server_route.dir/crow.cpp.o"
+}
+]
