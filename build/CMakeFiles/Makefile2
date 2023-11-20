@@ -63,57 +63,57 @@ CMAKE_BINARY_DIR = /home/goradef/Floaty/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: src/server_route/all
+all: src/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
-preinstall: src/server_route/preinstall
+preinstall: src/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: src/server_route/clean
+clean: src/clean
 .PHONY : clean
 
 #=============================================================================
-# Directory level rules for directory src/server_route
+# Directory level rules for directory src
 
 # Recursive "all" directory target.
-src/server_route/all: src/server_route/CMakeFiles/server_route.dir/all
-.PHONY : src/server_route/all
+src/all: src/CMakeFiles/Floaty.dir/all
+.PHONY : src/all
 
 # Recursive "preinstall" directory target.
-src/server_route/preinstall:
-.PHONY : src/server_route/preinstall
+src/preinstall:
+.PHONY : src/preinstall
 
 # Recursive "clean" directory target.
-src/server_route/clean: src/server_route/CMakeFiles/server_route.dir/clean
-.PHONY : src/server_route/clean
+src/clean: src/CMakeFiles/Floaty.dir/clean
+.PHONY : src/clean
 
 #=============================================================================
-# Target rules for target src/server_route/CMakeFiles/server_route.dir
+# Target rules for target src/CMakeFiles/Floaty.dir
 
 # All Build rule for target.
-src/server_route/CMakeFiles/server_route.dir/all:
-	$(MAKE) $(MAKESILENT) -f src/server_route/CMakeFiles/server_route.dir/build.make src/server_route/CMakeFiles/server_route.dir/depend
-	$(MAKE) $(MAKESILENT) -f src/server_route/CMakeFiles/server_route.dir/build.make src/server_route/CMakeFiles/server_route.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/goradef/Floaty/build/CMakeFiles --progress-num=1,2 "Built target server_route"
-.PHONY : src/server_route/CMakeFiles/server_route.dir/all
+src/CMakeFiles/Floaty.dir/all:
+	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/Floaty.dir/build.make src/CMakeFiles/Floaty.dir/depend
+	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/Floaty.dir/build.make src/CMakeFiles/Floaty.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/goradef/Floaty/build/CMakeFiles --progress-num=1,2,3 "Built target Floaty"
+.PHONY : src/CMakeFiles/Floaty.dir/all
 
 # Build rule for subdir invocation for target.
-src/server_route/CMakeFiles/server_route.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/goradef/Floaty/build/CMakeFiles 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/server_route/CMakeFiles/server_route.dir/all
+src/CMakeFiles/Floaty.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/goradef/Floaty/build/CMakeFiles 3
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/Floaty.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/goradef/Floaty/build/CMakeFiles 0
-.PHONY : src/server_route/CMakeFiles/server_route.dir/rule
+.PHONY : src/CMakeFiles/Floaty.dir/rule
 
 # Convenience name for target.
-server_route: src/server_route/CMakeFiles/server_route.dir/rule
-.PHONY : server_route
+Floaty: src/CMakeFiles/Floaty.dir/rule
+.PHONY : Floaty
 
 # clean rule for target.
-src/server_route/CMakeFiles/server_route.dir/clean:
-	$(MAKE) $(MAKESILENT) -f src/server_route/CMakeFiles/server_route.dir/build.make src/server_route/CMakeFiles/server_route.dir/clean
-.PHONY : src/server_route/CMakeFiles/server_route.dir/clean
+src/CMakeFiles/Floaty.dir/clean:
+	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/Floaty.dir/build.make src/CMakeFiles/Floaty.dir/clean
+.PHONY : src/CMakeFiles/Floaty.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

@@ -117,17 +117,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named server_route
+# Target rules for targets named Floaty
 
 # Build rule for target.
-server_route: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 server_route
-.PHONY : server_route
+Floaty: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Floaty
+.PHONY : Floaty
 
 # fast build rule for target.
-server_route/fast:
-	$(MAKE) $(MAKESILENT) -f src/server_route/CMakeFiles/server_route.dir/build.make src/server_route/CMakeFiles/server_route.dir/build
-.PHONY : server_route/fast
+Floaty/fast:
+	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/Floaty.dir/build.make src/CMakeFiles/Floaty.dir/build
+.PHONY : Floaty/fast
 
 # Help Target
 help:
@@ -137,7 +137,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... server_route"
+	@echo "... Floaty"
 .PHONY : help
 
 
