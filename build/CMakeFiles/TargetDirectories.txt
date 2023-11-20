@@ -1,5 +1,0 @@
-/home/goradef/Floaty/build/CMakeFiles/edit_cache.dir
-/home/goradef/Floaty/build/CMakeFiles/rebuild_cache.dir
-/home/goradef/Floaty/build/src/CMakeFiles/Floaty.dir
-/home/goradef/Floaty/build/src/CMakeFiles/edit_cache.dir
-/home/goradef/Floaty/build/src/CMakeFiles/rebuild_cache.dir
