@@ -3,19 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Floaty</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <script>
-      // test case
-        function Foo() {
-                var form = document.createElement('form');
-                form.setAttribute('method', 'post');
-                form.setAttribute('action', 'http://google.com');
-                form.style.display = 'hidden';
-                document.body.appendChild(form)
-                form.submit();
-            }
-    </script>
+    <script rel="script" src="../js/login.js"></script>
 </head>
 <body>
   <style>
@@ -42,19 +32,18 @@
 <!--  Фактически navbar изначально нет -->
   
     <div class="content">
+  <form class="inputCont" id="loginForm">
+    <h2> Введите логин и пароль</h2>
+    
+    <input id='login' type="text" placeholder="Login">
+    <br>
+    
+    <input id='password' type="password" placeholder="Password">
+    <br>
 
-                <div class="inputCont">
-                <h2> Введите логин и пароль</h2>
-                <input id='login' type="text" placeholder="Login">
-                <br>
-                <input id='password' type="password" placeholder="Password">
-              <br>
-              <p style="display: none;" id="comparer">placeholder</p>
-              <button 
-                class="submitBtn"
-                onclick="Login()">Login</button>  
-                </div>
-
+    <p style="display: none;" id="comparer">placeholder</p>
+    <button class="submitBtn" type="submit">Login</button>  
+  </form>
     </div>
 </body>
 </html>

@@ -12,7 +12,7 @@ private:
     bool isSuccess{0};
     const std::string server = "tcp://localhost:3306";
     const std::string username = "goradef";
-    const std::string password = "Mfdib2233";
+    const std::string password = "2011";
     sql::Driver *driver;
     sql::Connection *con;
     sql::Statement *stmt;

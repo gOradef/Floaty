@@ -89,10 +89,7 @@ html {
   body {
     background-color: #333;
   }
-  
-  form>h2 {
-    color: #000000;
-  }
+
   
   .submitBtn {
     margin-top: 20px;
