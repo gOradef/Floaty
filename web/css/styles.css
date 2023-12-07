@@ -1,0 +1,256 @@
+html {
+    inset: 0;
+    padding: 0;
+  }
+  
+  body {
+    margin: 0;
+  }
+  
+  .navbar {
+    display: inline-grid;
+    align-items: center;
+    inset: 0;
+    width: 100%;
+    height: 65px;
+    overflow: hidden;
+    background: #222;
+    color: #FFF;
+  
+    /** Typography */
+    font-family: Inika;
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+  }
+  
+  .logoDiv {
+    grid-column: 1;
+  }
+  
+  .logo {
+    text-decoration: none;
+    color: #FFF;
+  
+    margin-left: 2.5rem;
+    height: 44px;
+    flex-shrink: 0;
+  
+  }
+  
+  .navButtons {
+    grid-column: 5;
+    grid-auto-flow: 1;
+    grid-row: 1;
+  
+    padding-left: 2rem;
+  }
+  
+  .navButtons>a {
+    font-weight: 400;
+    font-size: 2rem;
+  
+    transition: all .3s;
+    text-decoration: none;
+    padding-left: 0.7rem;
+    color: #FFF;
+    
+  }
+  
+  .navButtons>a:hover {
+    text-decoration: overline solid rgb(230, 177, 79);
+    color: rgb(75, 160, 96);
+  }
+  
+  .loginButton {
+  
+    grid-column: 5;
+    grid-row: 1;
+    justify-self: flex-end;
+    margin-right: 2rem;
+  }
+  
+  .loginButton>a {
+    font-weight: 400;
+    font-size: 2rem;
+    transition: all .3s;
+    text-decoration: none;
+    padding-left: 0.7rem;
+    color: #FFF;
+  
+  }
+  
+  .loginButton>a:hover {
+    text-decoration: overline solid rgb(230, 177, 79);
+    color: rgb(75, 160, 96);
+  }
+  
+  body {
+    background-color: #333;
+  }
+  
+  form>h2 {
+    color: #000000;
+  }
+  
+  .submitBtn {
+    margin-top: 20px;
+    width: 150px;
+    height: 30px;
+    border-radius: 100px;
+    transition: all .5s;
+    border-color: transparent;
+  }
+  
+  .submitBtn:hover {
+    background-color: #94e594;
+  }
+  
+  @media screen and (max-width: 700px) {
+    .navbar>div.navButtons {
+      /* background-color: lightgreen; */
+      display: none;
+    }
+  }
+  
+  
+  @keyframes bounce {
+    from {
+      transform: translateY(30px);
+      background: #FEDD31;
+    }
+  
+    to {
+      transform: translateY(-30px);
+      background: #D0782A;
+    }
+  }
+  
+  input[type="text"] {
+    font-family: Inika;
+  }
+  
+  .inputCont {
+    color: white;
+    border-radius: 15px;
+    width: 300px;
+    height: 50vh;
+    background-color: #222;
+  
+    /* padding-top: 0px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 20px; */
+    margin:auto;
+    margin-top: 10vh;
+  
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .content {
+    height: 100vh;
+  }
+  
+  
+  .blockI {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+  
+  .block_A{
+    background: #222;
+    border-radius: 0px 10px 10px 0px;
+    color: white;
+    font-family: Inika;
+    text-align: right;
+    padding-right: 10px;
+    font-style: normal;
+    width: 20%;
+    margin-top: 10px;
+  }
+  
+  .block_B{
+    width: 80%;
+    margin-left: 10%;
+    margin-right: 10%;
+    background-color: #222;
+    padding: 10px;
+    border-radius: 10px;
+    height: 800px;
+  }
+  
+  .block_B_title {
+    text-align: center;
+  }
+  
+  .block_B_desk_t {
+    display:  grid;
+    grid-template-columns: repeat(2, 1fr);
+    
+  }
+  
+  .A1 {
+    width: 20%;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .A2 {
+    width: auto;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .A3 {
+    width: 20%;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .A_3_5 {
+    width: auto;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .A5 {
+    width: 20%;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .A6{
+    width: auto;
+    height: auto;
+    text-align: center;
+    color: white;
+  }
+  
+  .blockMakeDesk {
+    display: grid;
+    grid-template-columns: repeat(6);
+    grid-template-rows: repeat(6, auto);
+    margin-top: 20px;
+    margin-left: 5%;
+    margin-right: 5%;
+    background-color: #222;
+    min-height: 30xp;
+    color: white;
+    padding: 5px;
+    text-align: center;
+  }
+  
+  .block_ALFA {
+    min-height: 40px;
+  }

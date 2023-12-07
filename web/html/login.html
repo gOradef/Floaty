@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <script>
+      // test case
+        function Foo() {
+                var form = document.createElement('form');
+                form.setAttribute('method', 'post');
+                form.setAttribute('action', 'http://google.com');
+                form.style.display = 'hidden';
+                document.body.appendChild(form)
+                form.submit();
+            }
+    </script>
+</head>
+<body>
+  <style>
+    input {
+      margin-top:12px;
+    }
+  </style>
+  <!-- Динамически -->
+  <nav class="navbar">
+    <img src="../imgs/Logo2v2.png" style="object-fit: scale-down;" height="59px">
+      <div class="logoDiv">
+        <a href="#" class="logo">Floaty</a>
+      </div>
+      <div class="navButtons">
+          <a href="https://floatyweb.efimovsasha2007.repl.co/web/html/home.html">Home</a>
+          <a href="/guides">Guides</a>
+          <a href="/docs">Docs</a>
+          <a href="/aboutAPI">API</a>
+      </div>
+      <div class="loginButton">
+          <a href="/login">Login</a>
+      </div>
+  </nav>
+<!--  Фактически navbar изначально нет -->
+  
+    <div class="content">
+
+                <div class="inputCont">
+                <h2> Введите логин и пароль</h2>
+                <input id='login' type="text" placeholder="Login">
+                <br>
+                <input id='password' type="password" placeholder="Password">
+              <br>
+              <p style="display: none;" id="comparer">placeholder</p>
+              <button 
+                class="submitBtn"
+                onclick="Login()">Login</button>  
+                </div>
+
+    </div>
+</body>
+</html>
