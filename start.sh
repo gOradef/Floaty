@@ -1,4 +1,6 @@
 cd build &&
-echo Starting cmake build into: &&
-pwd && 
-# cmake ..
+cmake .. &&
+make &&
+cp src/Floaty .. &&
+cd .. &&
+./Floaty

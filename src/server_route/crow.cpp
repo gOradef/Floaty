@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <iostream>
 #include "../headerFiles/1.h"
+/**
+ * Todo add header to web
+ * Todo add header to conection for db && login/register
 
+*/
 int main()
 {
     crow::SimpleApp app;
