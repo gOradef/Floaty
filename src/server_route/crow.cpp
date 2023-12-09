@@ -1,9 +1,6 @@
-#include "../includes/crow.h"
-
-#include "../includes/Floaty.h"
 #include <fstream>
 #include <string>
-
+#include "../../includes/Floaty.h"
 #define CROW_STATIC_DIRECTORY "web/"
 #define CROW_STATIC_ENDPOINT "web/"
 
@@ -11,13 +8,14 @@ int main()
 {
     int i;
     crow::SimpleApp app;
-    crow::mustache::context ctx;
+    crow::mustache::context ctx; 
     crow::mustache::set_global_base("web");
     CROW_CATCHALL_ROUTE(app)([](const crow::request &req, crow::response &res)
     {
         res.redirect("/home");
         res.end();
     });
+
     //! Только для html
     CROW_ROUTE(app, "/<string>")
     ([&i](/*const crow::request &req, crow::response &res,*/std::string file)
@@ -45,6 +43,16 @@ int main()
         return res;
     });
 
+
+    //* Response for login post req
+    CROW_ROUTE(app, "/login-process")
+    .methods("POST"_method)([](const crow::request &req, crow::response &res){
+        // auto temp = &res;
+        res = genToken(req, res);
+        return res.end();
+    }
+
+    );
     app .bindaddr("127.0.0.1")
         .port(6010)
         .multithreaded()
