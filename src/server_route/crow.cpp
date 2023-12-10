@@ -10,18 +10,20 @@ int main()
     crow::SimpleApp app;
     crow::mustache::context ctx; 
     crow::mustache::set_global_base("web");
-    CROW_CATCHALL_ROUTE(app)([](const crow::request &req, crow::response &res)
-    {
-        res.redirect("/home");
-        res.end();
-    });
 
     //! Только для html
     CROW_ROUTE(app, "/<string>")
-    ([&i](/*const crow::request &req, crow::response &res,*/std::string file)
+    ([&i](std::string file)
      {
 
         crow::mustache::context ctx;
+        auto nav = crow::mustache::load_text("html/templates/navbar.html");
+        auto footer = crow::mustache::load_text("html/templates/footer.html");
+        ctx.content_type = "text/html";
+
+        ctx["navbarFile"] = nav;
+        ctx["footerFile"] = footer;
+
         auto page = crow::mustache::load("html/" + file + ".html");
             if (file == "favicon.ico") {
                 page = crow::mustache::load("imgs/favicon.ico");
@@ -29,11 +31,10 @@ int main()
             }
             if (page.render_string() == "") {
                 page = crow::mustache::load("html/error404.html");
-                ctx["id"] = i;
-                i++;
                 return page.render(ctx);
             }
-        return page.render();
+        // page.render_string();
+        return page.render(ctx);
      });
 
     //* Response for resourses of web
@@ -56,6 +57,5 @@ int main()
     app .bindaddr("127.0.0.1")
         .port(6010)
         .multithreaded()
-        // .loglevel(crow::LogLevel::Debug)
         .run_async();
 }
