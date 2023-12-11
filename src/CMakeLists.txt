@@ -3,13 +3,14 @@ project(buildSrc)
 
 message(STATUS "Setting virtual env's for build..")
 
-set(DB_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/db_route/db_route.cpp)
+set(AUTHENTICATION_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/authentication_route/authentication.cpp)
 set(SERVER_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/server_route/crow.cpp)
-set(LOGIN_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/login_route/login.cpp)
+set(WEB_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/web_route/web.cpp)
+
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/libs)
 set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
 # set(CMAKE_CXX_FLAGS -lcrypto  -lssl )
-list(APPEND SOURCES  ${DB_ROUTE} ${SERVER_ROUTE} ${LOGIN_ROUTE})
+list(APPEND SOURCES  ${WEB_ROUTE} ${SERVER_ROUTE} ${AUTHENTICATION_ROUTE})
 message(STATUS "Starting build..")
 #! -lstdc++ -lcrypto -lssl
 # link_libraries(${LIBS_DIR})

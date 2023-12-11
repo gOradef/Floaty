@@ -1,5 +1,7 @@
 // #include "../../includes/crow/http_request.h"
-#include "../../includes/Floaty/login.h"
+
+#include <ctime>
+#include "../../includes/Floaty/authentication.h"
 crow::response genToken(const crow::request &req, crow::response &res) {
     Json::Value root;
     Json::Reader reader;
@@ -49,18 +51,17 @@ crow::response genToken(const crow::request &req, crow::response &res) {
 
         // Создание JSON Web Token
         auto token_builder = jwt::create();
-        token_builder.set_issuer("my_app");
+        token_builder.set_issuer("coockieLoader");
         token_builder.set_type("JWT");
 
         token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
         
-        //TODO - add dynamic generator of secret key using current date
-        // * auto start = std::chrono::system_clock::now();
-        // * std::time_t date = std::chrono::system_clock::to_time_t(start);
-        // * return crow::response(200, std::ctime(&date));
-        
-        
-        std::string secret_key = "date";
+        time_t now = time(0);
+        tm *ltm = localtime(&now);
+        std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon) + '.' + std::to_string(ltm->tm_mday)};
+
+
+        std::string secret_key = dynamicDate + '.' + corrLoginJ.asString();
         token_builder.set_subject("user");
         std::string jwt = token_builder.sign(jwt::algorithm::hs256{std::string(secret_key)});
         

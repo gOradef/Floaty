@@ -1,5 +1,3 @@
-#include <fstream>
-#include <string>
 #include "../../includes/Floaty.h"
 #define CROW_STATIC_DIRECTORY "web/"
 #define CROW_STATIC_ENDPOINT "web/"
@@ -15,34 +13,20 @@ int main()
     CROW_ROUTE(app, "/<string>")
     ([&i](std::string file)
      {
-
-        crow::mustache::context ctx;
-        auto nav = crow::mustache::load_text("html/templates/navbar.html");
-        auto footer = crow::mustache::load_text("html/templates/footer.html");
-        ctx.content_type = "text/html";
-
-        ctx["navbarFile"] = nav;
-        ctx["footerFile"] = footer;
-
-        auto page = crow::mustache::load("html/" + file + ".html");
-            if (file == "favicon.ico") {
-                page = crow::mustache::load("imgs/favicon.ico");
-                return page.render();
-            }
-            if (page.render_string() == "") {
-                page = crow::mustache::load("html/error404.html");
-                return page.render(ctx);
-            }
-        // page.render_string();
-        return page.render(ctx);
+        return genWebPages(file);
      });
 
-    //* Response for resourses of web
-    CROW_ROUTE(app, "/<string>/<string>")
-    ([](std::string type,std::string file){
-        auto res = crow::mustache::load_text(type +'/' + file);
-        return res;
+    //*TODO get cookie and compare with current date coockie
+    CROW_ROUTE(app, "/admin/report")([](const crow::request &req) {
+        std::string userToken = req.get_header_value("Cookie");
+        return crow::response(280, "In progress..");
+
     });
+    CROW_CATCHALL_ROUTE(app)([]
+    {
+        return handle404Page();
+    }
+    );
 
 
     //* Response for login post req
@@ -54,6 +38,11 @@ int main()
     }
 
     );
+    //* Response for resourses of web
+    CROW_ROUTE(app, "/<string>/<string>")
+    ([](std::string type,std::string file){
+        return sendWebResoursesByRequest(type, file);
+    });
     app .bindaddr("127.0.0.1")
         .port(6010)
         .multithreaded()
