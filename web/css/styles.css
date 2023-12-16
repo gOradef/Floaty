@@ -302,3 +302,33 @@ html {
   font-family: 'Times New Roman', Times, serif;
   color: white;
 }
+
+
+/* SECTION - userInterface */
+
+.mainFrame {
+  display: grid;
+}
+.mainFrame > .panelFrame {
+  grid-column: 1;
+  grid-row: 1;
+  background-color: #94e594;
+
+}
+.mainFrame > .contentFrame {
+  display: grid;
+  grid-row: 2;
+  background-color: #FFF;
+}
+.mainFrame > .contentFrame > div {
+  border:1px solid #444;
+  padding: 0 5px 0 5px ;
+}
+/* TODO make side frame
+.mainFrame > .sideFrame {
+  background-color: #FFF;
+  grid-column: 1;
+  grid-row: 2;
+} */
+
+/*!SECTION - userInterface */

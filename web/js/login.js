@@ -28,13 +28,13 @@ function setCookie(name, value) {
     })
   })
   .then(response => {
-    if (response.status == 401) {
+    if (response.status === 401) {
     login.style = "background-color:#ffdddd;"
     password.style = "background-color:#ffdddd;"
     statusLine = document.getElementById("status");
     statusLine.innerHTML = "Invalid login or password";
     }
-    else if(response.status == 200) {
+    else if(response.status === 200) {
       const jres = response.json()
       .then(jres => {
         const token1 = jres.token;
@@ -47,7 +47,11 @@ function setCookie(name, value) {
       
       statusLine = document.getElementById("status");
       statusLine.innerHTML = "U r in!";
+      //!TODO remove after testing
       alert("Ur token is: " + document.cookie.valueOf("token"))
+      })
+      .then(cookie => {
+        window.location.assign("/interface");
       })
           }
   })

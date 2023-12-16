@@ -2,28 +2,43 @@
 
 #include <ctime>
 #include "../../includes/Floaty/authentication.h"
-crow::response genToken(const crow::request &req, crow::response &res) {
-    Json::Value root;
+
+
+
+//* returns secret for jwt
+std::string genToken(const std::string corrLoginStr) {
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon) + '.' + std::to_string(ltm->tm_mday)};
+    // // std::string dynamicDate = "faldskfjopqwierf";
+    return std::string(dynamicDate + '.' + corrLoginStr);
+}
+
+crow::response genTokenAndSend(const crow::request &req, crow::response &res) {
+    Json::Value userReq;
     Json::Reader reader;
     //* get json object from string req.body
-    bool parsingSuccessful = reader.parse(req.body, root);
+    bool parsingSuccessful = reader.parse(req.body, userReq);
     if ( !parsingSuccessful )
     {
         return crow::response(501, "Failed to parse user data");
     }
 
-    //* get data from json, if non req key => -1 
-    Json::Value loginJ = root.get("login", "-1");
-    Json::Value passwordJ = root.get("password", "-1");
+    //* get data from json, if non => req key = -1
+    Json::Value loginJ = userReq.get("login", "-1");
+    Json::Value passwordJ = userReq.get("password", "-1");
     
     //* check IsValid format data
     if (loginJ.asString() == "-1" || passwordJ.asString() == "-1") return crow::response(401, "invalid ClientJson");
 
-    //Todo get login and password from fstream in data_dir/num_dir/shoolData.json
-    //* In progress..
     std::ifstream inputFile;
-    inputFile.open("data/125/schoolData.json");
-    
+
+    try {
+        inputFile.open("data/" + loginJ.asString() +"/schoolData.json");
+    }
+    catch(std::exception &e) {
+        return crow::response(500, e.what());
+    }
     std::stringstream buff;
     buff << inputFile.rdbuf();
 
@@ -34,7 +49,7 @@ crow::response genToken(const crow::request &req, crow::response &res) {
 
     if (!parsingSuccessful ) { return crow::response(501, "Failed to parse schooler data"); }
     
-    if (root.empty()) { return crow::response(501, "Failed to parse school data"); }
+    if (rootSchoolData.empty()) { return crow::response(501, "Failed to parse school data"); }
 
     Json::Value corrLoginJ = rootSchoolData.get("login", "-1");
     Json::Value corrUserPassword = rootSchoolData.get("userPassword", "-1");
@@ -51,17 +66,15 @@ crow::response genToken(const crow::request &req, crow::response &res) {
 
         // Создание JSON Web Token
         auto token_builder = jwt::create();
-        token_builder.set_issuer("coockieLoader");
+        token_builder.set_issuer("FloatyCook");
         token_builder.set_type("JWT");
 
         token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
+
+        token_builder.set_id(genToken(corrLoginJ.asString()));
         
-        time_t now = time(0);
-        tm *ltm = localtime(&now);
-        std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon) + '.' + std::to_string(ltm->tm_mday)};
+        std::string secret_key = "alksdjfqopijclaknc;lkajds;lkjfrqpoiewjrldknhafajhpiquehjr";
 
-
-        std::string secret_key = dynamicDate + '.' + corrLoginJ.asString();
         token_builder.set_subject("user");
         std::string jwt = token_builder.sign(jwt::algorithm::hs256{std::string(secret_key)});
         
@@ -72,8 +85,6 @@ crow::response genToken(const crow::request &req, crow::response &res) {
         writer.Key("token");
         writer.String(jwt.c_str());
         writer.EndObject();
-
-        // auto tokenHere = jwt::decode(token_builder);
         
 
         // Отправка JSON-ответа с токеном пользователю

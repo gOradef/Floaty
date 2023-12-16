@@ -355,7 +355,7 @@ namespace jwt {
 	} // namespace error
 
 	// FIXME: Remove
-	// Keep backward compat at least for a couple of revisions
+	// Keep backward compat at least f`or a couple of revisions
 	using error::ecdsa_exception;
 	using error::rsa_exception;
 	using error::signature_generation_exception;
