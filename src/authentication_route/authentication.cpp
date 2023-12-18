@@ -6,15 +6,15 @@
 
 
 //* returns secret for jwt
-std::string genToken(const std::string corrLoginStr) {
+std::string genToken(const std::string loginStr) {
     time_t now = time(0);
     tm *ltm = localtime(&now);
     std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon) + '.' + std::to_string(ltm->tm_mday)};
-    // // std::string dynamicDate = "faldskfjopqwierf";
-    return std::string(dynamicDate + '.' + corrLoginStr);
+    std::string secret = dynamicDate + '.' + loginStr;
+    return secret;
 }
 
-crow::response genTokenAndSend(const crow::request &req, crow::response &res) {
+crow::response genTokenAndSend(const crow::request &req) {
     Json::Value userReq;
     Json::Reader reader;
     //* get json object from string req.body
@@ -68,14 +68,11 @@ crow::response genTokenAndSend(const crow::request &req, crow::response &res) {
         auto token_builder = jwt::create();
         token_builder.set_issuer("FloatyCook");
         token_builder.set_type("JWT");
-
         token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
-
         token_builder.set_id(genToken(corrLoginJ.asString()));
-        
-        std::string secret_key = "alksdjfqopijclaknc;lkajds;lkjfrqpoiewjrldknhafajhpiquehjr";
+        token_builder.set_subject("userToken");
 
-        token_builder.set_subject("user");
+        std::string secret_key = "alksdjfqopijclaknc;lkajds;lkjfrqpoiewjrldknhafajhpiquehjr";
         std::string jwt = token_builder.sign(jwt::algorithm::hs256{std::string(secret_key)});
         
         // Формирование JSON-ответа с токеном
@@ -85,7 +82,6 @@ crow::response genTokenAndSend(const crow::request &req, crow::response &res) {
         writer.Key("token");
         writer.String(jwt.c_str());
         writer.EndObject();
-        
 
         // Отправка JSON-ответа с токеном пользователю
         return crow::response(sb.GetString());

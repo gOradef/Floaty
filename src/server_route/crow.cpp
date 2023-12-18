@@ -19,7 +19,7 @@ int main()
         res.body = genWebPages("interface").body;
         return res.end();
     }
-    res.body = "all is bad bruh";
+    res.body = "something went wrong.. UwU";
     return res.end();
 
    });
@@ -29,7 +29,7 @@ int main()
      {
         return genWebPages(file);
      });
-    //*TODO get cookie and compare with current date coockie
+    //*TODO get cookie and compare with current date cookie
     CROW_ROUTE(app, "/api/getData")([](const crow::request &req) 
     {
         if (req.get_header_value("Cookie") != "") {
@@ -52,10 +52,11 @@ int main()
     //* Response for login post req
     CROW_ROUTE(app, "/login-process")
     .methods("POST"_method)([](const crow::request &req, crow::response &res){
-        res = genTokenAndSend(req, res);
+        res = genTokenAndSend(req);
         return res.end();
     }
     );
+
     //* Response for resourses of web
     CROW_ROUTE (app, "/<string>/<string>")
     ([](std::string type,std::string file)

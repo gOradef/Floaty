@@ -1,6 +1,6 @@
-cd build &&
-cmake .. &&
-make &&
-cp src/Floaty .. &&
-cd .. &&
+cd cmake-build-debug &&
+cmake --build . &&
+cd src &&
+cp ./Floaty ../.. &&
+cd ../.. &&
 ./Floaty

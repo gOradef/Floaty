@@ -38,8 +38,7 @@ function setCookie(name, value) {
       const jres = response.json()
       .then(jres => {
         const token1 = jres.token;
-        console.log(token1);
-        setCookie('token', token1);
+        setCookie("token", token1);
       })
       .then(token1 => {
         login.style = "background-color:#ddffdd;"

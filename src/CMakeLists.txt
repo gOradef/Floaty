@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
+
+include(../cmake/iflib-inc.cmake)
+
 project(buildSrc)
 
-message(STATUS "Setting virtual env's for build..")
+message(STATUS "Setting virtual environment vars for build..")
 
 set(AUTHENTICATION_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/authentication_route/authentication.cpp)
 set(AUTHORIZATION_ROUTE ${CMAKE_CURRENT_SOURCE_DIR}/authorization_route/authorization.cpp)
@@ -22,4 +25,7 @@ link_libraries(${LIBS_DIR}/libjsoncpp.so)
 add_executable(Floaty ${SOURCES})
 target_include_directories(Floaty PRIVATE ${INCLUDES})
 target_link_directories(Floaty PRIVATE ${LIBS_DIR})
+
+target_link_libraries(Floaty PRIVATE iflib-inc)
+
 message(STATUS "Starting build.. DONE")
