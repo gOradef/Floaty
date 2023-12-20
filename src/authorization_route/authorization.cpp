@@ -2,14 +2,28 @@
 bool isValidCookie(const crow::request &req) {
 
 
-    std::string userTokenNative = std::string(req.get_header_value("Cookie"));
+    std::string cookieHeader = req.get_header_value("Cookie");
 
-    //removes here token= prefix
-    for(int i{0}; i < 5; i++) {
-        userTokenNative.pop_back();
+    std::vector<std::string> tokens;
+    size_t start = 0, end = 0;
+    while ((end = cookieHeader.find(';', start)) != std::string::npos) {
+        tokens.push_back(cookieHeader.substr(start, end - start));
+        start = end + 1;
     }
+    // Добавляем последний токен
+    tokens.push_back(cookieHeader.substr(start));
 
-    // const jwt::decoded_jwt userTokenDecoded = jwt::decode(userTokenNative);
+    // Выбираем последний токен
+    std::string userTokenNative;
+    if (!tokens.empty()) {
+        userTokenNative = tokens.back();
+    } else {
+        return false;
+    }
+    //Ломаем статичный префикс токена
+    for (int i = 0; i < 7; ++i) {
+    userTokenNative.erase(userTokenNative.begin());
+    }
     std::string secret;
     if (req.url_params.get("schoolId") != nullptr) {
         const std::string schoolLogin = req.url_params.get("schoolId");
@@ -17,13 +31,10 @@ bool isValidCookie(const crow::request &req) {
     }
     else return false;
 
-    /* //TODO - рефактить jwt builder, чтобы появился id с датой (может полностью точной?). Далее декодить здесь токен и бранть Id ->
-    *  //TODO собирать новый токен с выданным id для сравнения, если соответствие -> пустить в interface 
-    */ //TODO - брать из query selector Login школы
     try {
         jwt::decoded_jwt decodedToken = jwt::decode(userTokenNative);
         auto verifyApp = jwt::verify()
-            .allow_algorithm(jwt::algorithm::hs256(secret))
+            .allow_algorithm(jwt::algorithm::hs256("super-mega-giga-kilo-long-secret"))
             .with_issuer("FloatyCook")
             .with_type("JWT")
             .with_id(secret)
@@ -33,8 +44,8 @@ bool isValidCookie(const crow::request &req) {
         return 1;
     }
     catch (jwt::token_verification_exception &e) { std::cout << "exception goted - " << e.what();}
-    catch (std::runtime_error &e) {std::cout << e.what();}
-    catch (std::invalid_argument &e) {std::cout << e.what();}
+    catch (std::runtime_error &e) {std::cout << "exception goted - " << e.what();}
+    catch (std::invalid_argument &e) {std::cout << "exception goted - " << e.what();}
 
     std::cout << "Skipped exception";
     return false;

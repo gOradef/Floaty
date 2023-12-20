@@ -6,7 +6,7 @@ loginForm.addEventListener("submit", (e) => {
 
   let login = document.getElementById("login");
   let password = document.getElementById("password");
-
+  let urlParams;
   if (login.value == "" || password.value == "") {
     alert("ERROR: Ensure you input a value in both fields!");
   }
@@ -37,20 +37,22 @@ function setCookie(name, value) {
     else if(response.status === 200) {
       const jres = response.json()
       .then(jres => {
+
+        // Adding URL parameters to the login value
+        urlParams = `?schoolId=${jres.schoolId}`;
+
         const token1 = jres.token;
         setCookie("token", token1);
       })
-      .then(token1 => {
+      .then(bruh => {
         login.style = "background-color:#ddffdd;"
       password.style = "background-color:#ddffdd;"
       
       statusLine = document.getElementById("status");
       statusLine.innerHTML = "U r in!";
-      //!TODO remove after testing
-      alert("Ur token is: " + document.cookie.valueOf("token"))
       })
-      .then(cookie => {
-        window.location.assign("/interface");
+      .then(jres => {
+        window.location.assign("/interface" + urlParams);
       })
           }
   })

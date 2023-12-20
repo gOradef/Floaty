@@ -57,7 +57,7 @@ int main()
     }
     );
 
-    //* Response for resourses of web
+    //* Response for resources of web
     CROW_ROUTE (app, "/<string>/<string>")
     ([](std::string type,std::string file)
     {
