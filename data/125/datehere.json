@@ -3,7 +3,6 @@
         "1" : {
             "А": 
             {
-                "teacherId":"1234567890",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -14,7 +13,6 @@
             },
             "Б": 
             {
-                "teacherId":"1234567890",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -25,7 +23,6 @@
             },
             "В": 
             {
-                "teacherId":"1234567890",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -38,7 +35,6 @@
         "2": {
             "А": 
             {
-                "teacherId":"1234567890",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -49,7 +45,6 @@
             },
             "Б": 
             {
-                "teacherId":"1234567890",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",

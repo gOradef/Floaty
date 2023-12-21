@@ -35,6 +35,8 @@ crow::response sendWebResoursesByRequest(std::string type, std::string file) {
 crow::response handleErrPage(int ec, std::string ecom) {
     crow::mustache::context ctx;
     switch(ec) {
+        default:
+            ctx["ec"] = ec;
         case 0:
             ctx["ecom"] = "idk what hpnd";
         case 401:
@@ -45,9 +47,6 @@ crow::response handleErrPage(int ec, std::string ecom) {
             break;
         case 404:
             ctx["ecom"] = "Page is not found";
-            break;
-        default:
-            ctx["ec"] = ec;
     }
 
     if (ec == 0) {ctx[ec] = 400;}
