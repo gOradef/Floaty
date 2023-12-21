@@ -1,13 +1,19 @@
 html {
     inset: 0;
     padding: 0;
+    width: 100%;
+    height: 110%;
   }
   
   body {
     margin: 0;
+    height: inherit;
   }
   
   .navbar {
+    position: sticky;
+    top: 0px;
+    z-index: 1;
     display: inline-grid;
     align-items: center;
     inset: 0;
@@ -40,14 +46,14 @@ html {
   }
   
   .navButtons {
-    grid-column: 5;
+    grid-column: 3;
     grid-auto-flow: 1;
     grid-row: 1;
   
     padding-left: 2rem;
   }
   
-  .navButtons>a {
+  .navButtons > a {
     font-weight: 400;
     font-size: 2rem;
   
@@ -88,6 +94,8 @@ html {
   
   body {
     background-color: #333;
+    display: flex;
+    flex-direction: column;
   }
 
   
@@ -104,7 +112,7 @@ html {
     background-color: #94e594;
   }
   
-  @media screen and (max-width: 700px) {
+  @media screen and (max-width: 720px) {
     .navbar>div.navButtons {
       /* background-color: lightgreen; */
       display: none;
@@ -251,3 +259,77 @@ html {
   .block_ALFA {
     min-height: 40px;
   }
+
+.footer {
+  margin-top: auto;
+  background-color: #222;
+  color: white;
+  position: relative;
+  height: 70px;
+  width: 100%;
+  text-align: center;
+  font-size: 20px;  
+}
+
+.contacts {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.ourpochta {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.mail:link {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+}
+
+.mail:visited {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+}
+
+.nashatelega {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+}
+
+.natelega.link {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+}
+
+.natelega:visited {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+}
+
+
+/* SECTION - userInterface */
+
+.mainFrame {
+  display: grid;
+}
+.mainFrame > .panelFrame {
+  grid-column: 1;
+  grid-row: 1;
+  background-color: #94e594;
+
+}
+.mainFrame > .contentFrame {
+  display: grid;
+  grid-row: 2;
+  background-color: #FFF;
+}
+.mainFrame > .contentFrame > div {
+  border:1px solid #444;
+  padding: 0 5px 0 5px ;
+}
+/* TODO make side frame
+.mainFrame > .sideFrame {
+  background-color: #FFF;
+  grid-column: 1;
+  grid-row: 2;
+} */
+
+/*!SECTION - userInterface */
