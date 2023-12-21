@@ -1,3 +1,6 @@
+function setCookie(name, value) {
+  document.cookie = `${name}=${value}; path=/`;
+}
 window.addEventListener("DOMContentLoaded", (event) => {
   let loginForm = document.getElementById("loginForm");
 
@@ -12,9 +15,6 @@ loginForm.addEventListener("submit", (e) => {
   }
   else {
     // Функция для установки cookie
-function setCookie(name, value) {
-  document.cookie = `${name}=${value}; path=/`;
-}
 
 // Выполнение POST-запроса на сервер для аутентификации
   fetch('/login-process', {

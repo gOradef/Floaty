@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floaty - Form</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+{{{navbar}}}
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-content: center;
+    }
+</style>
+<div class="">
+    <form class="inputQUEST" id="loginForm" style="padding: 5px; background-color: #222; width: 20%; margin-right: 45%; margin-top: -100px; margin-left: 40%; border-radius: 15px; text-align: center; color: white;">
+        <h2> Выберите класс </h2>
+        <h4>ヾ(•ω•`)o </h4>
+        <!-- строчка сверху должна будет остаться -->
+        <select name="choice" id="classesList">
+            <option value="first">3А</option>
+            <option value="second" selected>2А</option>
+            <option value="third">1А</option>
+        </select>
+        <div><a style="color: orange">[//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\]</a></div>
+        <div class="quest" style="width: 80%">
+            <div class="QST" style="margin-left: 25%;"><div><a>Сколько отсутствует?</a></div>
+                <div><input class="ot" type="number" min="0" placeholder="Кол-во"></div>
+                <div><a>Фамилии отсутствующих по ОРВИ</a></div>
+                <div><input class="otORVI" placeholder="ФИО"></div>
+                <div><a>Фамилии отсутствующих по уважительной причине</a></div>
+                <div><input class="otPP" placeholder="ФИО"></div>
+                <div><a>Фамилии отсутствующих по неуважительной причине</a></div>
+                <div><input class="otDP" placeholder="ФИО"></div>
+                <div><a>Из них бесплатники</a></div>
+                <div><input class="otBESPL" placeholder="ФИО"></div></div>
+            <div><a style="color: orange; padding: 15%;">[//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\]</a></div>
+            <!-- Новогодняя мишура -->
+
+            <!-- <a>Классный руководитель</a> -->
+            <!--<input class="classniy"  -->
+            <!-- Классный нам нужен? -->
+        </div>
+
+        <!-- я немного пошаманил -->
+
+        <!--  Я хз как сделать выпадающий список -->
+        <!--  Он еще должен включать в себя динамически данные о классах -->
+
+        <!--  оставляю тебе это все
+
+
+        Нам вроде надо будет сервак уже разворачивать полноценный для тестирования -> может выйдет здесь
+        ща попробую
+        -->
+
+        <p id="status"></p>
+        <button class="submitBtn" type="submit" id="submitBtn">Отправить</button>
+    </form>
+</div>
+{{{footer}}}
+</body>
+
+</html>
+
+<!--  Так, может сделать в 2 шага форму ?????
+1) Взять класс
+2) На сервере взяли дату о нем
+3) Показали, последние данные и вопрос "Что изменить?" - тогда мне надо получать эти данные - js -->
+
+<!--
+
+Прим.1(Может тогда можно даже хранить фамилии учащихся, хотя это бред)
+Прим.2(Они же форму правильно заполняют - тут пускай тоже правильно все сразу делают)
+-->
+<!--  enginyeew ヾ(•ω•`)o -->
+<!-- котик зигу кидает, как мило)
+<select name="choice">
+  <option value="first">3А</option>
+  <option value="second" selected>2А</option>
+  <option value="third">1А</option>
+</select>
+можно тип такого
+-->

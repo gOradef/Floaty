@@ -3,4 +3,4 @@
 
 crow::response genWebPages(std::string jsonLikeResponse);
 crow::response sendWebResoursesByRequest(std::string type, std::string file);
-crow::response handle404Page();
+crow::response handleErrPage(int ec = 0, std::string comm = "");

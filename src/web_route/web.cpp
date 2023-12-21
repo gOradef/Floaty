@@ -1,6 +1,6 @@
 #include "../../includes/Floaty/web_route.h"
 
-//generates pages with navbar & footer if they exists in requestionable file
+//generates pages with navbar & footer if they exist in requestionable file
 crow::response genWebPages(std::string file) {
     crow::mustache::context ctx;
         auto nav = crow::mustache::load_text("html/templates/navbar.html");
@@ -16,8 +16,7 @@ crow::response genWebPages(std::string file) {
                 return page.render();
             }
             if (page.render_string() == "") {
-                page = crow::mustache::load("html/error404.html");
-                return page.render(ctx);
+                return handleErrPage(404);
             }
         // page.render_string();
         return page.render(ctx);
@@ -25,15 +24,34 @@ crow::response genWebPages(std::string file) {
 
 //NOTE -  Возвращает строку, не полноценный запрос
 crow::response sendWebResoursesByRequest(std::string type, std::string file) {
-    auto res = crow::mustache::load_text(type +'/' + file);
-            if (res== "") {
-                res = crow::mustache::load_text("html/error404.html");
-                return res;
+    auto page = crow::mustache::load_text(type + '/' + file);
+            if (page.empty()) {
+                page = handleErrPage(404).body;
+                return page;
             }
-    return res;
+    return page;
 }
-//Возвращает 404 страницу
-crow::response handle404Page() {
-    auto page = crow::mustache::load("html/error404.html");
-    return page.render();
+
+crow::response handleErrPage(int ec, std::string ecom) {
+    crow::mustache::context ctx;
+    switch(ec) {
+        case 0:
+            ctx["ecom"] = "idk what hpnd";
+        case 401:
+            ctx["ecom"] = "User is not defined";
+            break;
+        case 402:
+            ctx["ecom"] = "Authorization failed";
+            break;
+        case 404:
+            ctx["ecom"] = "Page is not found";
+            break;
+        default:
+            ctx["ec"] = ec;
+    }
+
+    if (ec == 0) {ctx[ec] = 400;}
+    if (ctx["ecom"].size() == 0) {ctx["ecom"] = ecom;}
+    auto page = crow::mustache::load("html/error.html");
+    return page.render(ctx);
 }

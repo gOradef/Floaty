@@ -15,37 +15,62 @@ int main()
         res.moved("/login");
         return res.end();
     }
-    if (isValidCookie(req)) {
-        res.body = genWebPages("interface").body;
-        return res.end();
+    else {
+        switch(isValidCookie(req)) {
+        case 200:
+            res.body = genWebPages("userForm").body;
+            return res.end();
+            break;
+        case 201:
+            res.body = genWebPages("userInterface").body;
+            return res.end();
+            break;
+        case 403:
+            res.body = handleErrPage(0,"Invalid cookie. Visit login page").body;
+            return res.end();
+            break;
+        case 401:
+            res.body = handleErrPage(0, "Undenfined query string").body;
+            return res.end();
+            break;
+        case 402:
+            res.body = handleErrPage(0, "Failed verification").body;
+            return res.end();
+            break;
+        default:
+            res = handleErrPage(404);
+            return res.end();
+        }
     }
-    res.body = "something went wrong.. UwU";
-    return res.end();
 
-   });
+
+    });
     //! Только для html
     CROW_ROUTE(app, "/<string>")
     ([](std::string file)
      {
         return genWebPages(file);
      });
+
     //*TODO get cookie and compare with current date cookie
-    CROW_ROUTE(app, "/api/getData")([](const crow::request &req) 
+    CROW_ROUTE(app, "/api/getData")([](const crow::request &req)
     {
         if (req.get_header_value("Cookie") != "") {
             if (isValidCookie(req)) {
                 //TODO - add Foo() for reading data
                 return crow::response(200, "All is good!");
             }
-            return crow::response(401);
+            else {
+                return handleErrPage(402);
+            }
         }
-        return crow::response(300, "get cookie!");
+        return handleErrPage(402, "Ur cookie is expired or invalid");
     }
     );
 
     CROW_CATCHALL_ROUTE(app)([]
     {
-        return handle404Page();
+        return handleErrPage(404);
     });
 
 
@@ -62,8 +87,8 @@ int main()
     ([](std::string type,std::string file)
     {
         return sendWebResoursesByRequest(type, file);
-    }
-    );
+
+    });
     app .bindaddr("127.0.0.1")
         .port(6010)
         .multithreaded()
