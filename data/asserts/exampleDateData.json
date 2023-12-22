@@ -3,6 +3,7 @@
         "1" : {
             "А": 
             {
+                "name": "1А",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -13,6 +14,7 @@
             },
             "Б": 
             {
+                "name": "1Б",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -23,6 +25,7 @@
             },
             "В": 
             {
+                "name": "1В",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -35,6 +38,7 @@
         "2": {
             "А": 
             {
+                "name": "2А",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",
@@ -45,6 +49,7 @@
             },
             "Б": 
             {
+                "name": "2Б",
                 "howMany": 23,
                 "absent": {
                     "howMany":"4",

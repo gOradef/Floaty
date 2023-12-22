@@ -8,3 +8,6 @@
 #pragma once
 std::string genToken(std::string loginStr = "");
 crow::response genTokenAndSend(const crow::request &req);
+crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ,
+                                    const Json::Value &corrLoginJ,const Json::Value &corrUserPassword,
+                                    const Json::Value &corrAdminPassword);

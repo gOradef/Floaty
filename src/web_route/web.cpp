@@ -36,21 +36,19 @@ crow::response handleErrPage(int ec, std::string ecom) {
     crow::mustache::context ctx;
     switch(ec) {
         default:
-            ctx["ec"] = ec;
+            break;
         case 0:
             ctx["ecom"] = "idk what hpnd";
         case 401:
             ctx["ecom"] = "User is not defined";
-            break;
         case 402:
             ctx["ecom"] = "Authorization failed";
-            break;
         case 404:
             ctx["ecom"] = "Page is not found";
     }
-
+    ctx["ec"] = ec;
     if (ec == 0) {ctx[ec] = 400;}
-    if (ctx["ecom"].size() == 0) {ctx["ecom"] = ecom;}
+    if(ecom != "") {ctx["ecom"] = ecom;}
     auto page = crow::mustache::load("html/error.html");
     return page.render(ctx);
 }

@@ -5,15 +5,70 @@
 
 
 
-//* returns secret for jwt
+
+//* returns secret for jwt <y.m.d.>.<loginStr>
 std::string genToken(const std::string loginStr) {
     time_t now = time(nullptr);
     tm *ltm = localtime(&now);
-    std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon) + '.' + std::to_string(ltm->tm_mday)};
+    std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday)};
     std::string secret = dynamicDate + '.' + loginStr;
     return secret;
 }
+crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ, const Json::Value &corrLoginJ,
+                                    const Json::Value &corrUserPassword, const Json::Value &corrAdminPassword) {
+    bool state;
+    if (passwordJ.asString() == corrUserPassword.asString()) {state = false;}
+    if (passwordJ.asString() == corrAdminPassword.asString()) {state = true;}
 
+    // Создание JSON Web Token
+//TODO возвращать тип пользователя в json, потом обрабатывать на стороне Js
+    if(state == 0) {
+        auto token_builder = jwt::create();
+        token_builder.set_issuer("FloatyCook");
+        token_builder.set_type("JWT");
+        token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
+        token_builder.set_id(genToken(corrLoginJ.asString()));
+        token_builder.set_subject("userToken");
+
+        std::string secret_key = "super-mega-giga-kilo-long-secret";
+        std::string jwt = token_builder.sign(jwt::algorithm::hs256{ std::string(secret_key) });
+
+        // Формирование JSON-ответа с токеном
+        rapidjson::StringBuffer sb;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+        writer.StartObject();
+        writer.Key("token");
+        writer.String(jwt.c_str());
+        writer.Key("schoolId");
+        writer.String(loginJ.asCString());
+        writer.EndObject();
+        return crow::response(sb.GetString());
+    }
+    else if (state == 1) {
+        auto token_builder = jwt::create();
+        token_builder.set_issuer("FloatyCook");
+        token_builder.set_type("JWT");
+        token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
+        token_builder.set_id(genToken(corrLoginJ.asString()));
+        token_builder.set_subject("adminToken");
+
+        std::string secret_key = "super-mega-giga-kilo-long-secret";
+        std::string jwt = token_builder.sign(jwt::algorithm::hs256{ std::string(secret_key) });
+
+        // Формирование JSON-ответа с токеном
+        rapidjson::StringBuffer sb;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+        writer.StartObject();
+        writer.Key("token");
+        writer.String(jwt.c_str());
+        writer.Key("schoolId");
+        writer.String(loginJ.asCString());
+        writer.EndObject();
+        return crow::response(sb.GetString());
+    }
+        // Отправка JSON-ответа с токеном пользователю
+    else return crow::response(599, "impossible");
+}
 crow::response genTokenAndSend(const crow::request &req) {
     Json::Value userReq;
     Json::Reader reader;
@@ -59,63 +114,17 @@ crow::response genTokenAndSend(const crow::request &req) {
         return crow::response(401, "invalid data in school json");
     }
 
-    if (loginJ.asString() == corrLoginJ.asString() && (passwordJ.asString() == corrUserPassword.asString() || passwordJ.asString() == corrAdminPassword.asString())) {
-        //TODO add 2 cases when user is common or admin
-        bool state;
-        if (passwordJ.asString() == corrUserPassword.asString()) {state = false;}
-        if (passwordJ.asString() == corrAdminPassword.asString()) {state = true;}
-
-        // Создание JSON Web Token
-        //TODO возвращать тип пользователя в json, потом обрабатывать на стороне Js
-        if(state == 0) {
-                auto token_builder = jwt::create();
-                token_builder.set_issuer("FloatyCook");
-                token_builder.set_type("JWT");
-                token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
-                token_builder.set_id(genToken(corrLoginJ.asString()));
-                token_builder.set_subject("userToken");
-
-                std::string secret_key = "super-mega-giga-kilo-long-secret";
-                std::string jwt = token_builder.sign(jwt::algorithm::hs256{ std::string(secret_key) });
-
-                // Формирование JSON-ответа с токеном
-                rapidjson::StringBuffer sb;
-                rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-                writer.StartObject();
-                writer.Key("token");
-                writer.String(jwt.c_str());
-                writer.Key("schoolId");
-                writer.String(loginJ.asCString());
-                writer.EndObject();
-                return crow::response(sb.GetString());
-        }
-        else if (state == 1) {
-                auto token_builder = jwt::create();
-                token_builder.set_issuer("FloatyCook");
-                token_builder.set_type("JWT");
-                token_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600));
-                token_builder.set_id(genToken(corrLoginJ.asString()));
-                token_builder.set_subject("adminToken");
-
-                std::string secret_key = "super-mega-giga-kilo-long-secret";
-                std::string jwt = token_builder.sign(jwt::algorithm::hs256{ std::string(secret_key) });
-
-                // Формирование JSON-ответа с токеном
-                rapidjson::StringBuffer sb;
-                rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-                writer.StartObject();
-                writer.Key("token");
-                writer.String(jwt.c_str());
-                writer.Key("schoolId");
-                writer.String(loginJ.asCString());
-                writer.EndObject();
-                return crow::response(sb.GetString());
-        }
-        // Отправка JSON-ответа с токеном пользователю
-        return crow::response(599, "impossible");
+    if (loginJ.asString() == corrLoginJ.asString() && (
+            passwordJ.asString() == corrUserPassword.asString() ||
+            passwordJ.asString() == corrAdminPassword.asString()
+            )
+            ) {
+        return getResponseAndGenJWT(loginJ, passwordJ, corrLoginJ, corrUserPassword, corrAdminPassword);
     }
     else {
         // Пользователь не найден
         return crow::response(401);
     }
 }
+
+

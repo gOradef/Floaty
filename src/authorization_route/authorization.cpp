@@ -19,7 +19,7 @@ int isValidCookie(const crow::request &req) {
         userTokenNative = tokens.back();
     }
     else {
-        return 403;
+        return 403; //invalid token
     }
 
     //Ломаем статичный префикс токена
@@ -48,7 +48,7 @@ int isValidCookie(const crow::request &req) {
             .with_subject("userToken");
 
         verifyApp.verify(decodedToken);
-        return 200;
+        return 200; //oke for user
     }
     catch (jwt::token_verification_exception &e) {
         try {
@@ -60,7 +60,7 @@ int isValidCookie(const crow::request &req) {
                     .with_id(secret)
                     .with_subject("adminToken");
                 verifyApp.verify(decodedToken);
-                return 201;
+                return 201; //oke for admin
         }
         catch(jwt::token_verification_exception &e2) {
                 std::cout << "exception goted verif- " << e.what();

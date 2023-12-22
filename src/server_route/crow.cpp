@@ -16,14 +16,14 @@ void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
             case 201:
                 res.body = genWebPages("userInterface").body;
                 return res.end();
-            case 403:
-                res.body = handleErrPage(0,"Invalid cookie. Visit login page").body;
-                return res.end();
             case 401:
                 res.body = handleErrPage(0, "Undefined query string").body;
                 return res.end();
             case 402:
                 res.body = handleErrPage(0, "Failed verification").body;
+                return res.end();
+            case 403:
+                res.body = handleErrPage(0,"Invalid token. Visit login page").body;
                 return res.end();
             default:
                 res = handleErrPage(404);
@@ -50,30 +50,32 @@ int main()
      });
 
     //*TODO get cookie and compare with current date cookie
-    CROW_ROUTE(app, "/api/getData")
-//    .methods(crow::HTTPMethod::POST)
+    CROW_ROUTE(app, "/api/getDataClassesForm")
+    .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty()) {
             if (isValidCookie(req) == 200 || isValidCookie(req) == 201) {
 //                 res = getClassesAsJson(req.url_params.get("schoolId")).asString();
-                return getStaticFileJson(req.url_params.get("schoolId"), res);
-
+                res = getStaticFileJson(req.url_params.get("schoolId"), res);
+                return res.end();
             }
             else {
-                res = handleErrPage(402);
+                //TODO remove in release
+                std::cout << isValidCookie(req);
+                res = handleErrPage(401, "Verification failed");
                 res.end();
             }
         }
-        res = handleErrPage(402, "Ur cookie is expired or invalid");
+        res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
         return res.end();
     }
     );
 
-    CROW_CATCHALL_ROUTE(app)([]
-    {
-        return handleErrPage(404);
-    });
+//    CROW_CATCHALL_ROUTE(app)([]
+//    {
+//        return handleErrPage(404);
+//    });
 
 
     //* Response for login post req
