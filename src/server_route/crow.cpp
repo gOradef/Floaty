@@ -49,28 +49,56 @@ int main()
         return genWebPages(file);
      });
 
-    //*TODO get cookie and compare with current date cookie
+    //TODO get cookie and compare with current date cookie
+    //TODO split jsonFileInto only classes
     CROW_ROUTE(app, "/api/getDataClassesForm")
     .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty()) {
-            if (isValidCookie(req) == 200 || isValidCookie(req) == 201) {
-//                 res = getClassesAsJson(req.url_params.get("schoolId")).asString();
-                res = getStaticFileJson(req.url_params.get("schoolId"), res);
+            if (isValidCookie(req) == 200) {
+                res = getStaticFileJson(req.url_params.get("schoolId"));
                 return res.end();
             }
             else {
-                //TODO remove in release
-                std::cout << isValidCookie(req);
-                res = handleErrPage(401, "Verification failed");
+                res = handleErrPage(401, "Verification [user] failed");
                 res.end();
             }
         }
         res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
         return res.end();
-    }
-    );
+    });
+
+    CROW_ROUTE(app, "/api/editDataClassesForm")
+            .methods(crow::HTTPMethod::POST)
+                    ([](const crow::request &req, crow::response &res)
+                     {
+                         if (!req.get_header_value("Cookie").empty()) {
+                             if (isValidCookie(req) == 200) {
+                                std::string editNotes = req.body;
+//                                res =
+                                 return res.end();
+                             }
+                             else {
+                                 res = handleErrPage(401, "Verification [user] failed");
+                                 res.end();
+                             }
+                         }
+                         res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                         return res.end();
+                     });
+
+    CROW_ROUTE(app, "/api/getDataClassesInterface")
+    .methods(crow::HTTPMethod::POST)
+            ([](const crow::request &req, crow::response &res)
+    {
+        if(!req.get_header_value("Cookie").empty()) {
+            if (isValidCookie(req) == 201) {
+                res = getStaticFileJson(req.url_params.get("schoolId"));
+                return res.end();
+            }
+        }
+    });
 
 //    CROW_CATCHALL_ROUTE(app)([]
 //    {
