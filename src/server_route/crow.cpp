@@ -48,8 +48,6 @@ int main()
      {
         return genWebPages(file);
      });
-
-    //TODO get cookie and compare with current date cookie
     //TODO split jsonFileInto only classes
     CROW_ROUTE(app, "/api/getDataClassesForm")
     .methods(crow::HTTPMethod::POST)
@@ -76,7 +74,8 @@ int main()
                          if (!req.get_header_value("Cookie").empty()) {
                              if (isValidCookie(req) == 200) {
                                 std::string editNotes = req.body;
-//                                res =
+                                bool isSuccess = editClassesData(editNotes);
+
                                  return res.end();
                              }
                              else {
@@ -100,10 +99,10 @@ int main()
         }
     });
 
-//    CROW_CATCHALL_ROUTE(app)([]
-//    {
-//        return handleErrPage(404);
-//    });
+    CROW_CATCHALL_ROUTE(app)([]
+    {
+        return handleErrPage(404);
+    });
 
 
     //* Response for login post req

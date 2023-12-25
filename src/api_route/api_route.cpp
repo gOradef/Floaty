@@ -54,6 +54,11 @@ Json::Value genTempClassesAsJson(std::string &reqPath){
     return root;
 }
 
+
+bool editClassesData(std::string reqEdit) {
+    
+}
+
 crow::response getStaticFileJson(std::string schoolId) {
     crow::response res;
     std::string currDate = genToken(schoolId);
@@ -68,5 +73,8 @@ crow::response getStaticFileJson(std::string schoolId) {
     }
     else if (res.is_static_type()) { //if exist
         return crow::response(400);
+    }
+    else {
+        return crow::response(500, "file exists bun invalid");
     }
 }
