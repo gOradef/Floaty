@@ -45,10 +45,10 @@ loginForm.addEventListener("submit", (e) => {
         setCookie("token", token1);
       })
       .then(bruh => {
-        login.style = "background-color:#ddffdd;"
+      login.style = "background-color:#ddffdd;"
       password.style = "background-color:#ddffdd;"
-      
-      statusLine = document.getElementById("status");
+
+      let statusLine = document.getElementById("status");
       statusLine.innerHTML = "U r in!";
       })
       .then(jres => {

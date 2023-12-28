@@ -1,335 +1,348 @@
 html {
-    inset: 0;
-    padding: 0;
-    width: 100%;
-    height: 110%;
+  inset: 0;
+  padding: 0;
+  width: 100%;
+  height: 110%;
+}
+
+body {
+  margin: 0;
+  height: inherit;
+  background-color: #333;
+  display: flex;
+  flex-direction: column;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  background-color: #222;
+  width: 230px;
+  border-radius: 15px;
+  text-align: center;
+  align-items: center;
+  color: white;
+}
+.navbar {
+  position: sticky;
+  top: 0px;
+  z-index: 1;
+  display: inline-grid;
+  align-items: center;
+  inset: 0;
+  width: 100%;
+  height: 65px;
+  overflow: hidden;
+  background: #222;
+  color: #FFF;
+
+  /** Typography */
+  font-family: Inika;
+  font-size: 36px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.logoDiv {
+  grid-column: 1;
+}
+
+.logo {
+  text-decoration: none;
+  color: #FFF;
+
+  margin-left: 2.5rem;
+  height: 44px;
+  flex-shrink: 0;
+
+}
+
+.navButtons {
+  grid-column: 3;
+  grid-auto-flow: 1;
+  grid-row: 1;
+
+  padding-left: 2rem;
+}
+
+.navButtons > a {
+  font-weight: 400;
+  font-size: 2rem;
+
+  transition: all .3s;
+  text-decoration: none;
+  padding-left: 0.7rem;
+  color: #FFF;
+  
+}
+
+.navButtons>a:hover {
+  text-decoration: overline solid rgb(230, 177, 79);
+  color: rgb(75, 160, 96);
+}
+
+.loginButton {
+
+  grid-column: 5;
+  grid-row: 1;
+  justify-self: flex-end;
+  margin-right: 2rem;
+}
+
+.loginButton>a {
+  font-weight: 400;
+  font-size: 2rem;
+  transition: all .3s;
+  text-decoration: none;
+  padding-left: 0.7rem;
+  color: #FFF;
+
+}
+
+.loginButton>a:hover {
+  text-decoration: overline solid rgb(230, 177, 79);
+  color: rgb(75, 160, 96);
+}
+
+
+.submitBtn {
+  margin-bottom: 20px;
+  width: 150px;
+  height: 30px;
+  border-radius: 100px;
+  transition: all .5s;
+  border-color: transparent;
+}
+
+.submitBtn:hover {
+  background-color: #94e594;
+}
+
+@media screen and (max-width: 720px) {
+  .navbar>div.navButtons {
+    /* background-color: lightgreen; */
+    display: none;
   }
-  
-  body {
-    margin: 0;
-    height: inherit;
-  }
-  
-  .navbar {
-    position: sticky;
-    top: 0px;
-    z-index: 1;
-    display: inline-grid;
-    align-items: center;
-    inset: 0;
-    width: 100%;
-    height: 65px;
-    overflow: hidden;
-    background: #222;
-    color: #FFF;
-  
-    /** Typography */
-    font-family: Inika;
-    font-size: 36px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: normal;
-  }
-  
-  .logoDiv {
-    grid-column: 1;
-  }
-  
-  .logo {
-    text-decoration: none;
-    color: #FFF;
-  
-    margin-left: 2.5rem;
-    height: 44px;
-    flex-shrink: 0;
-  
-  }
-  
-  .navButtons {
-    grid-column: 3;
-    grid-auto-flow: 1;
-    grid-row: 1;
-  
-    padding-left: 2rem;
-  }
-  
-  .navButtons > a {
-    font-weight: 400;
-    font-size: 2rem;
-  
-    transition: all .3s;
-    text-decoration: none;
-    padding-left: 0.7rem;
-    color: #FFF;
-    
-  }
-  
-  .navButtons>a:hover {
-    text-decoration: overline solid rgb(230, 177, 79);
-    color: rgb(75, 160, 96);
-  }
-  
-  .loginButton {
-  
-    grid-column: 5;
-    grid-row: 1;
-    justify-self: flex-end;
-    margin-right: 2rem;
-  }
-  
-  .loginButton>a {
-    font-weight: 400;
-    font-size: 2rem;
-    transition: all .3s;
-    text-decoration: none;
-    padding-left: 0.7rem;
-    color: #FFF;
-  
-  }
-  
-  .loginButton>a:hover {
-    text-decoration: overline solid rgb(230, 177, 79);
-    color: rgb(75, 160, 96);
-  }
-  
-  body {
-    background-color: #333;
-    display: flex;
-    flex-direction: column;
+}
+
+
+@keyframes bounce {
+  from {
+    transform: translateY(30px);
+    background: #FEDD31;
   }
 
-  
-  .submitBtn {
-    margin-top: 20px;
-    width: 150px;
-    height: 30px;
-    border-radius: 100px;
-    transition: all .5s;
-    border-color: transparent;
+  to {
+    transform: translateY(-30px);
+    background: #D0782A;
   }
+}
+
+input[type="text"] {
+  font-family: Inika;
+}
+
+.inputCont {
+  color: white;
+  border-radius: 15px;
+  width: 300px;
+  height: 50vh;
+  background-color: #222;
+
+  /* padding-top: 0px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 20px; */
+  margin:auto;
+  margin-top: 10vh;
+
   
-  .submitBtn:hover {
-    background-color: #94e594;
-  }
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  height: 100vh;
+}
+
+
+.blockI {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.block_A{
+  background: #222;
+  border-radius: 0px 10px 10px 0px;
+  color: white;
+  font-family: Inika;
+  text-align: right;
+  padding-right: 10px;
+  font-style: normal;
+  width: 20%;
+  margin-top: 10px;
+}
+
+.block_B{
+  width: 80%;
+  margin-left: 10%;
+  margin-right: 10%;
+  background-color: #222;
+  padding: 10px;
+  border-radius: 10px;
+  height: 800px;
+}
+
+.block_B_title {
+  text-align: center;
+}
+
+.block_B_desk_t {
+  display:  grid;
+  grid-template-columns: repeat(2, 1fr);
   
-  @media screen and (max-width: 720px) {
-    .navbar>div.navButtons {
-      /* background-color: lightgreen; */
-      display: none;
-    }
-  }
-  
-  
-  @keyframes bounce {
-    from {
-      transform: translateY(30px);
-      background: #FEDD31;
-    }
-  
-    to {
-      transform: translateY(-30px);
-      background: #D0782A;
-    }
-  }
-  
-  input[type="text"] {
-    font-family: Inika;
-  }
-  
-  .inputCont {
-    color: white;
-    border-radius: 15px;
-    width: 300px;
-    height: 50vh;
-    background-color: #222;
-  
-    /* padding-top: 0px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-bottom: 20px; */
-    margin:auto;
-    margin-top: 10vh;
-  
-    
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .content {
-    height: 100vh;
-  }
-  
-  
-  .blockI {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-  }
-  
-  .block_A{
-    background: #222;
-    border-radius: 0px 10px 10px 0px;
-    color: white;
-    font-family: Inika;
-    text-align: right;
-    padding-right: 10px;
-    font-style: normal;
-    width: 20%;
-    margin-top: 10px;
-  }
-  
-  .block_B{
-    width: 80%;
-    margin-left: 10%;
-    margin-right: 10%;
-    background-color: #222;
-    padding: 10px;
-    border-radius: 10px;
-    height: 800px;
-  }
-  
-  .block_B_title {
-    text-align: center;
-  }
-  
-  .block_B_desk_t {
-    display:  grid;
-    grid-template-columns: repeat(2, 1fr);
-    
-  }
-  
-  .A1 {
-    width: 20%;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .A2 {
-    width: auto;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .A3 {
-    width: 20%;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .A_3_5 {
-    width: auto;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .A5 {
-    width: 20%;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .A6{
-    width: auto;
-    height: auto;
-    text-align: center;
-    color: white;
-  }
-  
-  .blockMakeDesk {
-    display: grid;
-    grid-template-columns: repeat(6);
-    grid-template-rows: repeat(6, auto);
-    margin-top: 20px;
-    margin-left: 5%;
-    margin-right: 5%;
-    background-color: #222;
-    min-height: 30xp;
-    color: white;
-    padding: 5px;
-    text-align: center;
-  }
-  
-  .block_ALFA {
-    min-height: 40px;
-  }
+}
+
+.A1 {
+  width: 20%;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.A2 {
+  width: auto;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.A3 {
+  width: 20%;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.A_3_5 {
+  width: auto;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.A5 {
+  width: 20%;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.A6{
+  width: auto;
+  height: auto;
+  text-align: center;
+  color: white;
+}
+
+.blockMakeDesk {
+  display: grid;
+  grid-template-columns: repeat(6);
+  grid-template-rows: repeat(6, auto);
+  margin-top: 20px;
+  margin-left: 5%;
+  margin-right: 5%;
+  background-color: #222;
+  min-height: 30xp;
+  color: white;
+  padding: 5px;
+  text-align: center;
+}
+
+.block_ALFA {
+  min-height: 40px;
+}
 
 .footer {
-  margin-top: auto;
-  background-color: #222;
-  color: white;
-  position: relative;
-  height: 70px;
-  width: 100%;
-  text-align: center;
-  font-size: 20px;  
+margin-top: auto;
+background-color: #222;
+color: white;
+position: relative;
+height: 70px;
+width: 100%;
+text-align: center;
+font-size: 20px;  
 }
 
 .contacts {
-  font-family: 'Times New Roman', Times, serif;
+font-family: 'Times New Roman', Times, serif;
 }
 
 .ourpochta {
-  font-family: 'Times New Roman', Times, serif;
+font-family: 'Times New Roman', Times, serif;
 }
 
 .mail:link {
-  font-family: 'Times New Roman', Times, serif;
-  color: white;
+font-family: 'Times New Roman', Times, serif;
+color: white;
 }
 
 .mail:visited {
-  font-family: 'Times New Roman', Times, serif;
-  color: white;
+font-family: 'Times New Roman', Times, serif;
+color: white;
 }
 
 .nashatelega {
-  font-family: 'Times New Roman', Times, serif;
-  color: white;
+font-family: 'Times New Roman', Times, serif;
+color: white;
 }
 
 .natelega.link {
-  font-family: 'Times New Roman', Times, serif;
-  color: white;
+font-family: 'Times New Roman', Times, serif;
+color: white;
 }
 
 .natelega:visited {
-  font-family: 'Times New Roman', Times, serif;
-  color: white;
+font-family: 'Times New Roman', Times, serif;
+color: white;
 }
 
+
+.quest {
+width: 80%
+}
 
 /* SECTION - userInterface */
 
 .mainFrame {
-  display: grid;
+display: grid;
 }
 .mainFrame > .panelFrame {
-  grid-column: 1;
-  grid-row: 1;
-  background-color: #94e594;
+grid-column: 1;
+grid-row: 1;
+background-color: #94e594;
 
 }
 .mainFrame > .contentFrame {
-  display: grid;
-  grid-row: 2;
-  background-color: #FFF;
+display: grid;
+grid-row: 2;
+background-color: #FFF;
 }
 .mainFrame > .contentFrame > div {
-  border:1px solid #444;
-  padding: 0 5px 0 5px ;
+border:1px solid #444;
+padding: 0 5px 0 5px ;
 }
 /* TODO make side frame
 .mainFrame > .sideFrame {
-  background-color: #FFF;
-  grid-column: 1;
-  grid-row: 2;
+background-color: #FFF;
+grid-column: 1;
+grid-row: 2;
 } */
 
 /*!SECTION - userInterface */
+@media (max-width: 599px) {
+
+}
