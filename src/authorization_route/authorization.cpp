@@ -28,7 +28,6 @@ int isValidCookie(const crow::request &req) {
     for (int i = 0; i < 6; ++i) {
         userTokenNative.erase(userTokenNative.begin());
     }
-    std::cout << userTokenNative << '\n';
     std::string secret;
     if (req.url_params.get("schoolId") != nullptr) {
         const std::string schoolLogin = req.url_params.get("schoolId");

@@ -3,6 +3,7 @@
 //generates pages with navbar & footer if they exist in requestionable file
 crow::response genWebPages(std::string file) {
     crow::mustache::context ctx;
+
         auto nav = crow::mustache::load_text("html/templates/navbar.html");
         auto footer = crow::mustache::load_text("html/templates/footer.html");
         ctx.content_type = "text/html";
@@ -24,6 +25,7 @@ crow::response genWebPages(std::string file) {
 
 //NOTE -  Возвращает строку, не полноценный запрос
 crow::response sendWebResoursesByRequest(std::string type, std::string file) {
+    if(type == "html") return handleErrPage(404);
     auto page = crow::mustache::load_text(type + '/' + file);
             if (page.empty()) {
                 page = handleErrPage(404).body;
