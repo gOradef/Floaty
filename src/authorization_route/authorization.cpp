@@ -61,7 +61,7 @@ int isValidCookie(const crow::request &req) {
                 verifyApp.verify(decodedToken);
                 return 201; //oke for admin
         }
-        catch(jwt::token_verification_exception &e2) {
+        catch(jwt::token_verification_exception &e) {
                 std::cout << "exception goted verif- " << e.what();
         }
     }
