@@ -1,0 +1,11 @@
+[Unit]
+Description=floaty server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/floaty/gits/Floaty
+ExecStart=/home/floaty/gits/Floaty/Floaty
+
+[Install]
+WantedBy=multi-user.target
