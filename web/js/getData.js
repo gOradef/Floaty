@@ -54,6 +54,8 @@ window.addEventListener("DOMContentLoaded", (event) => {
                     let absentNonRespCause = document.getElementById("absentNonRespCause").value;
                     let absentFreeMeal = document.getElementById("absentFreeMeal").value;
                     className = classNum + '_' + classLetter;
+
+
                     fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
                         method: 'POST',
                         headers: {
