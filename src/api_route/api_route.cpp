@@ -54,7 +54,8 @@ Json::Value genTempClassesAsJson(std::string &reqPath){
     return root;
 }
 
-std::map<std::string, std::string> genMapOfEditNotes(std::string &reqEdit) {
+std::map<std::string, Json::Value> genMapOfEditNotes(std::string &reqEdit) {
+
     Json::Value reqEditNotesRoot;
     Json::Reader reader;
     try {
@@ -62,27 +63,35 @@ std::map<std::string, std::string> genMapOfEditNotes(std::string &reqEdit) {
         std::string schoolId = reqEditNotesRoot["schoolId"].asString();
         std::string className = reqEditNotesRoot["className"].asString();
         std::string absentNum = reqEditNotesRoot["absentNum"].asString();
-        std::string absentVir = reqEditNotesRoot["absentVir"].asString();
-        std::string absentRespCause = reqEditNotesRoot["absentRespCause"].asString();
-        std::string absentNonRespCause= reqEditNotesRoot["absentNonRespCause"].asString();
-        std::string absentFreeMeal = reqEditNotesRoot["absentFreeMeal"].asString();
+        Json::Value listAbsent = Json::Value(Json::arrayValue);
 
-        //schoolId, className, absentNum, absentVir, absentRespCause, absentNonRespCause, absentFreeMeal
-        std::map<std::string, std::string> absentMap;
+        std::cout << "All is good here";
+//        Json::Value absentVir = Json::Value(Json::arrayValue) ;
+//        std::string absentRespCause = reqEditNotesRoot["absentRespCause"].asString();
+//        std::string absentNonRespCause= reqEditNotesRoot["absentNonRespCause"].asString();
+//        std::string absentFreeMeal = reqEditNotesRoot["absentFreeMeal"].asString();
+
+        // * schoolId, className, absentNum, absentVir, absentRespCause, absentNonRespCause, absentFreeMeal
+        std::map<std::string, Json::Value> absentMap;
         absentMap["schoolId"] = schoolId;
         absentMap["classNum"] = className.substr(0, className.find('_'));
         absentMap["classLetter"] = className.substr(className.find('_')+1, className.back()-1);
         absentMap["absent_amount"] = absentNum;
-        absentMap["absent_listVirusCause"] = absentVir;
-        absentMap["absent_listRespCause"] = absentRespCause;
-        absentMap["absent_listNonRespCause"] = absentNonRespCause;
-        absentMap["absent_listFreeMeal"] = absentFreeMeal;
+
+        listAbsent = reqEditNotesRoot["absentVir"];
+            absentMap["absent_listVirusCause"] = listAbsent;
+        listAbsent = reqEditNotesRoot["absentRespCause"];
+            absentMap["absent_listRespCause"] = listAbsent;
+        listAbsent = reqEditNotesRoot["absentNonRespCause"];
+            absentMap["absent_listNonRespCause"] = listAbsent;
+        listAbsent = reqEditNotesRoot["absentFreeMeal"];
+            absentMap["absent_listFreeMeal"] = listAbsent;
 
         return absentMap;
     }
     catch (Json::Exception &e) {
-        std::map<std::string, std::string> map;
-        map["err"] = e.what();
+        std::map<std::string, Json::Value> map;
+        map["err"] = Json::Value{e.what()};
         return map;
     }
 }
@@ -94,27 +103,27 @@ std::map<std::string, std::string> genMapOfEditNotes(std::string &reqEdit) {
      * 5. Открыть поток на запись
      * 6. Записать данные из буфера в текущую дату
     */
-crow::response writeEditNotesOnCurrDate(std::map<std::string, std::string> &editNotesMap) {
+crow::response writeEditNotesOnCurrDate(std::map<std::string, Json::Value> &editNotesMap) {
     std::fstream fstream;
     Json::Value buff_J;
     Json::Reader Jreader;
     std::ostringstream buff_str;
 
-    fstream.open("data/" + editNotesMap["schoolId"] + '/' + genToken(editNotesMap["schoolId"]) + ".json", std::ios::in);
+    fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json", std::ios::in);
     buff_str << fstream.rdbuf();
     fstream.close();
     Jreader.parse(buff_str.str(), buff_J);
     // * here trys to edit data
     Json::Value neededPart = Json::Value(Json::objectValue);
     neededPart = buff_J["classes"]
-            [editNotesMap["classNum"]]
-            [editNotesMap["classLetter"]]
+            [editNotesMap["classNum"].asString()]
+            [editNotesMap["classLetter"].asString()]
             ["absent"];
     for (auto el : editNotesMap) {
         if(el.first.substr(0, el.first.find('_')) == "absent") {
             if (!el.second.empty()){
                 try {
-                    neededPart[el.first.substr(el.first.find('_') + 1, el.first.back() - 1)].append(
+                    neededPart[el.first.substr(el.first.find('_') + 1, el.first.back() - 1)] = (
                             el.second);
                 }
                 catch (Json::Exception &e) {
@@ -129,8 +138,11 @@ crow::response writeEditNotesOnCurrDate(std::map<std::string, std::string> &edit
         }
     }
 
-        buff_J["classes"][editNotesMap["classNum"]][editNotesMap["classLetter"]]["absent"] = neededPart;
-        fstream.open("data/" + editNotesMap["schoolId"] + '/' + genToken(editNotesMap["schoolId"]) + ".json", std::ios::out | std::ios::binary);
+        buff_J["classes"]
+            [editNotesMap["classNum"].asString()]
+            [editNotesMap["classLetter"].asString()]
+            ["absent"] = neededPart;
+        fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json", std::ios::out | std::ios::binary);
         fstream << buff_J;
         fstream.close();
 
@@ -139,12 +151,12 @@ crow::response writeEditNotesOnCurrDate(std::map<std::string, std::string> &edit
 
 
 crow::response editClassesData(std::string reqEdit) {
-    std::map<std::string, std::string> absentMap = genMapOfEditNotes(reqEdit);
+    std::map<std::string, Json::Value> absentMap = genMapOfEditNotes(reqEdit);
 
     //error handler
     if (!absentMap["err"].empty()) {
         std::cout << "--- Error:"<< absentMap["err"] << '\n';
-        return crow::response(500, "error: " + absentMap["err"]);
+        return crow::response(500, "error: " + absentMap["err"].asString());
     }
     //non error
    return writeEditNotesOnCurrDate(absentMap);

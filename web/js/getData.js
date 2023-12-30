@@ -1,3 +1,17 @@
+
+function parseNames(namesRoot) {
+    let namesList = [];
+    namesSplited = namesRoot.split(' ');
+    for(let el in namesSplited) {
+        if(namesSplited[el] !== "") {
+            namesList.push(namesSplited[el]);
+        }
+    }
+    return namesList;
+}
+
+
+
 window.addEventListener("DOMContentLoaded", (event) => {
     let urlParams = new URLSearchParams(location.search);
     let classesList = document.getElementById("classSelect");
@@ -48,12 +62,21 @@ window.addEventListener("DOMContentLoaded", (event) => {
                     let className = document.getElementById("classSelect").value;
                     let classNum = className.slice(0, className.length-1);
                     let classLetter = className.charAt(className.length-1);
-                    let absentNum = document.getElementById("absentNum").value;
-                    let absentVir = document.getElementById("absentVir").value;
-                    let absentRespCause = document.getElementById("absentRespCause").value;
-                    let absentNonRespCause = document.getElementById("absentNonRespCause").value;
-                    let absentFreeMeal = document.getElementById("absentFreeMeal").value;
                     className = classNum + '_' + classLetter;
+
+                    let absentNum = document.getElementById("absentNum").value;
+
+                    let absentVir = document.getElementById("absentVir").value;
+                    absentVir = parseNames(absentVir);
+
+                    let absentRespCause = document.getElementById("absentRespCause").value;
+                    absentRespCause = parseNames(absentRespCause);
+
+                    let absentNonRespCause = document.getElementById("absentNonRespCause").value;
+                    absentNonRespCause = parseNames(absentNonRespCause);
+
+                    let absentFreeMeal = document.getElementById("absentFreeMeal").value;
+                    absentFreeMeal = parseNames(absentFreeMeal);
 
 
                     fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
