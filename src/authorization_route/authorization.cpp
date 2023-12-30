@@ -23,9 +23,8 @@ int isValidCookie(const crow::request &req) {
     }
 
     //Ломаем статичный префикс токена
-    //TODO CHECK with multiple cookies maybe need to remove ';'
     if (*userTokenNative.begin() == ';') {userTokenNative.erase(userTokenNative.begin());}
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 7; ++i) {
         userTokenNative.erase(userTokenNative.begin());
     }
     std::string secret;
@@ -36,7 +35,6 @@ int isValidCookie(const crow::request &req) {
     else {
         return 401;
     }
-
     try {
         jwt::decoded_jwt decodedToken = jwt::decode(userTokenNative);
         auto verifyApp = jwt::verify()
