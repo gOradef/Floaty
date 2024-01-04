@@ -72,23 +72,23 @@ int main()
         res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
         return res.end();
     });
-
     CROW_ROUTE(app, "/api/editDataClassesForm")
             .methods(crow::HTTPMethod::POST)
                     ([](const crow::request &req, crow::response &res)
                      {
                          if (!req.get_header_value("Cookie").empty()) {
                              if (isValidCookie(req) == 200) {
-                                std::string editNotes = req.body;
-                                crow::response result = editClassesData(editNotes);
-
+                                const std::string editNotes = req.body;
+                                res = editClassesData(editNotes);
                              }
                              else { //login as user non success
                                  res = handleErrPage(401, "Verification [user] failed");
                                  res.end();
                              }
                          } //handler non cookie user
-                         res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                         else {
+                             res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                         }
                          return res.end();
                      });
 
@@ -96,11 +96,9 @@ int main()
     .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
     {
-        if(!req.get_header_value("Cookie").empty()) {
-            if (isValidCookie(req) == 201) {
+        if (!req.get_header_value("Cookie").empty() && isValidCookie(req) == 201 ) {
                 res = getStaticFileJson(req.url_params.get("schoolId"));
                 return res.end();
-            }
         }
     });
 

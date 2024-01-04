@@ -1,11 +1,15 @@
 
 function parseNames(namesRoot) {
     let namesList = [];
-    namesSplited = namesRoot.split(' ');
+    let namesSplited = namesRoot.split(' ');
     for(let el in namesSplited) {
         if(namesSplited[el] !== "") {
             namesList.push(namesSplited[el]);
         }
+    }
+    for (let el in namesList) {
+        namesList[el] = namesList[el].split(',')[0];
+        alert(namesList[el]);
     }
     return namesList;
 }
@@ -58,12 +62,12 @@ window.addEventListener("DOMContentLoaded", (event) => {
             .then(ev=> {
                 window.addEventListener("submit", ev => {
                     let urlSchoolId = urlParams.get("schoolId");
-                    console.log(urlSchoolId);
                     let className = document.getElementById("classSelect").value;
                     let classNum = className.slice(0, className.length-1);
                     let classLetter = className.charAt(className.length-1);
                     className = classNum + '_' + classLetter;
 
+                    let globalNum = document.getElementById("globalNum").value;
                     let absentNum = document.getElementById("absentNum").value;
 
                     let absentVir = document.getElementById("absentVir").value;
@@ -87,6 +91,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
                         body: JSON.stringify({
                             schoolId: urlSchoolId,
                             className: className,
+                            globalNum: globalNum,
                             absentNum: absentNum,
                             absentVir: absentVir,
                             absentRespCause: absentRespCause,
@@ -94,6 +99,15 @@ window.addEventListener("DOMContentLoaded", (event) => {
                             absentFreeMeal: absentFreeMeal
                         })
                     })
+                        .then(res => {
+                            if (res.status === 200) {
+                                alert("Form submitted!")
+                            }
+                            else {
+                                alert("Form doesn't submitted")
+                            }
+
+                        })
                 })
             })
 

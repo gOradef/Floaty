@@ -6,7 +6,7 @@
 #include "../../includes/jwt-cpp/jwt.h"
 #include "../../includes/json/json.h"
 #pragma once
-std::string genToken(std::string loginStr = "");
+std::string genToken(std::string loginStr = "", int mode = 0);
 crow::response genTokenAndSend(const crow::request &req);
 crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ,
                                     const Json::Value &corrLoginJ,const Json::Value &corrUserPassword,

@@ -6,13 +6,23 @@
 
 
 
-//* returns secret for jwt <y.m.d.>.<loginStr>
-std::string genToken(const std::string loginStr) {
-    time_t now = time(nullptr);
-    tm *ltm = localtime(&now);
-    std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday)};
-    std::string secret = dynamicDate + '.' + loginStr;
-    return secret;
+// * returns secret for jwt <y.m.d.>.<loginStr>
+// * mode 0 - default (today), 1 - previos day
+std::string genToken(const std::string loginStr, int mode) {
+    if (mode == 0) {
+        time_t now = time(nullptr);
+        tm *ltm = localtime(&now);
+        std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday)};
+        std::string secret = dynamicDate + '.' + loginStr;
+        return secret;
+    }
+    else if (mode == 1) {
+        time_t now = time(nullptr);
+        tm *ltm = localtime(&now);
+        std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday-1)};
+        std::string secret = dynamicDate + '.' + loginStr;
+        return secret;
+    }
 }
 crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ, const Json::Value &corrLoginJ,
                                     const Json::Value &corrUserPassword, const Json::Value &corrAdminPassword) {

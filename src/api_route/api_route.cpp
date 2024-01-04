@@ -61,24 +61,26 @@ std::map<std::string, Json::Value> genMapOfEditNotes(const std::string &reqEdit)
         reader.parse(reqEdit, reqEditNotesRoot);
         std::string schoolId = reqEditNotesRoot["schoolId"].asString();
         std::string className = reqEditNotesRoot["className"].asString();
+        std::string globalNum = reqEditNotesRoot["globalNum"].asString();
         std::string absentNum = reqEditNotesRoot["absentNum"].asString();
         Json::Value listAbsent = Json::Value(Json::arrayValue);
-
-        std::cout << "All is good here";
-
         // * schoolId, className, absentNum, absentVir, absentRespCause, absentNonRespCause, absentFreeMeal
         std::map<std::string, Json::Value> absentMap;
         absentMap["schoolId"] = schoolId;
         absentMap["classNum"] = className.substr(0, className.find('_'));
         absentMap["classLetter"] = className.substr(className.find('_')+1, className.back()-1);
+        absentMap["globalNum"] = globalNum;
         absentMap["absent_amount"] = absentNum;
 
         listAbsent = reqEditNotesRoot["absentVir"];
         absentMap["absent_listVirusCause"] = listAbsent;
+
         listAbsent = reqEditNotesRoot["absentRespCause"];
         absentMap["absent_listRespCause"] = listAbsent;
+
         listAbsent = reqEditNotesRoot["absentNonRespCause"];
         absentMap["absent_listNonRespCause"] = listAbsent;
+
         listAbsent = reqEditNotesRoot["absentFreeMeal"];
         absentMap["absent_listFreeMeal"] = listAbsent;
 
@@ -96,26 +98,59 @@ crow::response writeEditNotesOnCurrDate(std::map<std::string, Json::Value> &edit
     Json::Value buff_J;
     Json::Reader Jreader;
     std::ostringstream buff_str;
-
-    fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json", std::ios::in);
+    std::string currDatePath = "data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json";
+    fstream.open(currDatePath, std::ios::in);
     buff_str << fstream.rdbuf();
     fstream.close();
     Jreader.parse(buff_str.str(), buff_J);
     // * here trys to edit data
-    Json::Value neededPart = Json::Value(Json::objectValue);
-    neededPart = buff_J["classes"]
+    Json::Value neededAbsentPart = Json::Value(Json::objectValue);
+
+    Json::Value globalNum;
+
+    //!!! Не иденфицирует мапу с таким значением
+    if (editNotesMap["globalNum"].asString() == "" || editNotesMap["globalNum"].asString() == "!" || editNotesMap["globalNum"].asString() == "-")
+    {
+        Json::Value rootPrevDay = Json::Value(Json::objectValue);
+        std::stringstream buff_str_T;
+        std::cout << genToken(editNotesMap["schoolId"].asString(), 1);
+        fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString(), 1) + ".json", std::ios::in);
+        buff_str_T << fstream.rdbuf();
+        fstream.close();
+
+        Jreader.parse(buff_str_T.str(), rootPrevDay);
+        globalNum = rootPrevDay["classes"]
+                [editNotesMap["classNum"].asString()]
+                [editNotesMap["classLetter"].asString()]
+                ["amount"];
+
+        buff_J["classes"]
+        [editNotesMap["classNum"].asString()]
+        [editNotesMap["classLetter"].asString()]
+        ["amount"] =  globalNum.asString();
+    }
+    else {
+        buff_J["classes"]
+        [editNotesMap["classNum"].asString()]
+        [editNotesMap["classLetter"].asString()]
+        ["amount"] = editNotesMap["globalNum"].asString();
+    }
+
+    neededAbsentPart = buff_J["classes"]
     [editNotesMap["classNum"].asString()]
     [editNotesMap["classLetter"].asString()]
     ["absent"];
+
+
     for (const auto& [first, second] : editNotesMap) {
             if (!second.empty() && first.substr(0, first.find('_')) == "absent") {
                 try {
-                    neededPart[first.substr(first.find('_') + 1, first.back() - 1)] = second;
+                    neededAbsentPart[first.substr(first.find('_') + 1, first.back() - 1)] = second;
                 }
                 catch (Json::Exception &e) {
                     try {
                         std::cout << "--- Err: " << e.what() << '\n';
-                        neededPart[first.substr(first.find('_') + 1, first.back() - 1)] = second;
+                        neededAbsentPart[first.substr(first.find('_') + 1, first.back() - 1)] = second;
                     }
                     catch (Json::Exception &e) {
                         std::cout << "no way to ignore err - " << e.what();
@@ -127,7 +162,7 @@ crow::response writeEditNotesOnCurrDate(std::map<std::string, Json::Value> &edit
     buff_J["classes"]
     [editNotesMap["classNum"].asString()]
     [editNotesMap["classLetter"].asString()]
-    ["absent"] = neededPart;
+    ["absent"] = neededAbsentPart;
     fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json", std::ios::out | std::ios::binary);
     fstream << buff_J;
     fstream.close();
