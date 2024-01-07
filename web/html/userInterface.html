@@ -60,14 +60,18 @@
   <div id="popupTable" class="popup">
     <div class="popup-content">
       <span class="closeTable-btn close-btn">&times;</span>
-      <h4>Экспорт данных</h4>
+      <h4>Загрузка данных</h4>
       <div class="options">
         <label for="time">Период:</label>
         <select id="periodTable" name="time">
           <option value="today">Сегодня</option>
-          <option value="month">За месяц</option>
+          <option value="month">За месяц </option>
           <option value="year">За учебный год</option>
+          <option value="usercase">Свое..</option>
         </select>
+        <div id="userDateCont" style="display: none; margin-top: 10px; display: none; justify-content: center;">
+          <input type="date" id="userCustomDate" name="trip-start"/>
+        </div>
       </div>
 
       <button id="submitTable-btn">Показать</button>
@@ -111,9 +115,8 @@
   </div>
      <div class="mainFrame">
         <div class="contentFrame">
-          <table>
+          <table id="rootTable">
               <thead style="background-color: #F5DEB3"><tr><th colspan="7">Данные по школе</th></tr></thead>
-              <tbody id="rootTableBody">
                 <tr>
                   <th>Класс</th>
                   <th>Кол-во учащихся</th>
@@ -123,11 +126,13 @@
                   <th>Фамилии отсутствующих не по УП</th>
                   <th>Из них бесплатники</th>
                 </tr>
+              <tbody id="rootTableBody">
               </tbody>
           </table>
           <div style="height: 100px; background-color:#333; border: none;"><a id="itogo"></a></div>
         </div>
     </div>
+  <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
   <script src="../js/popup.js"></script>
 
 {{{footerFile}}}

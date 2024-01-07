@@ -1,15 +1,12 @@
 
 function parseNames(namesRoot) {
     let namesList = [];
+    namesRoot = namesRoot.replace(/,/g, ' ');
     let namesSplited = namesRoot.split(' ');
     for(let el in namesSplited) {
         if(namesSplited[el] !== "") {
             namesList.push(namesSplited[el]);
         }
-    }
-    for (let el in namesList) {
-        namesList[el] = namesList[el].split(',')[0];
-        alert(namesList[el]);
     }
     return namesList;
 }
@@ -19,19 +16,20 @@ function parseNames(namesRoot) {
 window.addEventListener("DOMContentLoaded", (event) => {
     let urlParams = new URLSearchParams(location.search);
     let classesList = document.getElementById("classSelect");
-        fetch('/api/getDataClassesForm?schoolId=' + urlParams.get("schoolId"), {
+        fetch('/api/getDataClassesForm', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify( {
                 Cookie: document.cookie,
-                params: location.search
+                schoolId: urlParams.get("schoolId"),
+                method: 'getCommonCase'
             })
         })
         //get 'names' attribute of class
             .then(response => {
-                if (response.status == 404) {
+                if (response.status === 404) {
                     alert("Please wait a litl bit, and reload a page after. Data is generating \n" +
                         "you are the first person, what request data)")
                     location.reload();

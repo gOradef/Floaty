@@ -9,4 +9,4 @@ std::map<std::string, Json::Value> genMapOfEditNotes(const std::string &reqEdit)
 
 crow::response writeEditNotesOnCurrDate(std::map<std::string, Json::Value> &editNotesMap);
 crow::response editClassesData(std::string reqEdit);
-crow::response getStaticFileJson(const std::string& schoolId);
+crow::response getStaticFileJson(const crow::request &reqRoot);

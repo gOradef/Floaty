@@ -9,6 +9,7 @@ void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
         return res.end();
     }
     else {
+            std::cout << " status is: "<< isValidCookie(req) << '\n';
         switch(isValidCookie(req)) {
             case 200:
                 res.body = genWebPages("userForm").body;
@@ -60,16 +61,16 @@ int main()
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty()) {
+                std::cout << "Ima in for user: code is " << isValidCookie(req) << '\n';
             if (isValidCookie(req) == 200) {
-                res = getStaticFileJson(req.url_params.get("schoolId"));
+                res = getStaticFileJson(req);
                 return res.end();
             }
             else {
                 res = handleErrPage(401, "Verification [user] failed");
                 res.end();
             }
-        }
-        res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+        } else res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
         return res.end();
     });
     CROW_ROUTE(app, "/api/editDataClassesForm")
@@ -97,7 +98,7 @@ int main()
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty() && isValidCookie(req) == 201 ) {
-                res = getStaticFileJson(req.url_params.get("schoolId"));
+                res = getStaticFileJson(req);
                 return res.end();
         }
     });

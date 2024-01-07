@@ -1,13 +1,10 @@
-// #include "../../includes/crow/http_request.h"
-
 #include <ctime>
 #include "../../includes/Floaty/authentication.h"
 
 
 
-
 // * returns secret for jwt <y.m.d.>.<loginStr>
-// * mode 0 - default (today), 1 - previos day
+// * mode 0 - default (today), 1 - previous day
 std::string genToken(const std::string loginStr, int mode) {
     if (mode == 0) {
         time_t now = time(nullptr);
@@ -19,7 +16,49 @@ std::string genToken(const std::string loginStr, int mode) {
     else if (mode == 1) {
         time_t now = time(nullptr);
         tm *ltm = localtime(&now);
-        std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday-1)};
+
+        int year = 1900 + ltm->tm_year;
+        int *month = &ltm->tm_mon+1;
+        int *day = &ltm->tm_mday;
+
+        if (*day == 1) {
+            // months which have 30 days in previous month
+            if (*month == 4 || *month == 6 || *month == 9 || *month == 11) {
+                *day = 31;
+                *month = *month - 1;
+            }
+                // for MARCH, to define february last day
+            else if (*month == 3) {
+                if (year % 4 == 0)
+                    *day = 29;
+                else
+                    *day = 28;
+
+                *month = *month - 1;
+            }
+                // for January, to define December last day
+            else if (*month == 1) {
+                *day = 31;
+                *month = 12;
+                year = year - 1;
+            }
+                // for Feb, to define January last day
+            else if (*month == 2) {
+                *day = 31;
+                *month = *month - 1;
+            }
+                // for other months
+            else {
+                *day = 30;
+                *month = *month - 1;
+            }
+        }
+        // other days of month
+        else {
+            *day = *day - 1;
+        }
+
+        std::string dynamicDate{std::to_string(year + '.' +  *month + '.' + *day)};
         std::string secret = dynamicDate + '.' + loginStr;
         return secret;
     }

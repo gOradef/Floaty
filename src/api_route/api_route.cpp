@@ -108,12 +108,10 @@ crow::response writeEditNotesOnCurrDate(std::map<std::string, Json::Value> &edit
 
     Json::Value globalNum;
 
-    //!!! Не иденфицирует мапу с таким значением
     if (editNotesMap["globalNum"].asString() == "" || editNotesMap["globalNum"].asString() == "!" || editNotesMap["globalNum"].asString() == "-")
     {
         Json::Value rootPrevDay = Json::Value(Json::objectValue);
         std::stringstream buff_str_T;
-        std::cout << genToken(editNotesMap["schoolId"].asString(), 1);
         fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString(), 1) + ".json", std::ios::in);
         buff_str_T << fstream.rdbuf();
         fstream.close();
@@ -184,11 +182,18 @@ crow::response editClassesData(std::string reqEdit) {
 
 }
 
+crow::response getStaticFileJson(const crow::request &reqRoot) {
+    // * Parse req into vars
+    Json::Reader reader;
+    Json::Value reqJ;
+    reader.parse(reqRoot.body, reqJ);
 
-crow::response getStaticFileJson(const std::string& schoolId) {
+    std::string schoolId = reqJ["schoolId"].asString();
+    std::string periodReq = reqJ["period"].asString();
+    std::string reqPath;
     crow::response res;
     std::string currDate = genToken(schoolId);
-    auto reqPath = std::string("data/" + schoolId + "/" + genToken(schoolId) + ".json");
+    reqPath = std::string("data/" + schoolId + "/" + genToken(schoolId) + ".json");
     res.set_static_file_info(reqPath);
     if (!res.is_static_type()) { //if file doesn't exist
         Json::FastWriter writer;
@@ -197,10 +202,7 @@ crow::response getStaticFileJson(const std::string& schoolId) {
         res.body = resJ;
         return res;
     }
-    else if (res.is_static_type()) { //if exist
+    else { //if exist
         return res;
-    }
-    else {
-        return crow::response(500, "file exists bun invalid");
     }
 }

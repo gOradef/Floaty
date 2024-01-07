@@ -9,10 +9,12 @@ document.querySelector('.closeExport-btn').addEventListener('click', function() 
 });
 
 document.getElementById('submitExport-btn').addEventListener('click', function() {
-    var selectElement = document.getElementById('parameter-select');
-    var selectedOption = selectElement.options[selectElement.selectedIndex].value;
+    let selectElementPeriod = document.getElementById('time');
+    let selectedOptionPeriod = selectElementPeriod.options[selectElementPeriod.selectedIndex].value;
+    let selectElementType = document.getElementById('file-extension');
+    let selectedOptionType = selectElementType.options[selectElementType.selectedIndex].value;
 
-    console.log('Выбрана опция: ' + selectedOption); // Измените эту строку в соответствии с вашей логикой обработки выбранной опции
+    exportTable(selectedOptionPeriod, selectedOptionType);
 
     document.getElementById('popupExport').style.display = 'none';
 });
@@ -22,16 +24,27 @@ document.getElementById('submitExport-btn').addEventListener('click', function()
 document.getElementById('getTable-btn').addEventListener('click', function() {
     document.getElementById('popupTable').style.display = 'block';
 });
-
 document.querySelector('.closeTable-btn').addEventListener('click', function() {
     document.getElementById('popupTable').style.display = 'none';
 });
 
-document.getElementById('submitTable-btn').addEventListener('click', function() {
-    var selectElement = document.getElementById('periodTable');
-    var selectedOption = selectElement.options[selectElement.selectedIndex].value;
+document.getElementById('periodTable').addEventListener('change', function() {
+    if (document.getElementById('periodTable').value === 'usercase') {
+        document.getElementById('userDateCont').style.display = 'flex';
+    }
+    else document.getElementById('userDateCont').style.display = 'none';
+})
 
-    getDataForTable(selectedOption);
+document.getElementById('submitTable-btn').addEventListener('click', function() {
+    let selectElement = document.getElementById('periodTable');
+    let selectedOption = selectElement.options[selectElement.selectedIndex].value;
+    if (selectedOption === 'usercase') {
+        let userCustomDate = document.getElementById('userCustomDate').value;
+        getDataForTable(selectedOption, userCustomDate);
+    }
+    else {
+        getDataForTable(selectedOption);
+    }
     document.getElementById('popupTable').style.display = 'none';
 });
 //End getTableForDate
