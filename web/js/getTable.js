@@ -23,12 +23,12 @@ function fillTable(jres) {
 
             // * Row Name
             let optCellName = document.createElement('td');
-            optCellName.innerHTML = nameClass;
+            optCellName.innerText = nameClass;
             optRow.append(optCellName);
 
             // * Row base amount
             let optCellPropAmount = document.createElement('td');
-            optCellPropAmount.innerHTML = classes[i][letterClass].amount;
+            optCellPropAmount.innerText = classes[i][letterClass].amount;
             optRow.append(optCellPropAmount)
 
             let mapAbsent = new Map();
@@ -36,11 +36,11 @@ function fillTable(jres) {
             for (let el in classes[i][letterClass].absent) {
                 let optCellPropAbsent = document.createElement('td');
                 if (classes[i][letterClass].absent[el] === null || classes[i][letterClass].absent[el].length === 0) {
-                    if (el !== "amount") optCellPropAbsent.innerHTML = '-';
-                    else optCellPropAbsent.innerHTML = 0;
+                    if (el !== "amount") optCellPropAbsent.innerText = '-';
+                    else optCellPropAbsent.innerText = 0;
                 }
                 else {
-                    optCellPropAbsent.innerHTML = classes[i][letterClass].absent[el];
+                    optCellPropAbsent.innerText = classes[i][letterClass].absent[el];
                 }
                 mapAbsent.set(el, optCellPropAbsent);
             }
@@ -105,7 +105,6 @@ function exportTable (period, type) {
 
         }
 
-// Определяем последнюю строку таблицы
         let totalStudents = `=СУММ(B${startFormulaRowBeg}:B${endFormulaRowMed})`;
         let absentStudentsBeg = `=СУММ(C${startFormulaRowBeg}:C${endFormulaRowBeg})`;
         let absentStudentsMed = `=СУММ(C${startFormulaRowMed}:C${endFormulaRowMed})`;
