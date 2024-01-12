@@ -17,13 +17,13 @@ function fillTable(jres) {
             // * Get name of class
             nameClass = numClass[letterClass].name;
             let numAndLetter = nameClass.split('_');
-
+            nameClass = numAndLetter[0] + numAndLetter[1];
             // * Row
             optRow = document.createElement('tr');
 
             // * Row Name
             let optCellName = document.createElement('td');
-            optCellName.innerHTML = numAndLetter[0] + numAndLetter[1];
+            optCellName.innerHTML = nameClass;
             optRow.append(optCellName);
 
             // * Row base amount
@@ -71,8 +71,12 @@ function exportTable (period, type) {
 
         const rowCount = XLSX.utils.sheet_to_json(ws).length;
 
-        let startFormulaRow = 200;
-        let endFormulaRow =  0;
+        let startFormulaRowMed = 2000;
+        let endFormulaRowMed =  0;
+
+        let startFormulaRowBeg = 2000;
+        let endFormulaRowBeg =  0;
+
 
         for (let i = 1; i < rowCount; i++) {
             let nameCellValue = ws[`A${i+2}`]?.v;
@@ -80,12 +84,20 @@ function exportTable (period, type) {
             if (nameCellValue && /^[0-9]+[А-Яа-я]$/.test(nameCellValue)) {
                 const classNumber = parseInt(nameCellValue);
 
-                if (classNumber >= 5 && classNumber <= 11) {
-                    if (i+2 > endFormulaRow) {
-                        endFormulaRow = i+2;
+                if (classNumber < 5 && classNumber >= 1) {
+                    if (i+2 > endFormulaRowBeg) {
+                        endFormulaRowBeg = i+2;
                     }
-                    if (endFormulaRow < startFormulaRow) {
-                        startFormulaRow = endFormulaRow;
+                    if (endFormulaRowBeg < startFormulaRowBeg) {
+                        startFormulaRowBeg = endFormulaRowBeg;
+                    }
+                }
+                else if (classNumber >= 5 && classNumber <= 11) {
+                    if (i+2 > endFormulaRowMed) {
+                        endFormulaRowMed = i+2;
+                    }
+                    if (endFormulaRowMed < startFormulaRowMed) {
+                        startFormulaRowMed = endFormulaRowMed;
                     }
                 }
 
@@ -94,14 +106,22 @@ function exportTable (period, type) {
         }
 
 // Определяем последнюю строку таблицы
-        let totalStudents = `=СУММ(B${startFormulaRow}:B${endFormulaRow})`
-        let absentStudents = `=СУММ(C${startFormulaRow}:C${endFormulaRow})`
+        let totalStudents = `=СУММ(B${startFormulaRowBeg}:B${endFormulaRowMed})`;
+        let absentStudentsBeg = `=СУММ(C${startFormulaRowBeg}:C${endFormulaRowBeg})`;
+        let absentStudentsMed = `=СУММ(C${startFormulaRowMed}:C${endFormulaRowMed})`;
+        let absentStudentTotal = `=СУММ(C${startFormulaRowBeg}:C${endFormulaRowMed})`;
 
         const lastRow = rowCount + 2;
 
         XLSX.utils.sheet_add_aoa(ws, [['Всего']], {origin: `A${lastRow}`});
-        XLSX.utils.sheet_add_aoa(ws, [[totalStudents]], {origin: `B${lastRow}`});
-        XLSX.utils.sheet_add_aoa(ws, [[absentStudents]], {origin: `C${lastRow}`});
+        XLSX.utils.sheet_add_aoa(ws, [['1-4 классы']], {origin: `B${lastRow}`});
+        XLSX.utils.sheet_add_aoa(ws, [['5-11 классы']], {origin: `C${lastRow}`});
+        XLSX.utils.sheet_add_aoa(ws, [['Всего нет']], {origin: `D${lastRow}`});
+
+        XLSX.utils.sheet_add_aoa(ws, [[totalStudents]], {origin: `A${lastRow+1}`});
+        XLSX.utils.sheet_add_aoa(ws, [[absentStudentsBeg]], {origin: `B${lastRow+1}`});        
+        XLSX.utils.sheet_add_aoa(ws, [[absentStudentsMed]], {origin: `C${lastRow+1}`});
+        XLSX.utils.sheet_add_aoa(ws, [[absentStudentTotal]], {origin: `D${lastRow+1}`});
 
         XLSX.writeFile(wb, filename);
     }
