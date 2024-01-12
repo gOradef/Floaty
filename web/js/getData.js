@@ -79,7 +79,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
                     let absentFreeMeal = document.getElementById("absentFreeMeal").value;
                     absentFreeMeal = parseNames(absentFreeMeal);
-
+                    
 
                     fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
                         method: 'POST',
@@ -99,7 +99,9 @@ window.addEventListener("DOMContentLoaded", (event) => {
                     })
                         .then(res => {
                             if (res.status === 200) {
-                                alert("Form submitted!")
+                                alert("Form submitted!");
+                                location.href += urlParams;
+                                location.reload();
                             }
                             else {
                                 alert("Form doesn't submitted")
