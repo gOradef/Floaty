@@ -9,14 +9,13 @@ void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
         return res.end();
     }
     else {
-            std::cout << " status is: "<< isValidCookie(req) << '\n';
         switch(isValidCookie(req)) {
             case 200:
                 res.body = genWebPages("userForm").body;
                 return res.end();
             case 201:
                 res.body = genWebPages("userInterface").body;
-                return res.end();
+                return res.end(); 
             case 401:
                 res.body = handleErrPage(401, "Undefined query string").body;
                 return res.end();
@@ -61,7 +60,6 @@ int main()
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty()) {
-                std::cout << "Ima in for user: code is " << isValidCookie(req) << '\n';
             if (isValidCookie(req) == 200) {
                 res = getStaticFileJson(req);
                 return res.end();
