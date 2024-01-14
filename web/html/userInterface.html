@@ -52,6 +52,14 @@
     .popup-content > * {
       margin-top: 7px;
     }
+    .actionBtn {
+      /*border: none;*/
+      /*color: white;*/
+      /*background-color: ;*/
+    }
+    .modifiedCell {
+      border: #526f8c solid 3px;
+    }
   </style>
   {{{navbarControlFile}}}
 
@@ -108,15 +116,21 @@
   <!--End Export-->
 
   <div class="actionMenu">
-    <button id="getTable-btn">Показать</button>
-    <button id="openRedactMode-btn">Редактировать</button>
-    <button id="openExport-btn">Эскпортировать</button>
+    <button id="getTable-btn" class="actionBtn">Показать</button>
+
+    <div class="redact">
+      <button id="openRedactMode-btn" class="actionBtn">Редактировать</button>
+      <button id="confirmChangesTable-btn" class="actionBtn" style="display: none; ">Подтвердить изменения</button>
+    </div>
+
+
+    <button id="openExport-btn" class="actionBtn">Эскпортировать</button>
 
   </div>
      <div class="mainFrame">
         <div class="contentFrame">
           <table id="rootTable">
-              <thead style="background-color: #F5DEB3"><tr><th colspan="7">Данные по школе</th></tr></thead>
+              <thead style="background-color: #F5DEB3"><tr><th colspan="7" >ПАТРОНАЖНЫЙ ЖУРНАЛ <span id="journalTitle"></span> </th></tr></thead>
                 <tr>
                   <th>Класс</th>
                   <th>Кол-во учащихся</th>
