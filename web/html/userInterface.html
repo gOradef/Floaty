@@ -138,17 +138,16 @@
         <div class="contentFrame">
           <table id="rootTable">
               <thead style="background-color: #F5DEB3"><tr><th colspan="7" >ПАТРОНАЖНЫЙ ЖУРНАЛ <span id="journalTitle"></span> </th></tr></thead>
-                <tr>
-                  <th>Класс</th>
-                  <th>Кол-во учащихся</th>
-                  <th>Кол-во отсутствующих в классе</th>
-                  <th>Фамилии отсутствующих по ОРВИ</th>
-                  <th>Фамилии отсутствующих по УП</th>
-                  <th>Фамилии отсутствующих не по УП</th>
-                  <th>Из них бесплатники</th>
-                </tr>
-              <tbody id="rootTableBody">
-              </tbody>
+            <tr id="rootTableHeader">
+              <th id="nameClass">Класс</th>
+              <th id="amount">Кол-во учащихся</th>
+              <th id="absent_amount">Кол-во отсутствующих в классе</th>
+              <th id="absent_virus">Фамилии отсутствующих по ОРВИ</th>
+              <th id="absent_resp">Фамилии отсутствующих по УП</th>
+              <th id="absent_nonResp">Фамилии отсутствующих не по УП</th>
+              <th id="absent_freeMeal">Из них бесплатники</th>
+            </tr>
+              <tbody id="rootTableBody"></tbody>
           </table>
           <div style="height: 100px; background-color:#333; border: none;"><a id="itogo"></a></div>
         </div>

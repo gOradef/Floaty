@@ -1,4 +1,6 @@
-let redactModeEntered = false;
+let isRedactorModeEntered = false;
+let dataTable;
+let changesList = {"classes": {}};
 
 //Region export popup
 document.getElementById('openExport-btn').addEventListener('click', function() {
@@ -24,49 +26,105 @@ document.getElementById('submitExport-btn').addEventListener('click', function()
 //Region redactor mode
 
 document.getElementById("openRedactMode-btn").addEventListener('click', function() {
+    let rootTableHeader = document.getElementById('rootTableHeader')
     let rootTable = document.getElementById('rootTableBody');
         
     let cells = document.querySelectorAll('table tr td')
 
     function getTableData() {
-        let data = [];
-        
-        cells.forEach(cel => {
+        let data = {};
+        for (let row=0;row< rootTable.children.length; row++) {
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+                rootTable.children[row].children[cell].id = rootTableHeader.children[cell].id;
+                }
+        }
+
+        for (let row=0;row< rootTable.children.length; row++) {
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
             const input = document.createElement('input');
             input.type = 'text';
-            input.value = cel.innerText;
-            input.style.width = 'intherit'
-            cel.innerText = ''
-            cel.appendChild(input);
-            data.push(cel);
-        })
+            input.value = rootTable.children[row].children[cell].innerText;
+            input.style.width = '80px';
+            rootTable.children[row].children[cell].name
+            rootTable.children[row].children[cell].innerText = '';
+            rootTable.children[row].children[cell].appendChild(input);
+            }
+        }
+
+        let rowData = [];
+        if (JSON.stringify(data).length === 0 || '{}') {
+            for (let row= 0;row < rootTable.children.length; row++) {
+                for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+                    rowData.push(rootTable.children[row].children[cell].firstChild.valueOf().value);
+                }
+                data[row] = rowData;
+                rowData = [];
+            }
+        }
+        console.log(data);
         return data;
     }
     function insertData(data) {
-        let realTableCells = document.querySelectorAll('table tr td');
-        let cellsVal = document.querySelectorAll('table tr td input');
-        for (let i = 0; i < realTableCells.length; i++) {
-            realTableCells[i].innerHTML = cellsVal[i].value;
+
+        let jsonObj = {};
+
+        for (let row=0;row< rootTable.children.length; row++) {
+            jsonObj = {};
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+
+                rootTable.children[row].children[cell].innerHTML = rootTable.children[row].children[cell].firstChild.valueOf().value;
+
+                if (rootTable.children[row].children[cell].innerHTML !== data[row][cell]) {
+                    jsonObj[rootTable.children[row].children[cell].id] = rootTable.children[row].children[cell].innerHTML;
+                    rootTable.children[row].children[cell].className += 'modifiedCell';
+                }
+                if (jsonObj[rootTable.children[row].children[cell].id] !== undefined) {
+                    changesList['classes'][rootTable.children[row].children[0].innerHTML] = jsonObj;
+                }
+            }
         }
+
+        console.log(changesList);
+
     }
-    let dataTable;
-    switch (redactModeEntered) {
+
+    switch (isRedactorModeEntered) {
         case false:
             document.getElementById("openRedactMode-btn").innerHTML = 'Сохранить изменения';
+            document.getElementById('confirmChangesTable-btn').style.display = 'none';
             dataTable = getTableData();
-            redactModeEntered = true;
+            isRedactorModeEntered = true;
             break;
 
         case true:
             document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать';
-            redactModeEntered = false;        
+            document.getElementById('confirmChangesTable-btn').style.display = 'flex';
+            isRedactorModeEntered = false;
             insertData(dataTable);
             break;
-            
+
+    }
+    if (isRedactorModeEntered) {
+    }
+
+})
+
+document.getElementById('confirmChangesTable-btn').addEventListener('click', function () {
+    if (isRedactorModeEntered) {
+        alert('Сначало сохраните изменения')
+        return;
+    }
+    if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
+
+        alert('oke')
+    }
+    else {
+        alert('ne oke')
+
     }
 })
 
-//End redactore mode
+//End redactor mode
 
 
 //Region getTableForDate

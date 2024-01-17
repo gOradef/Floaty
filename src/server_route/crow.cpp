@@ -3,6 +3,20 @@
 #define CROW_STATIC_ENDPOINT "web/"
 
 
+//returns correct key for reqPath
+std::string getAdminKey(const std::string& reqPath) {
+    std::string key;
+    std::stringstream buff;
+    Json::Reader jReader;
+    Json::Value jKeyVal;
+    std::ifstream ifstream;
+    ifstream.open(reqPath);
+    buff << ifstream.rdbuf();
+    ifstream.close();
+    jReader.parse(buff.str(), jKeyVal);
+    return jKeyVal["superAdminKey"].asString();
+}
+
 void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
     if (req.get_header_value("Cookie").empty()) {
         res.moved("/login");
@@ -14,8 +28,20 @@ void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
                 res.body = genWebPages("userForm").body;
                 return res.end();
             case 201:
-                res.body = genWebPages("userInterface").body;
-                return res.end(); 
+                if (req.url_params.get("key") != nullptr ) {
+                    const std::string& reqPath = "data/" + std::string(req.url_params.get("schoolId")) + "/schoolData.json";
+                    const std::string& corrKey = getAdminKey(reqPath);
+                    if (std::string(corrKey) == std::string(req.url_params.get("key"))) {
+                        res.body = genWebPages("userInterfaceConfig").body;
+                    }
+                    else {
+                        res.body = genWebPages("userInterface").body;
+                    }
+                }
+                else {
+                    res.body = genWebPages("userInterface").body;
+                }
+                return res.end();
             case 401:
                 res.body = handleErrPage(401, "Undefined query string").body;
                 return res.end();
@@ -48,7 +74,7 @@ int main()
     });
     //! Только для html
     CROW_ROUTE(app, "/<string>")
-    ([](std::string file)
+    ([](const std::string& file)
      {
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
         else return genWebPages(file);
@@ -78,11 +104,10 @@ int main()
                          if (!req.get_header_value("Cookie").empty()) {
                              if (isValidCookie(req) == 200) {
                                 const std::string editNotes = req.body;
-                                res = editClassesData(editNotes);
+                                res = writeForEditNotesForm(editNotes);
                              }
                              else { //login as user non success
                                  res = handleErrPage(401, "Verification [user] failed");
-                                 res.end();
                              }
                          } //handler non cookie user
                          else {
@@ -96,12 +121,29 @@ int main()
             ([](const crow::request &req, crow::response &res)
     {
         if (!req.get_header_value("Cookie").empty() && isValidCookie(req) == 201 ) {
-                res = getStaticFileJson(req);
+                res = getStaticFileJson(req, false);
                 return res.end();
         }
     });
-
-
+    CROW_ROUTE(app, "/api/editDataClassesInterface")
+            .methods(crow::HTTPMethod::POST)
+                    ([](const crow::request &req, crow::response &res)
+                     {
+                         if (!req.get_header_value("Cookie").empty()) {
+                             if (isValidCookie(req) == 201) {
+                                 const std::string editNotes = req.body;
+                                 res = writeForEditNotesForm(editNotes);
+                             }
+                             else { //login as user non success
+                                 res = handleErrPage(401, "Verification [user] failed");
+                                 res.end();
+                             }
+                         } //handler: user without cookie
+                         else {
+                             res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                         }
+                         return res.end();
+                     });
 
     //* Response for login post req
     CROW_ROUTE(app, "/login-process")

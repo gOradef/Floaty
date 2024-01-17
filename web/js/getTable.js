@@ -1,16 +1,20 @@
-let periodTable = document.getElementById("periodData");
-let urlSchoolId = new URLSearchParams(location.search);
-let exportBtn = document.getElementById("submitExport-btn");
+let urlParams = new URLSearchParams(location.search);
 let isTableLoaded = false;
 
-function fillTable(jres) {
+function fillTable(jres, date) {
     let rootTable = document.getElementById('rootTableBody');
+    let journalTitle = document.getElementById('journalTitle');
     let optRow;
     let classes = jres["classes"];
     let numClass;
     let letterClass;
     let nameClass;
 
+
+    //Fill date
+    journalTitle.innerText = " | " + date;
+
+    //Filling cells
     for(let i in classes) { //num
         numClass = classes[i];
         for (letterClass in numClass) { //num -> letter
@@ -28,7 +32,12 @@ function fillTable(jres) {
 
             // * Row base amount
             let optCellPropAmount = document.createElement('td');
-            optCellPropAmount.innerText = classes[i][letterClass].amount;
+            if (classes[i][letterClass].amount === null || classes[i][letterClass].amount.length === 0) {
+                optCellPropAmount.innerText = 0;
+            }
+            else {
+                optCellPropAmount.innerText = classes[i][letterClass].amount;
+            }
             optRow.append(optCellPropAmount)
 
             let mapAbsent = new Map();
@@ -137,7 +146,7 @@ function getDataForTable(period = "today", dateRoot = 'none') {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                schoolId: urlSchoolId.get("schoolId"),
+                schoolId: urlParams.get("schoolId"),
                 period: period,
                 method: 'getCommonCase'
             })
@@ -145,7 +154,7 @@ function getDataForTable(period = "today", dateRoot = 'none') {
             .then(res => {
                 const jres = res.json()
                     .then(jres => {
-                        fillTable(jres);
+                        fillTable(jres, res.headers.get('date'));
                     })
                 isTableLoaded = true;
             })
@@ -159,16 +168,16 @@ function getDataForTable(period = "today", dateRoot = 'none') {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                schoolId: urlSchoolId.get("schoolId"),
+                schoolId: urlParams.get("schoolId"),
                 period: period,
                 date: splitDate[0] + '.' + splitDate[1] + '.' + splitDate[2],
-                method: 'getCustom'
+                method: 'getCustomCase'
             })
         })
             .then(res => {
                 const jres = res.json()
                     .then(jres => {
-                        fillTable(jres);
+                        fillTable(jres, res.headers.get('date'));
                     })
                 isTableLoaded = true;
             })

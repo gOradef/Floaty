@@ -5,7 +5,7 @@
 
 // * returns secret for jwt <y.m.d.>.<loginStr>
 // * mode 0 - default (today), 1 - previous day
-std::string genToken(const std::string loginStr, int mode) {
+std::string genToken(const std::string& loginStr, int mode) {
     if (mode == 0) {
         time_t now = time(nullptr);
         tm *ltm = localtime(&now);

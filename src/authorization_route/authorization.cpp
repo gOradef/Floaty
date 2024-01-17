@@ -43,7 +43,6 @@ int isValidCookie(const crow::request &req) {
         if (reqRootJ["schoolId"].asString() != "1212") {
             schoolLogin = reqRootJ["schoolId"].asString();
             secret = genToken(schoolLogin);
-            std::cout << "Secret is : " << secret << '\n';
         }
         else {
             return 401;

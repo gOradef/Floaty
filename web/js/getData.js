@@ -24,7 +24,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
             body: JSON.stringify( {
                 Cookie: document.cookie,
                 schoolId: urlParams.get("schoolId"),
-                method: 'getCommonCase'
+                method: 'getCommonCaseForm'
             })
         })
         //get 'names' attribute of class
@@ -37,19 +37,15 @@ window.addEventListener("DOMContentLoaded", (event) => {
                 else {
                     const jres = response.json()
                         .then(jres => {
-                            let classes = jres["classes"];
-                            let numClass;
-                            let letterClass;
+                            let classes = jres;
+                            classes.sort(function(a, b) {return a.split('_')[0]-b.split('_')[0];});
                             let nameClass;
                             for(let i in classes) {
-                                numClass = classes[i];
-                                for (letterClass in numClass) {
-                                    nameClass = numClass[letterClass].name;
-                                    let numAndLetter = nameClass.split('_');
+                                    nameClass = classes[i].split('_')[0] + classes[i].split('_')[1];
+
                                     let opt = document.createElement('option');
-                                    opt.innerHTML = numAndLetter[0]+ numAndLetter[1];
+                                    opt.innerHTML = nameClass;
                                     classesList.appendChild(opt);
-                                }
                             }
 
                     })
@@ -57,8 +53,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
             }
             )
-            .then(ev=> {
-                window.addEventListener("submit", ev => {
+    document.getElementById('submitBtn').addEventListener("click", async () => {
                     let urlSchoolId = urlParams.get("schoolId");
                     let className = document.getElementById("classSelect").value;
                     let classNum = className.slice(0, className.length-1);
@@ -79,7 +74,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
                     let absentFreeMeal = document.getElementById("absentFreeMeal").value;
                     absentFreeMeal = parseNames(absentFreeMeal);
-                    
+
 
                     fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
                         method: 'POST',
@@ -97,8 +92,9 @@ window.addEventListener("DOMContentLoaded", (event) => {
                             absentFreeMeal: absentFreeMeal
                         })
                     })
+
                         .then(res => {
-                            if (res.status === 200) {
+                        if (res.status === 200) {
                                 alert("Form submitted!");
                                 location.href += urlParams;
                                 location.reload();
@@ -108,9 +104,6 @@ window.addEventListener("DOMContentLoaded", (event) => {
                             }
 
                         })
+
                 })
             })
-
-    }
-)
-
