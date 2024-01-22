@@ -11,8 +11,6 @@ std::string genToken(const std::string& loginStr) {
         std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday)};
         std::string secret = dynamicDate + '.' + loginStr;
         return secret;
-
-    }
 }
 crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ, const Json::Value &corrLoginJ,
                                     const Json::Value &corrUserPassword, const Json::Value &corrAdminPassword) {
