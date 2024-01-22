@@ -132,7 +132,7 @@ int main()
                          if (!req.get_header_value("Cookie").empty()) {
                              if (isValidCookie(req) == 201) {
                                  const std::string editNotes = req.body;
-                                 res = writeForEditNotesForm(editNotes);
+                                 res = getStaticFileJson(req, false);
                              }
                              else { //login as user non success
                                  res = handleErrPage(401, "Verification [user] failed");

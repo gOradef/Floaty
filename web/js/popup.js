@@ -1,7 +1,11 @@
 let isRedactorModeEntered = false;
 let dataTable;
-let changesList = {"classes": {}};
-
+let changesList = {
+    editChanges: {},
+    listChanges: {
+        add: [],
+        rm: []
+    }};
 //Region export popup
 document.getElementById('openExport-btn').addEventListener('click', function() {
     document.getElementById('popupExport').style.display = 'block';
@@ -29,7 +33,6 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
     let rootTableHeader = document.getElementById('rootTableHeader')
     let rootTable = document.getElementById('rootTableBody');
         
-    let cells = document.querySelectorAll('table tr td')
 
     function getTableData() {
         let data = {};
@@ -61,7 +64,6 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
                 rowData = [];
             }
         }
-        console.log(data);
         return data;
     }
     function insertData(data) {
@@ -79,7 +81,11 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
                     rootTable.children[row].children[cell].className += 'modifiedCell';
                 }
                 if (jsonObj[rootTable.children[row].children[cell].id] !== undefined) {
-                    changesList['classes'][rootTable.children[row].children[0].innerHTML] = jsonObj;
+                    let className = dataTable[row][0];
+                    let classNum = className.slice(0, className.length-1);
+                    let classLetter = className.charAt(className.length-1);
+                    className = classNum + '_' + classLetter;
+                    changesList['editChanges'][className] = jsonObj;
                 }
             }
         }
@@ -87,43 +93,60 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
         console.log(changesList);
 
     }
-
     switch (isRedactorModeEntered) {
         case false:
-            document.getElementById("openRedactMode-btn").innerHTML = 'Сохранить изменения';
+            document.getElementById("openRedactMode-btn").innerHTML = 'Сохранить изменения у себя';
             document.getElementById('confirmChangesTable-btn').style.display = 'none';
             dataTable = getTableData();
+            if(dataTable === undefined) {
+                document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
+                return;
+            }
             isRedactorModeEntered = true;
             break;
 
         case true:
-            document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать';
+            document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
             document.getElementById('confirmChangesTable-btn').style.display = 'flex';
             isRedactorModeEntered = false;
             insertData(dataTable);
             break;
 
-    }
-    if (isRedactorModeEntered) {
-    }
-
-})
-
+    }})
 document.getElementById('confirmChangesTable-btn').addEventListener('click', function () {
     if (isRedactorModeEntered) {
-        alert('Сначало сохраните изменения')
+        alert('Сначала сохраните изменения')
         return;
     }
     if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
 
-        alert('oke')
-    }
-    else {
-        alert('ne oke')
-
+        fetch('/api/editDataClassesInterface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                schoolId: urlParams.get("schoolId"),
+                method: 'commonCase',
+                action: 'edit',
+                changesList: changesList,
+                key: urlParams.get("key"),
+            })
+        }).then(res => {
+            if (res.status === 200) {
+                alert('Данные успешно изменены!');
+            }
+            alert('Запрос отправлен!');
+            changesList = {
+                editChanges: {},
+                listChanges: {
+                    add: [],
+                    rm: []
+                }
+            };
+        })
     }
 })
-
 //End redactor mode
 
 
@@ -147,9 +170,11 @@ document.getElementById('submitTable-btn').addEventListener('click', function() 
     let selectedOption = selectElement.options[selectElement.selectedIndex].value;
     if (selectedOption === 'usercase') {
         let userCustomDate = document.getElementById('userCustomDate').value;
+        userDate = userCustomDate;
         getDataForTable(selectedOption, userCustomDate);
     }
     else {
+        userDate = 'today';
         getDataForTable(selectedOption);
     }
     document.getElementById('popupTable').style.display = 'none';

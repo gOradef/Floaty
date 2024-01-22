@@ -1,6 +1,6 @@
 let urlParams = new URLSearchParams(location.search);
 let isTableLoaded = false;
-
+let userDate;
 function fillTable(jres, date) {
     let rootTable = document.getElementById('rootTableBody');
     let journalTitle = document.getElementById('journalTitle');
@@ -148,7 +148,8 @@ function getDataForTable(period = "today", dateRoot = 'none') {
             body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 period: period,
-                method: 'getCommonCase'
+                method: 'commonCase',
+                action: 'get'
             })
         })
             .then(res => {
@@ -171,7 +172,8 @@ function getDataForTable(period = "today", dateRoot = 'none') {
                 schoolId: urlParams.get("schoolId"),
                 period: period,
                 date: splitDate[0] + '.' + splitDate[1] + '.' + splitDate[2],
-                method: 'getCustomCase'
+                method: 'customCase',
+                action: 'get'
             })
         })
             .then(res => {

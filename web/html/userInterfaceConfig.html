@@ -34,6 +34,7 @@
     }
     .actionMenu > * {
         display: flex;
+        flex-direction: column;
         margin-top: 7px;
         justify-items: inherit;
     }
@@ -62,6 +63,7 @@
         border: #526f8c solid 3px;
     }
     .actionBtn {
+        margin-top: 5px;
         background-color: #222;
         color: #fff;
         font-family: century gothic;
@@ -80,29 +82,19 @@
 </style>
 {{{navbarControlFile}}}
 
-<div class="introCont">
-    <h3>Данная страница является инструментов для изменения данных в шаблоне.</h3>
-    <h3>Никому не передавайте значение ссылки этой страницы, она содержит в себе общий ключ доступа.</h3>
+<div class="introCont" style="margin: 30px 40px 20px 40px;">
+    <p style="font-size: 20px">Данная страница является инструментов для изменения данных в шаблоне.</p>
+    <p style="font-size: 20px"> <b style="color: red;">Никому</b> не передавайте значение ссылки этой страницы, она содержит в себе общий ключ доступа.</p>
+<p>Пожалуйста, не изменяйте наименования классов, если не знаете, что делаете, поскольку вы не знаете, что делаете. Вместо этого, создайте / удалите класс.</p>
 </div>
-<!--Region Table-->
-<div id="popupTable" class="popup">
-    <div class="popup-content">
-        <span class="closeTable-btn close-btn">&times;</span>
-        <h4>Загрузка данных</h4>
-        <br><br>
-        <button id="submitTable-btn">Показать</button>
-    </div>
-</div>
-<!--End Table-->
-
-
 <div class="actionMenu">
-    <button id="getTable-btn" class="actionBtn" >Показать</button>
+    <button id="getTable-btn" class="actionBtn" >Показать шаблон списка</button>
 
     <div class="redact">
-        <button id="openRedactMode-btn" class="actionBtn" >Редактировать</button>
-        <button id="confirmChangesTable-btn" class="actionBtn" style="display: none;" >Подтвердить изменения</button>
+        <button id="openRedactMode-btn" class="actionBtn" >Редактировать значения</button>
+        <button id="openRedactClassesListMode-btn" class="actionBtn" >Редактировать список классов</button>
     </div>
+        <button id="confirmChangesTable-btn" class="actionBtn" style="display: none;" >Подтвердить изменения</button>
 
 </div>
 <div class="mainFrame">
@@ -110,13 +102,13 @@
         <table id="rootTable">
             <thead style="background-color: #F5DEB3"><tr><th colspan="7" >ПАТРОНАЖНЫЙ ЖУРНАЛ - ШАБЛОН <span id="journalTitle"></span> </th></tr></thead>
             <tr id="rootTableHeader">
-                <th id="nameClass">Класс</th>
+                <th id="name">Класс</th>
                 <th id="amount">Кол-во учащихся</th>
                 <th id="absent_amount">Кол-во отсутствующих в классе</th>
-                <th id="absent_virus">Фамилии отсутствующих по ОРВИ</th>
-                <th id="absent_resp">Фамилии отсутствующих по УП</th>
-                <th id="absent_nonResp">Фамилии отсутствующих не по УП</th>
-                <th id="absent_freeMeal">Из них бесплатники</th>
+                <th id="absent_listVirusCause">Фамилии отсутствующих по ОРВИ</th>
+                <th id="absent_listRespCause">Фамилии отсутствующих по УП</th>
+                <th id="absent_listNonRespCause">Фамилии отсутствующих не по УП</th>
+                <th id="absent_listFreeMeal">Из них бесплатники</th>
             </tr>
             <tbody id="rootTableBody"></tbody>
         </table>
@@ -126,9 +118,15 @@
 <script>
     let urlParams = new URLSearchParams(location.search);
     let isRedactorModeEntered = false;
+    let isRedactorClassesListModeEntered = false;
     let isTableLoaded = false;
     let dataTable;
-    let changesList = {"classes": {}};
+    let changesList = {
+    editChanges: {},
+    listChanges: {
+        add: [],
+        rm: []
+    }};
     function fillTable(jres, date = "") {
         let rootTable = document.getElementById('rootTableBody');
         let journalTitle = document.getElementById('journalTitle');
@@ -161,7 +159,7 @@
 
                 // * Row base amount
                 let optCellPropAmount = document.createElement('td');
-                if (classes[i][letterClass].amount === null || classes[i][letterClass].amount.length === 0) {
+                if (classes[i][letterClass].amount === null || classes[i][letterClass].length === 0) {
                     optCellPropAmount.innerText = 0;
                 } else {
                     optCellPropAmount.innerText = classes[i][letterClass].amount;
@@ -205,7 +203,8 @@
             },
             body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
-                method: 'getTemplateCase',
+                method: 'templateCase',
+                action: 'get',
                 key: urlParams.get("key")
             })
         })
@@ -226,6 +225,10 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
     let rootTable = document.getElementById('rootTableBody');
 
     function getTableData() {
+        if (isTableLoaded !== true) {
+            alert('Сначала загрузите таблицу');
+            return;
+        }
         let data = {};
         for (let row=0;row< rootTable.children.length; row++) {
             for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
@@ -255,7 +258,6 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
                 rowData = [];
             }
         }
-        console.log(data);
         return data;
     }
     function insertData(data) {
@@ -273,7 +275,11 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
                     rootTable.children[row].children[cell].className += 'modifiedCell';
                 }
                 if (jsonObj[rootTable.children[row].children[cell].id] !== undefined) {
-                    changesList['classes'][rootTable.children[row].children[0].innerHTML] = jsonObj;
+                    let className = dataTable[row][0];
+                    let classNum = className.slice(0, className.length-1);
+                    let classLetter = className.charAt(className.length-1);
+                    className = classNum + '_' + classLetter;
+                    changesList['editChanges'][className] = jsonObj;
                 }
             }
         }
@@ -286,11 +292,15 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
             document.getElementById("openRedactMode-btn").innerHTML = 'Сохранить изменения у себя';
             document.getElementById('confirmChangesTable-btn').style.display = 'none';
             dataTable = getTableData();
+            if(dataTable === undefined) {
+                document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
+                return;
+            }
             isRedactorModeEntered = true;
             break;
 
         case true:
-            document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать';
+            document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
             document.getElementById('confirmChangesTable-btn').style.display = 'flex';
             isRedactorModeEntered = false;
             insertData(dataTable);
@@ -302,16 +312,36 @@ document.getElementById("openRedactMode-btn").addEventListener('click', function
 
 document.getElementById('confirmChangesTable-btn').addEventListener('click', function () {
     if (isRedactorModeEntered) {
-        alert('Сначало сохраните изменения')
+        alert('Сначала сохраните изменения')
         return;
     }
     if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
 
-        alert('oke')
-    }
-    else {
-        alert('ne oke')
+        fetch('/api/editDataClassesInterface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                schoolId: urlParams.get("schoolId"),
+                method: 'templateCase',
+                action: 'edit',
+                changesList: changesList,
+                key: urlParams.get("key"),
+            })
+        }).then(res => {
+            if (res.status === 200) {
+                alert('Данные успешно изменены!');
+            }
+        })
 
+        alert('Запрос отправлен!')
+        changesList = {
+            editChanges: {},
+            listChanges: {
+                add: [],
+                rm: []
+            }};
     }
 })
 
@@ -320,18 +350,92 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
 
 //Region getTableForDate
 document.getElementById('getTable-btn').addEventListener('click', function() {
-    document.getElementById('popupTable').style.display = 'block';
-});
-document.querySelector('.closeTable-btn').addEventListener('click', function() {
-    document.getElementById('popupTable').style.display = 'none';
-});
-
-
-document.getElementById('submitTable-btn').addEventListener('click', function() {
-        getTemplateForTable();
-        document.getElementById('popupTable').style.display = 'none';
+    getTemplateForTable();
 });
 //End getTableForDate
+
+//Region redactClassesMode
+    document.getElementById('openRedactClassesListMode-btn').addEventListener('click', function () {
+        let rootTable = document.getElementById('rootTableBody');
+        let rootTableHeader = document.getElementById('rootTableHeader');
+        if (isTableLoaded) {
+
+            switch (isRedactorClassesListModeEntered) {
+                case false:
+                    for (let i = 0; i < rootTable.rows.length; i++) {
+                        let addButton = document.createElement('button');
+                        addButton.innerHTML = '+';
+                        addButton.id = 'addRowBtn';
+                        addButton.setAttribute('rowIndex', Array.prototype.indexOf.call(rootTable.children, rootTable.rows[i]).toString())
+                        let rmButton = document.createElement('button');
+                        rmButton.innerHTML = '-';
+                        rmButton.id = 'rmRowBtn';
+                        rmButton.setAttribute('rowIndex', Array.prototype.indexOf.call(rootTable.children, rootTable.rows[i]).toString())
+
+
+                        addButton.addEventListener('click', function () {
+                            let indexRow = Array.prototype.indexOf.call(rootTable.children, this.parentNode);
+                            let newClassName = window.prompt('Введите имя нового класса: ', '1А');
+
+                            if (confirm(`Добавится новый класс - ${newClassName}. Уверены?`)) {
+                                let newUserRow;
+                                newUserRow = rootTable.insertRow(indexRow);
+                                for (let i = 0; i < rootTableHeader.children.length; i++) {
+                                    let newUserCell = document.createElement('td');
+                                    newUserCell.id = rootTableHeader.cells[i].id;
+                                    newUserCell.innerHTML = '-';
+                                    newUserCell = newUserRow.insertCell(i);
+                                }
+                                rootTable.rows[indexRow].cells[0].innerHTML = newClassName;
+                                rootTable.rows[indexRow].cells[1].innerHTML = 0;
+                                rootTable.rows[indexRow].cells[2].innerHTML = 0;
+
+                                let className = rootTable.rows[indexRow].cells[0].innerHTML;
+                                let classNum = className.slice(0, className.length-1);
+                                let classLetter = className.charAt(className.length-1);
+                                className = classNum + '_' + classLetter;
+                                changesList["listChanges"]['add'].push(className);
+                            }
+
+                        })
+                        rmButton.addEventListener('click', function () {
+                            let indexRow = Array.prototype.indexOf.call(rootTable.children, this.parentNode);
+
+                            if (confirm(`Точно хотите удалить класс - ${rootTable.rows[indexRow].cells[0].innerHTML}? \n Можно использовать Enter, чтобы подтвердить`)) {
+                                let className = rootTable.rows[indexRow].cells[0].innerHTML;
+                                let classNum = className.slice(0, className.length-1);
+                                let classLetter = className.charAt(className.length-1);
+                                className = classNum + '_' + classLetter;
+
+                                changesList["listChanges"]['rm'].push(className);
+                                rootTable.rows[indexRow].remove();
+                            }
+                        })
+
+                        rootTable.rows[i].append(addButton);
+                        rootTable.rows[i].append(rmButton);
+                        isRedactorClassesListModeEntered = true;
+                    }
+                    break;
+                case true:
+                    for (let i = 0; i < rootTable.rows.length; i++) {
+                        while (rootTable.rows[i].lastChild.id === 'rmRowBtn' || rootTable.rows[i].lastChild.id === 'addRowBtn') {
+                            rootTable.rows[i].lastChild.remove();
+                        }
+                    }
+                    isRedactorClassesListModeEntered = false;
+                    break;
+            }
+        }
+        else {
+        alert('Сначала загрузите таблицу');
+        }
+//Region plus and minus row btns
+//End plus and minus row btns
+
+    })
+
+//End redactClassesMode
 </script>
 
 {{{footerFile}}}
