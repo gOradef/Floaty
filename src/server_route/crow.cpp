@@ -164,8 +164,8 @@ int main()
     {
         return handleErrPage(404);
     });
-    app .bindaddr("127.0.0.1")
-        .port(6010)
+    app .bindaddr("62.233.46.131")
+        .port(80)
         .multithreaded()
         .run_async();
 }
