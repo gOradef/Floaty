@@ -1,0 +1,896 @@
+{
+	"classes" : 
+	{
+		"1" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : "",
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : "124",
+				"name" : "1_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "1_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "1_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "1_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "1_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "1_\u0415"
+			}
+		},
+		"10" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "10_\u0415"
+			}
+		},
+		"11" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "11_\u0415"
+			}
+		},
+		"2" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "2_\u0415"
+			}
+		},
+		"3" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "3_\u0415"
+			}
+		},
+		"4" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "4_\u0415"
+			}
+		},
+		"5" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "5_\u0415"
+			}
+		},
+		"6" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "6_\u0415"
+			}
+		},
+		"7" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "7_\u0415"
+			}
+		},
+		"8" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "8_\u0415"
+			}
+		},
+		"9" : 
+		{
+			"\u0410" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0410"
+			},
+			"\u0411" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0411"
+			},
+			"\u0412" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0412"
+			},
+			"\u0413" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0413"
+			},
+			"\u0414" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0414"
+			},
+			"\u0415" : 
+			{
+				"absent" : 
+				{
+					"amount" : null,
+					"listFreeMeal" : [],
+					"listNonRespCause" : [],
+					"listRespCause" : [],
+					"listVirusCause" : []
+				},
+				"amount" : null,
+				"name" : "9_\u0415"
+			}
+		}
+	}
+}
