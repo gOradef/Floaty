@@ -13,18 +13,18 @@ frontend - native html && css \
 simple logic - js \
 
 # `Prototype`
-_No **logic**, **non-static**, no user **friendly**_.
+_No **logic**, **non-static**, no **user-friendly**_.
 
-- [ ] User logic
-- [ ] Static
-- [ ] User friendly (Secure code[excpetions])
-- [ ] Web-page
-- [ ] API
-- [ ] User privilages
+1. [x] User logic
+2. [x] Static (not full static (need glibc 2.38)
+3. [x] User friendly (Secure code[exceptions])
+4. [x] Web-page  (exclude admin page)
+5. [x] API
+6. [ ] User privileges
 
 # Здесь история
 
-арик черновой
+варик черновой
 когда не черновой?)
 можем скопипастить отсюда футер)
 https://tilda.cc/ru/?upm=1241
@@ -34,7 +34,6 @@ https://tilda.cc/ru/?upm=1241
 почему не сделают нам по субботам выходные, ну рил
 
 Бтв, <div class="WhoWeAre"> - отличное название для дива )
-
 Я про то, что сложно читать это все потом будет. Обычно накидывают названия в зависимости от детей в контейнере
 
 
@@ -47,9 +46,6 @@ https://tilda.cc/ru/?upm=1241
 нет. Англосраксы же ехали в Африку и покупали у негров негров. Исторический факт бтв, без шуток
 ахахахахахаххахахахахахахаххахахахахахахахахахахахахахахахахахахахахахахахаха
 идея: покупаю твоих негров
-у меня  
-
-пон
 
 
 а зачем ты ее удалил?
@@ -59,7 +55,7 @@ https://tilda.cc/ru/?upm=1241
 отличная идея на счет копипаста
 
 осталась стилизация и вся такая фигня
-варик черновой 
+
 теперь здесь наш чат) 
 
 

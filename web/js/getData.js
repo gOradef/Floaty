@@ -1,7 +1,8 @@
 
 function parseNames(namesRoot) {
     let namesList = [];
-    namesSplited = namesRoot.split(' ');
+    namesRoot = namesRoot.replace(/,/g, ' ');
+    let namesSplited = namesRoot.split(' ');
     for(let el in namesSplited) {
         if(namesSplited[el] !== "") {
             namesList.push(namesSplited[el]);
@@ -15,19 +16,20 @@ function parseNames(namesRoot) {
 window.addEventListener("DOMContentLoaded", (event) => {
     let urlParams = new URLSearchParams(location.search);
     let classesList = document.getElementById("classSelect");
-        fetch('/api/getDataClassesForm?schoolId=' + urlParams.get("schoolId"), {
+        fetch('/api/getDataClassesForm', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify( {
                 Cookie: document.cookie,
-                params: location.search
+                schoolId: urlParams.get("schoolId"),
+                method: 'getCommonCaseForm'
             })
         })
         //get 'names' attribute of class
             .then(response => {
-                if (response.status == 404) {
+                if (response.status === 404) {
                     alert("Please wait a litl bit, and reload a page after. Data is generating \n" +
                         "you are the first person, what request data)")
                     location.reload();
@@ -35,19 +37,15 @@ window.addEventListener("DOMContentLoaded", (event) => {
                 else {
                     const jres = response.json()
                         .then(jres => {
-                            let classes = jres["classes"];
-                            let numClass;
-                            let letterClass;
+                            let classes = jres;
+                            classes.sort(function(a, b) {return a.split('_')[0]-b.split('_')[0];});
                             let nameClass;
                             for(let i in classes) {
-                                numClass = classes[i];
-                                for (letterClass in numClass) {
-                                    nameClass = numClass[letterClass].name;
-                                    let numAndLetter = nameClass.split('_');
+                                    nameClass = classes[i].split('_')[0] + classes[i].split('_')[1];
+
                                     let opt = document.createElement('option');
-                                    opt.innerHTML = numAndLetter[0]+ numAndLetter[1];
+                                    opt.innerHTML = nameClass;
                                     classesList.appendChild(opt);
-                                }
                             }
 
                     })
@@ -55,15 +53,14 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
             }
             )
-            .then(ev=> {
-                window.addEventListener("submit", ev => {
+    document.getElementById('submitBtn').addEventListener("click", async () => {
                     let urlSchoolId = urlParams.get("schoolId");
-                    console.log(urlSchoolId);
                     let className = document.getElementById("classSelect").value;
                     let classNum = className.slice(0, className.length-1);
                     let classLetter = className.charAt(className.length-1);
                     className = classNum + '_' + classLetter;
 
+                    let globalNum = document.getElementById("globalNum").value;
                     let absentNum = document.getElementById("absentNum").value;
 
                     let absentVir = document.getElementById("absentVir").value;
@@ -87,6 +84,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
                         body: JSON.stringify({
                             schoolId: urlSchoolId,
                             className: className,
+                            globalNum: globalNum,
                             absentNum: absentNum,
                             absentVir: absentVir,
                             absentRespCause: absentRespCause,
@@ -94,9 +92,18 @@ window.addEventListener("DOMContentLoaded", (event) => {
                             absentFreeMeal: absentFreeMeal
                         })
                     })
+
+                        .then(res => {
+                        if (res.status === 200) {
+                                alert("Form submitted!");
+                                location.href += urlParams;
+                                location.reload();
+                            }
+                            else {
+                                alert("Form doesn't submitted")
+                            }
+
+                        })
+
                 })
             })
-
-    }
-)
-

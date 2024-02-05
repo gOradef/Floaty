@@ -1,18 +1,18 @@
-// #include "../../includes/crow/http_request.h"
-
 #include <ctime>
 #include "../../includes/Floaty/authentication.h"
 
 
 
-
-//* returns secret for jwt <y.m.d.>.<loginStr>
-std::string genToken(const std::string loginStr) {
-    time_t now = time(nullptr);
-    tm *ltm = localtime(&now);
-    std::string dynamicDate{std::to_string(1900 + ltm->tm_year) + '.' +  std::to_string(ltm->tm_mon+1) + '.' + std::to_string(ltm->tm_mday)};
-    std::string secret = dynamicDate + '.' + loginStr;
-    return secret;
+// * returns secret for jwt <y.m.d.>.<loginStr>
+// * mode 0 - default (today), 1 - previous day
+std::string genToken(const std::string& loginStr) {
+        time_t now;
+        time(&now);
+        struct tm ltm;
+        localtime_r(&now, &ltm);
+        std::string dynamicDate{std::to_string(1900 + ltm.tm_year) + '.' +  std::to_string(ltm.tm_mon+1) + '.' + std::to_string(ltm.tm_mday)};
+        std::string secret = dynamicDate + '.' + loginStr;
+        return secret;
 }
 crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value &passwordJ, const Json::Value &corrLoginJ,
                                     const Json::Value &corrUserPassword, const Json::Value &corrAdminPassword) {
@@ -21,7 +21,6 @@ crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value
     if (passwordJ.asString() == corrAdminPassword.asString()) {state = true;}
 
     // Создание JSON Web Token
-//TODO возвращать тип пользователя в json, потом обрабатывать на стороне Js
     if(state == 0) {
         auto token_builder = jwt::create();
         token_builder.set_issuer("FloatyCook");

@@ -24,14 +24,13 @@ form {
 }
 .navbar {
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 1;
   display: inline-grid;
   align-items: center;
   inset: 0;
   width: 100%;
   height: 65px;
-  overflow: hidden;
   background: #222;
   color: #FFF;
 
@@ -79,6 +78,14 @@ form {
 .navButtons>a:hover {
   text-decoration: overline solid rgb(230, 177, 79);
   color: rgb(75, 160, 96);
+}
+
+
+.inputFormField {
+  margin-top: 8px;
+}
+.inputFormField > div {
+  margin-bottom: 4px;
 }
 
 .loginButton {
@@ -141,6 +148,9 @@ form {
 input[type="text"] {
   font-family: Inika;
 }
+input[type="password"] {
+  font-family: Inika;
+}
 
 .inputCont {
   color: white;
@@ -162,109 +172,18 @@ input[type="text"] {
   justify-content: center;
   align-items: center;
 }
+.faq {
+  padding: 0 16px 20px 16px;
+  margin-top: 40px;
+  color: white;
+  border-radius: 15px;
+  background-color: #222;
+}
 
 .content {
   height: 100vh;
 }
 
-
-.blockI {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-}
-
-.block_A{
-  background: #222;
-  border-radius: 0px 10px 10px 0px;
-  color: white;
-  font-family: Inika;
-  text-align: right;
-  padding-right: 10px;
-  font-style: normal;
-  width: 20%;
-  margin-top: 10px;
-}
-
-.block_B{
-  width: 80%;
-  margin-left: 10%;
-  margin-right: 10%;
-  background-color: #222;
-  padding: 10px;
-  border-radius: 10px;
-  height: 800px;
-}
-
-.block_B_title {
-  text-align: center;
-}
-
-.block_B_desk_t {
-  display:  grid;
-  grid-template-columns: repeat(2, 1fr);
-  
-}
-
-.A1 {
-  width: 20%;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.A2 {
-  width: auto;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.A3 {
-  width: 20%;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.A_3_5 {
-  width: auto;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.A5 {
-  width: 20%;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.A6{
-  width: auto;
-  height: auto;
-  text-align: center;
-  color: white;
-}
-
-.blockMakeDesk {
-  display: grid;
-  grid-template-columns: repeat(6);
-  grid-template-rows: repeat(6, auto);
-  margin-top: 20px;
-  margin-left: 5%;
-  margin-right: 5%;
-  background-color: #222;
-  min-height: 30xp;
-  color: white;
-  padding: 5px;
-  text-align: center;
-}
-
-.block_ALFA {
-  min-height: 40px;
-}
 
 .footer {
 margin-top: auto;
@@ -346,3 +265,45 @@ grid-row: 2;
 @media (max-width: 599px) {
 
 }
+
+/*Region POPUP WINDOW */
+.popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.popup-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.popupBtn {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+}
+/*End*/

@@ -11,10 +11,7 @@ int isValidCookie(const crow::request &req) {
         tokens.push_back(cookieHeader.substr(start, end - start));
         start = end + 1;
     }
-    // Добавляем последний токен
     tokens.push_back(cookieHeader.substr(start));
-
-    // Выбираем последний токен
     if (!tokens.empty()) {
         userTokenNative = tokens.back();
     }
@@ -22,20 +19,37 @@ int isValidCookie(const crow::request &req) {
         return 403; //invalid token
     }
 
-    //Ломаем статичный префикс токена
-    //TODO CHECK with multiple cookies maybe need to remove ';'
-    if (*userTokenNative.begin() == ';') {userTokenNative.erase(userTokenNative.begin());}
+    if (*userTokenNative.begin() == ' ') userTokenNative.erase(userTokenNative.begin());
     for (int i = 0; i < 6; ++i) {
         userTokenNative.erase(userTokenNative.begin());
     }
+
     std::string secret;
-    if (req.url_params.get("schoolId") != nullptr) {
-        const std::string schoolLogin = req.url_params.get("schoolId");
-        secret = genToken(schoolLogin);
+    std::string schoolLogin;
+    if (req.body.empty()) {
+        if (req.url_params.get("schoolId") != nullptr) {
+            schoolLogin = req.url_params.get("schoolId");
+            secret = genToken(schoolLogin);
+        }
+        else {
+            return 401;
+        }
     }
-    else {
-        return 401;
+    else  {
+        Json::Reader reader;
+        Json::Value reqRootJ;
+        reader.parse(req.body, reqRootJ);
+
+        if (reqRootJ["schoolId"].asString() != "1212") {
+            schoolLogin = reqRootJ["schoolId"].asString();
+            secret = genToken(schoolLogin);
+        }
+        else {
+            return 401;
+        }
+
     }
+
 
     try {
         jwt::decoded_jwt decodedToken = jwt::decode(userTokenNative);
