@@ -72,7 +72,6 @@ int main()
        //handler of non cookie users
         return defineErrCodeOfCookie(req, res);
     });
-    //! Только для html
     CROW_ROUTE(app, "/<string>")
     ([](const std::string& file)
      {
@@ -80,7 +79,6 @@ int main()
         else return genWebPages(file);
      });
 
-    //TODO split jsonFileInto only classes
     CROW_ROUTE(app, "/api/getDataClassesForm")
     .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
@@ -155,7 +153,7 @@ int main()
 
     //* Response for resources of web
     CROW_ROUTE (app, "/<string>/<string>")
-    ([](std::string type,std::string file)
+    ([](const std::string& type,const std::string& file)
     {
         return sendWebResoursesByRequest(type, file);
     });

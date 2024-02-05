@@ -2,8 +2,8 @@
 #include "vector"
 
 
-bool
-isCorrUserKey( const std::string& userKey, const std::string &schoolId);
+
+bool isCorrUserKey( const std::string& userKey, const std::string &schoolId);
 
 //If  { schoolId exist -> try read template
 //else { gen template
@@ -96,7 +96,6 @@ Json::Value genTempClassesAsJson(const std::string &reqPath, const std::string& 
                 }
                 root2[std::to_string(i)] = classesNum;
             }
-//    root2["10"]["А"]["name"] = "the best!";
             root["classes"] = root2;
             fstream.open(std::string("data/"+ schoolId + "/schoolTemplateDate.json"), std::ios::out);
             Json::StyledWriter writer;
@@ -108,8 +107,9 @@ Json::Value genTempClassesAsJson(const std::string &reqPath, const std::string& 
     }
     catch (std::exception &e) {
         std::cout << "---ERR: " << e.what() << '\n';
+        root["err"] = e.what();
     }
-
+    return root;
 
 }
 
