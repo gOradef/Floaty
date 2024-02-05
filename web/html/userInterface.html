@@ -13,6 +13,7 @@
 <body>
   <script src="../js/getTable.js"></script>
   <style>
+
     .mainFrame {
       padding: 10px 20px 0 20px;
     }
@@ -20,6 +21,11 @@
       font-family: arial, sans-serif;
       border-collapse: collapse;
       width: 100%;
+    }
+    .rootTableHeader {
+      background-color: darkgray;
+      position: sticky;
+      top:0;
     }
 
     td, th {
@@ -138,7 +144,7 @@
         <div class="contentFrame">
           <table id="rootTable">
               <thead style="background-color: #F5DEB3"><tr><th colspan="7" >ПАТРОНАЖНЫЙ ЖУРНАЛ <span id="journalTitle"></span> </th></tr></thead>
-            <tr id="rootTableHeader">
+            <tr id="rootTableHeader" class="rootTableHeader">
               <th id="nameClass">Класс</th>
               <th id="amount">Кол-во учащихся</th>
               <th id="absent_amount">Кол-во отсутствующих в классе</th>
