@@ -1,5 +1,6 @@
 #include "Floaty/api_route.h"
 #include "vector"
+#include <cstdlib>
 
 
 bool
@@ -189,7 +190,8 @@ std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &r
                 fstream.open(path,std::ios::out);
                 fstream << writer.write(templateRoot);
                 fstream.close();
-                resultMap["status"] == 200;
+                resultMap["status"] = 200;
+                std::system(std::string("./commit_data.sh -d 'admin change for " + schoolIdReq + "'").c_str() );
                 return resultMap;
 
             }
@@ -242,7 +244,8 @@ std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &r
                 fstream.open(templatePath,std::ios::out);
                 fstream << writer.write(templateRoot);
                 fstream.close();
-                resultMap["status"] == 200;
+                resultMap["status"] = 200;
+                std::system(std::string("./commit_data.sh -d 'template change for " + schoolIdReq + "'").c_str());
                 return resultMap;
             }
 
@@ -349,7 +352,7 @@ crow::response writeEditNotesForm(std::map<std::string, Json::Value> &editNotesM
     fstream.open("data/" + editNotesMap["schoolId"].asString() + '/' + genToken(editNotesMap["schoolId"].asString()) + ".json", std::ios::out | std::ios::binary);
     fstream << buff_J;
     fstream.close();
-
+    std::system(std::string("./commit_data.sh -d 'form edit for " + editNotesMap["schoolId"].asString() + "'").c_str());
     return crow::response(200, "ladna");
 }
 
@@ -516,7 +519,7 @@ crow::response handleCommonReq(const std::string &schoolId, bool isShort) {
             ifstream.open(reqPath);
             ostringstream << ifstream.rdbuf();
             ifstream.close();
-            if (ostringstream.str() == "") {
+            if (ostringstream.str() == "") { //if file doesnt exist
                 genTempClassesAsJson(reqPath, schoolId);
             }
             jReader.parse(ostringstream.str(), root);
