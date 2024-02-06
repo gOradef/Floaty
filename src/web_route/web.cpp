@@ -5,10 +5,12 @@ crow::response genWebPages(std::string file) {
     crow::mustache::context ctx;
 
         auto nav = crow::mustache::load_text("html/templates/navbar.html");
+        auto navControl = crow::mustache::load_text("html/templates/navbarControl.html");
         auto footer = crow::mustache::load_text("html/templates/footer.html");
         ctx.content_type = "text/html";
 
         ctx["navbarFile"] = nav;
+        ctx["navbarControlFile"] = navControl;
         ctx["footerFile"] = footer;
 
         auto page = crow::mustache::load("html/" + file + ".html");
@@ -16,10 +18,9 @@ crow::response genWebPages(std::string file) {
                 page = crow::mustache::load("imgs/favicon.ico");
                 return page.render();
             }
-            if (page.render_string() == "") {
+            if (page.render_string().empty()) {
                 return handleErrPage(404);
             }
-        // page.render_string();
         return page.render(ctx);
 }
 

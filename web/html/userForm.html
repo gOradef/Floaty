@@ -11,31 +11,60 @@
 
 <body>
 <script src="../js/getData.js"></script>
-{{{navbar}}}
-<div style="display: flex; justify-content:center; padding: 10px;">
+{{{navbarControlFile}}}
+<div style="display: flex; flex-direction: column; align-items: center; justify-content:center; padding: 10px;">
     <form class="inputQUEST" id="loginForm">
         <h2> Выберите класс </h2>
         <h4>ヾ(•ω•`)o </h4>
-        <!-- строчка сверху должна будет остаться -->
         <select id="classSelect"> </select>
         <div class="quest" id="MainForm">
-            <div class="QST"><div>Сколько отсутствует?</div>
-                <div><input class="ot" type="number" min="0" placeholder="Кол-во" id="absentNum"></div>
-                <div>Фамилии отсутствующих по ОРВИ</div>
-                <div><input class="otORVI" placeholder="ФИО"id="absentVir"></div>
-                <div>Фамилии отсутствующих по уважительной причине</div>
-                <div><input class="otPP" placeholder="ФИО" id="absentRespCause"></div>
-                <div>Фамилии отсутствующих по неуважительной причине</div>
-                <div><input class="otDP" placeholder="ФИО" id="absentNonRespCause"></div>
-                <div>Из них бесплатники</div>
-                <div><input class="otBESPL" placeholder="ФИО" id="absentFreeMeal"></div></div>
+            <div class="QST">
+                <div class="inputFormField">
+                    <label for="globalNum">Сколько в классе?</label>
+                    <input class="ot" min="0" placeholder="Кол-во" id="globalNum">
+                </div>
+
+                <div class="inputFormField">
+                    <label for="absentNum">Сколько отсутствует?</label>
+                    <input class="ot" type="number" min="0" placeholder="Кол-во" id="absentNum">
+                </div>
+
+                <div class="inputFormField">
+                    <label for="absentVir">Фамилии отсутствующих по ОРВИ</label>
+                    <input class="otORVI" placeholder="ФИО" id="absentVir">
+                </div>
+
+                <div class="inputFormField">
+                    <label for="absentRespCause">Фамилии отсутствующих по уважительной причине</label>
+                    <input class="otPP" placeholder="ФИО" id="absentRespCause">
+                </div>
+
+                <div class="inputFormField">
+                    <label for="absentNonRespCause">Фамилии отсутствующих по неуважительной причине</label>
+                    <input class="otDP" placeholder="ФИО" id="absentNonRespCause">
+                </div>
+
+                <div class="inputFormField">
+                    <label for="absentFreeMeal">Из них бесплатники</label>
+                    <input class="otBESPL" placeholder="ФИО" id="absentFreeMeal"></div>
+                </div>
         </div>
 
         <p id="status"></p>
         <button class="submitBtn" type="submit" id="submitBtn" style="padding-bottom: 2px;">Отправить</button>
     </form>
+    <div class="faq">
+        <h2>F.A.Q.</h2>
+        <h3>Далее изложены основные правила заполнения формы. Рекомендуется к прочтению.</h3>
+        <ul>
+            <li>"Классы не оторбражаются, что делать?" - немного подождите и перезагрузите страницу, проблема должна будет решится.</li>
+            <li>"Обязательно ли заполнять поле 'Сколько в классе?'" - если не заполнить, то будет использоваться значение, использованное в последний раз</li>
+            <li>"Как заполнять фамилии?" - допускается разделение пробелом или запятыми, возможны оба случая вместе.</li>
+            <li>"Что делать если отправили форму с ошибкой?" - в таком случае придется заполнить и отправить форму ещё раз, на этот раз в правильном виде</li>
+        </ul>
+    </div>
 </div>
-{{{footer}}}
+{{{footerFile}}}
 </body>
 
 </html>
