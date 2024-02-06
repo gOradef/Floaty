@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floaty - Interface</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+<style>
+    .mainFrame {
+        padding: 10px 20px 0 20px;
+    }
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        padding: 8px;
+    }
+    .actionMenu {
+        margin-right: 20px;
+        display: flex;
+        justify-items: right  ;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    .actionMenu > * {
+        display: flex;
+        flex-direction: column;
+        margin-top: 7px;
+        justify-items: inherit;
+    }
+    .popup-content > h4 {
+        margin-bottom: 10px;
+    }
+    .popup-content {
+        background: #444444;
+        border: 4px #222222 solid;
+        color: white;
+        margin: 0 15px 10px 0;
+        padding: 10px 20px 10px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .popup-content > * {
+        margin-top: 7px;
+    }
+    .actionBtn {
+        /*border: none;*/
+        /*color: white;*/
+        /*background-color: ;*/
+    }
+    .modifiedCell {
+        border: #526f8c solid 3px;
+    }
+    .actionBtn {
+        margin-top: 5px;
+        background-color: #222;
+        color: #fff;
+        font-family: century gothic;
+        border: black solid;
+        border-size: 3px;
+    }
+    .introCont {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: red solid 3px;
+        background-color: #222;
+        color: white;
+
+    }
+</style>
+{{{navbarControlFile}}}
+
+<div class="introCont" style="margin: 30px 40px 20px 40px;">
+    <p style="font-size: 20px">Данная страница является инструментов для изменения данных в шаблоне.</p>
+    <p style="font-size: 20px"> <b style="color: red;">Никому</b> не передавайте значение ссылки этой страницы, она содержит в себе общий ключ доступа.</p>
+<p>Пожалуйста, не изменяйте наименования классов, если не знаете, что делаете, поскольку вы не знаете, что делаете. Вместо этого, создайте / удалите класс.</p>
+</div>
+<div class="actionMenu">
+    <button id="getTable-btn" class="actionBtn" >Показать шаблон списка</button>
+
+    <div class="redact">
+        <button id="openRedactMode-btn" class="actionBtn" >Редактировать значения</button>
+        <button id="openRedactClassesListMode-btn" class="actionBtn" >Редактировать список классов</button>
+    </div>
+        <button id="confirmChangesTable-btn" class="actionBtn" style="display: none;" >Подтвердить изменения</button>
+
+</div>
+<div class="mainFrame">
+    <div class="contentFrame">
+        <table id="rootTable">
+            <thead style="background-color: #F5DEB3"><tr><th colspan="7" >ПАТРОНАЖНЫЙ ЖУРНАЛ - ШАБЛОН <span id="journalTitle"></span> </th></tr></thead>
+            <tr id="rootTableHeader">
+                <th id="name">Класс</th>
+                <th id="amount">Кол-во учащихся</th>
+                <th id="absent_amount">Кол-во отсутствующих в классе</th>
+                <th id="absent_listVirusCause">Фамилии отсутствующих по ОРВИ</th>
+                <th id="absent_listRespCause">Фамилии отсутствующих по УП</th>
+                <th id="absent_listNonRespCause">Фамилии отсутствующих не по УП</th>
+                <th id="absent_listFreeMeal">Из них бесплатники</th>
+            </tr>
+            <tbody id="rootTableBody"></tbody>
+        </table>
+        <div style="height: 100px; background-color:#333; border: none;"><a id="itogo"></a></div>
+    </div>
+</div>
+<script>
+    let urlParams = new URLSearchParams(location.search);
+    let isRedactorModeEntered = false;
+    let isRedactorClassesListModeEntered = false;
+    let isTableLoaded = false;
+    let dataTable;
+    let changesList = {
+    editChanges: {},
+    listChanges: {
+        add: [],
+        rm: []
+    }};
+    function fillTable(jres, date = "") {
+        let rootTable = document.getElementById('rootTableBody');
+        let journalTitle = document.getElementById('journalTitle');
+        let optRow;
+        let classes = jres["classes"];
+        let numClass;
+        let letterClass;
+        let nameClass;
+
+
+        //Fill date
+        if (date !== "") journalTitle.innerText = " | " + date;
+
+        //Filling cells
+        for(let i in classes) { //num
+            numClass = classes[i];
+            for (letterClass in numClass) { //num -> letter
+                // * Get name of class
+                nameClass = numClass[letterClass].name;
+                let numAndLetter = nameClass.split('_');
+                nameClass = numAndLetter[0] + numAndLetter[1];
+
+                // * Row
+                optRow = document.createElement('tr');
+
+                // * Row Name
+                let optCellName = document.createElement('td');
+                optCellName.innerText = nameClass;
+                optRow.append(optCellName);
+
+                // * Row base amount
+                let optCellPropAmount = document.createElement('td');
+                if (classes[i][letterClass].amount === null || classes[i][letterClass].length === 0) {
+                    optCellPropAmount.innerText = 0;
+                } else {
+                    optCellPropAmount.innerText = classes[i][letterClass].amount;
+                }
+                optRow.append(optCellPropAmount)
+
+                let mapAbsent = new Map();
+                // * Set map of props
+                for (let el in classes[i][letterClass].absent) {
+                    let optCellPropAbsent = document.createElement('td');
+                    if (classes[i][letterClass].absent[el] === null || classes[i][letterClass].absent[el].length === 0) {
+                        if (el !== "amount") optCellPropAbsent.innerText = '-';
+                        else optCellPropAbsent.innerText = 0;
+                    } else {
+                        optCellPropAbsent.innerText = classes[i][letterClass].absent[el];
+                    }
+                    mapAbsent.set(el, optCellPropAbsent);
+                }
+                optRow.append(mapAbsent.get("amount"));
+                optRow.append(mapAbsent.get("listVirusCause"));
+                optRow.append(mapAbsent.get("listRespCause"));
+                optRow.append(mapAbsent.get("listNonRespCause"));
+                optRow.append(mapAbsent.get("listFreeMeal"));
+
+                rootTable.append(optRow);
+
+            }
+        }
+    }
+
+    function getTemplateForTable() {
+        //delete previous table
+
+        if (isTableLoaded === true) {
+            document.getElementById('rootTableBody').innerHTML = '';
+        }
+        fetch('/api/getDataClassesInterface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                schoolId: urlParams.get("schoolId"),
+                method: 'templateCase',
+                action: 'get',
+                key: urlParams.get("key")
+            })
+        })
+            .then(res => {
+                const jres = res.json()
+                    .then(jres => {
+                        fillTable(jres);
+                    })
+                isTableLoaded = true;
+            })
+    }
+
+
+    //Region redactor mode
+
+document.getElementById("openRedactMode-btn").addEventListener('click', function() {
+    let rootTableHeader = document.getElementById('rootTableHeader')
+    let rootTable = document.getElementById('rootTableBody');
+
+    function getTableData() {
+        if (isTableLoaded !== true) {
+            alert('Сначала загрузите таблицу');
+            return;
+        }
+        let data = {};
+        for (let row=0;row< rootTable.children.length; row++) {
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+                rootTable.children[row].children[cell].id = rootTableHeader.children[cell].id;
+            }
+        }
+
+        for (let row=0;row< rootTable.children.length; row++) {
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = rootTable.children[row].children[cell].innerText;
+                input.style.width = '80px';
+                rootTable.children[row].children[cell].name
+                rootTable.children[row].children[cell].innerText = '';
+                rootTable.children[row].children[cell].appendChild(input);
+            }
+        }
+
+        let rowData = [];
+        if (JSON.stringify(data).length === 0 || '{}') {
+            for (let row= 0;row < rootTable.children.length; row++) {
+                for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+                    rowData.push(rootTable.children[row].children[cell].firstChild.valueOf().value);
+                }
+                data[row] = rowData;
+                rowData = [];
+            }
+        }
+        return data;
+    }
+    function insertData(data) {
+
+        let jsonObj = {};
+
+        for (let row=0;row< rootTable.children.length; row++) {
+            jsonObj = {};
+            for (let cell = 0; cell <  rootTable.children[row].children.length; cell++) {
+
+                rootTable.children[row].children[cell].innerHTML = rootTable.children[row].children[cell].firstChild.valueOf().value;
+
+                if (rootTable.children[row].children[cell].innerHTML !== data[row][cell]) {
+                    jsonObj[rootTable.children[row].children[cell].id] = rootTable.children[row].children[cell].innerHTML;
+                    rootTable.children[row].children[cell].className += 'modifiedCell';
+                }
+                if (jsonObj[rootTable.children[row].children[cell].id] !== undefined) {
+                    let className = dataTable[row][0];
+                    let classNum = className.slice(0, className.length-1);
+                    let classLetter = className.charAt(className.length-1);
+                    className = classNum + '_' + classLetter;
+                    changesList['editChanges'][className] = jsonObj;
+                }
+            }
+        }
+
+        console.log(changesList);
+
+    }
+    switch (isRedactorModeEntered) {
+        case false:
+            document.getElementById("openRedactMode-btn").innerHTML = 'Сохранить изменения у себя';
+            document.getElementById('confirmChangesTable-btn').style.display = 'none';
+            dataTable = getTableData();
+            if(dataTable === undefined) {
+                document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
+                return;
+            }
+            isRedactorModeEntered = true;
+            break;
+
+        case true:
+            document.getElementById("openRedactMode-btn").innerHTML = 'Редактировать значения';
+            document.getElementById('confirmChangesTable-btn').style.display = 'flex';
+            isRedactorModeEntered = false;
+            insertData(dataTable);
+            break;
+
+    }
+
+})
+
+document.getElementById('confirmChangesTable-btn').addEventListener('click', function () {
+    if (isRedactorModeEntered) {
+        alert('Сначала сохраните изменения')
+        return;
+    }
+    if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
+
+        fetch('/api/editDataClassesInterface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                schoolId: urlParams.get("schoolId"),
+                method: 'templateCase',
+                action: 'edit',
+                changesList: changesList,
+                key: urlParams.get("key"),
+            })
+        }).then(res => {
+            if (res.status === 200) {
+                alert('Данные успешно изменены!');
+            }
+        })
+
+        alert('Запрос отправлен!')
+        changesList = {
+            editChanges: {},
+            listChanges: {
+                add: [],
+                rm: []
+            }};
+    }
+})
+
+//End redactor mode
+
+
+//Region getTableForDate
+document.getElementById('getTable-btn').addEventListener('click', function() {
+    getTemplateForTable();
+});
+//End getTableForDate
+
+//Region redactClassesMode
+    document.getElementById('openRedactClassesListMode-btn').addEventListener('click', function () {
+        let rootTable = document.getElementById('rootTableBody');
+        let rootTableHeader = document.getElementById('rootTableHeader');
+        if (isTableLoaded) {
+
+            switch (isRedactorClassesListModeEntered) {
+                case false:
+                    for (let i = 0; i < rootTable.rows.length; i++) {
+                        let addButton = document.createElement('button');
+                        addButton.innerHTML = '+';
+                        addButton.id = 'addRowBtn';
+                        addButton.setAttribute('rowIndex', Array.prototype.indexOf.call(rootTable.children, rootTable.rows[i]).toString())
+                        let rmButton = document.createElement('button');
+                        rmButton.innerHTML = '-';
+                        rmButton.id = 'rmRowBtn';
+                        rmButton.setAttribute('rowIndex', Array.prototype.indexOf.call(rootTable.children, rootTable.rows[i]).toString())
+
+
+                        addButton.addEventListener('click', function () {
+                            let indexRow = Array.prototype.indexOf.call(rootTable.children, this.parentNode);
+                            let newClassName = window.prompt('Введите имя нового класса: ', '1А');
+
+                            if (confirm(`Добавится новый класс - ${newClassName}. Уверены?`)) {
+                                let newUserRow;
+                                newUserRow = rootTable.insertRow(indexRow);
+                                for (let i = 0; i < rootTableHeader.children.length; i++) {
+                                    let newUserCell = document.createElement('td');
+                                    newUserCell.id = rootTableHeader.cells[i].id;
+                                    newUserCell.innerHTML = '-';
+                                    newUserCell = newUserRow.insertCell(i);
+                                }
+                                rootTable.rows[indexRow].cells[0].innerHTML = newClassName;
+                                rootTable.rows[indexRow].cells[1].innerHTML = 0;
+                                rootTable.rows[indexRow].cells[2].innerHTML = 0;
+
+                                let className = rootTable.rows[indexRow].cells[0].innerHTML;
+                                let classNum = className.slice(0, className.length-1);
+                                let classLetter = className.charAt(className.length-1);
+                                className = classNum + '_' + classLetter;
+                                changesList["listChanges"]['add'].push(className);
+                            }
+
+                        })
+                        rmButton.addEventListener('click', function () {
+                            let indexRow = Array.prototype.indexOf.call(rootTable.children, this.parentNode);
+
+                            if (confirm(`Точно хотите удалить класс - ${rootTable.rows[indexRow].cells[0].innerHTML}? \n Можно использовать Enter, чтобы подтвердить`)) {
+                                let className = rootTable.rows[indexRow].cells[0].innerHTML;
+                                let classNum = className.slice(0, className.length-1);
+                                let classLetter = className.charAt(className.length-1);
+                                className = classNum + '_' + classLetter;
+
+                                changesList["listChanges"]['rm'].push(className);
+                                rootTable.rows[indexRow].remove();
+                            }
+                        })
+
+                        rootTable.rows[i].append(addButton);
+                        rootTable.rows[i].append(rmButton);
+                        isRedactorClassesListModeEntered = true;
+                    }
+                    break;
+                case true:
+                    for (let i = 0; i < rootTable.rows.length; i++) {
+                        while (rootTable.rows[i].lastChild.id === 'rmRowBtn' || rootTable.rows[i].lastChild.id === 'addRowBtn') {
+                            rootTable.rows[i].lastChild.remove();
+                        }
+                    }
+                    isRedactorClassesListModeEntered = false;
+                    break;
+            }
+        }
+        else {
+        alert('Сначала загрузите таблицу');
+        }
+//Region plus and minus row btns
+//End plus and minus row btns
+
+    })
+
+//End redactClassesMode
+</script>
+
+{{{footerFile}}}
+</body>
+
+</html>
