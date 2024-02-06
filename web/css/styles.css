@@ -12,7 +12,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-form {
+.inputQUEST, .inputBox {
   display: flex;
   flex-direction: column;
   background-color: #222;

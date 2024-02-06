@@ -71,12 +71,13 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
                     let absentNonRespCause = document.getElementById("absentNonRespCause").value;
                     absentNonRespCause = parseNames(absentNonRespCause);
-
+                    
                     let absentFreeMeal = document.getElementById("absentFreeMeal").value;
                     absentFreeMeal = parseNames(absentFreeMeal);
-
-
-                    fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
+                    
+                    
+                    if (confirm('Подтвердите отправление формы')) {
+                        fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -95,15 +96,18 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
                         .then(res => {
                         if (res.status === 200) {
-                                alert("Form submitted!");
-                                location.href += urlParams;
-                                location.reload();
+                                alert("Данные внесены");
                             }
                             else {
-                                alert("Form doesn't submitted")
+                                alert("Произошла непредвиденная ошибка, сообщите об этом")
                             }
 
                         })
+                    } 
+                    else {
+                    alert('Отправка формы была прервана')
+                    }
+                    
 
                 })
             })
