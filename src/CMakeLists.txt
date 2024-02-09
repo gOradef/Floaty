@@ -15,13 +15,14 @@ set(LIBS_DIR ${CMAKE_SOURCE_DIR}/libs)
 set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
 
 list(APPEND SOURCES  ${WEB_ROUTE} ${SERVER_ROUTE} ${AUTHENTICATION_ROUTE} ${AUTHORIZATION_ROUTE} ${API_ROUTE})
-
+add_definitions(-DCROW_ENABLE_SSL)
 link_libraries(${LIBS_DIR}/libcrypto.so.3)
 link_libraries(${LIBS_DIR}/libjsoncpp.so)
 link_libraries(${LIBS_DIR}/libc.so.6)
 link_libraries(${LIBS_DIR}/libgcc_s.so.1)
 link_libraries(${LIBS_DIR}/libm.so.6)
-
+# find_package(openssl)
+link_libraries(${LIBS_DIR}/libssl.so.3)
 add_executable(Floaty ${SOURCES})
 target_include_directories(Floaty PRIVATE ${INCLUDES})
 target_link_directories(Floaty PRIVATE ${LIBS_DIR})

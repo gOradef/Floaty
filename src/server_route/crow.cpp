@@ -163,9 +163,18 @@ int main()
     CROW_CATCHALL_ROUTE(app)([]
     {
         return handleErrPage(404);
-    });
-    app .bindaddr("127.0.0.1")
-        .port(6010)
+    }); 
+    
+      app.ssl_file("/home/floaty/gits/Floaty/fullchain.pem", "/home/floaty/gits/Floaty/privkey.pem");
+
+    app.bindaddr("62.233.46.131")
+	    .port(80)
+	    .multithreaded()
+	    .run_async();
+    
+    app .bindaddr("62.233.46.131")
+        .port(443)
         .multithreaded()
         .run_async();
+    
 }
