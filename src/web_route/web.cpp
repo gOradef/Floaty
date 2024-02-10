@@ -1,7 +1,7 @@
 #include "../../includes/Floaty/web_route.h"
 
 //generates pages with navbar & footer if they exist in requestionable file
-crow::response genWebPages(std::string file) {
+crow::response genWebPages(const std::string& file) {
     crow::mustache::context ctx;
 
     auto nav = crow::mustache::load_text("html/templates/navbar.html");
@@ -17,7 +17,7 @@ crow::response genWebPages(std::string file) {
     if (file == "favicon.ico") {
         page = crow::mustache::load("imgs/favicon.ico");
     }
-    else if (file.size() == 0) {
+    else if (file.empty()) {
         page = crow::mustache::load("html/home.html");
     }
     else {
