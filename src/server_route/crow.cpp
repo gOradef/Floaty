@@ -72,6 +72,14 @@ int main()
        //handler of non cookie users
         return defineErrCodeOfCookie(req, res);
     });
+
+
+    CROW_ROUTE(app, "/")
+    ([](crow::response &res)
+    {
+        res.moved("/home");
+        return res.end();
+    });
     //! Только для html
     CROW_ROUTE(app, "/<string>")
     ([](const std::string& file)
@@ -155,7 +163,7 @@ int main()
 
     //* Response for resources of web
     CROW_ROUTE (app, "/<string>/<string>")
-    ([](std::string type,std::string file)
+    ([](const std::string& type,const std::string& file)
     {
         return sendWebResoursesByRequest(type, file);
     });
@@ -165,8 +173,7 @@ int main()
         return handleErrPage(404);
     }); 
     
-    app.ssl_file("/home/floaty/gits/Floaty/fullchain.pem", "/home/floaty/gits/Floaty/privkey.pem");
-
+//    app .bindaddr("127.0.0.1")
     app .bindaddr("62.233.46.131")
         .port(443)
         .multithreaded()
