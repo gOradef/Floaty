@@ -165,16 +165,11 @@ int main()
         return handleErrPage(404);
     }); 
     
-      app.ssl_file("/home/floaty/gits/Floaty/fullchain.pem", "/home/floaty/gits/Floaty/privkey.pem");
+    app.ssl_file("/home/floaty/gits/Floaty/fullchain.pem", "/home/floaty/gits/Floaty/privkey.pem");
 
-    app.bindaddr("62.233.46.131")
-	    .port(80)
-	    .multithreaded()
-	    .run_async();
-    
     app .bindaddr("62.233.46.131")
         .port(443)
         .multithreaded()
+        .ssl_file("fullchain.pem", "privkey.pem")
         .run_async();
-    
 }
