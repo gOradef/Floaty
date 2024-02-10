@@ -74,17 +74,18 @@ int main()
     });
 
 
-
+    CROW_ROUTE(app, "/") ([](const crow::request &req, crow::response &res)
+   {
+       //handler of non cookie users
+       res.moved("/home");
+       return res.end();
+   });
     //! Только для html
     CROW_ROUTE(app, "/<string>")
     ([](std::string file)
      {
         std::cout << "request for: " << file << "\n";
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
-        if (file == "") {
-            std::cout << "WORKED IN MAIN CROW_ROUTE \n"
-            return genWebPages("home");
-        }
         else return genWebPages(file);
      });
     CROW_ROUTE(app, "/api/getDataClassesForm")
@@ -133,23 +134,23 @@ int main()
     });
     CROW_ROUTE(app, "/api/editDataClassesInterface")
             .methods(crow::HTTPMethod::POST)
-                    ([](const crow::request &req, crow::response &res)
-                     {
-                         if (!req.get_header_value("Cookie").empty()) {
-                             if (isValidCookie(req) == 201) {
-                                 const std::string editNotes = req.body;
-                                 res = getStaticFileJson(req, false);
-                             }
-                             else { //login as user non success
-                                 res = handleErrPage(401, "Verification [user] failed");
-                                 res.end();
-                             }
-                         } //handler: user without cookie
-                         else {
-                             res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
-                         }
-                         return res.end();
-                     });
+            ([](const crow::request &req, crow::response &res)
+             {
+                 if (!req.get_header_value("Cookie").empty()) {
+                     if (isValidCookie(req) == 201) {
+                         const std::string editNotes = req.body;
+                         res = getStaticFileJson(req, false);
+                     }
+                     else { //login as user non success
+                         res = handleErrPage(401, "Verification [user] failed");
+                         res.end();
+                     }
+                 } //handler: user without cookie
+                 else {
+                     res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                 }
+                 return res.end();
+             });
 
     //* Response for login post req
     CROW_ROUTE(app, "/login-process")

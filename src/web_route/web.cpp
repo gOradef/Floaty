@@ -17,9 +17,6 @@ crow::response genWebPages(std::string file) {
     if (file == "favicon.ico") {
         page = crow::mustache::load("imgs/favicon.ico");
     }
-    else if (file.empty()) {
-        page = crow::mustache::load("html/home.html");
-    }
     else {
         page = crow::mustache::load("html/" + file + ".html");
     }
