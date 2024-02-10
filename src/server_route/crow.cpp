@@ -77,11 +77,12 @@ int main()
 
     //! Только для html
     CROW_ROUTE(app, "/<string>")
-    ([](const std::string& file)
+    ([](std::string file)
      {
         std::cout << "request for: " << file << "\n";
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
-        if (file == nullptr) {
+        if (file == "") {
+            std::cout << "WORKED IN MAIN CROW_ROUTE \n"
             return genWebPages("home");
         }
         else return genWebPages(file);
