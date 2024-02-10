@@ -13,6 +13,8 @@ crow::response genWebPages(std::string file) {
         ctx["navbarControlFile"] = navControl;
         ctx["footerFile"] = footer;
 
+        if (file.empty()) file = "home";
+
         auto page = crow::mustache::load("html/" + file + ".html");
             if (file == "favicon.ico") {
                 page = crow::mustache::load("imgs/favicon.ico");

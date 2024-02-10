@@ -82,12 +82,6 @@ int main()
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
         else return genWebPages(file);
      });
-    CROW_ROUTE(app, "/")
-            ([](crow::response &res)
-             {
-                 res.moved("/home");
-                 return res.end();
-             });
     CROW_ROUTE(app, "/api/getDataClassesForm")
     .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
