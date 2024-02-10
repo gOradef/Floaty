@@ -12,7 +12,6 @@ crow::response genWebPages(std::string file) {
     ctx["navbarFile"] = nav;
     ctx["navbarControlFile"] = navControl;
     ctx["footerFile"] = footer;
-    std::cout << "file name and size" << file <<" | " << file.size() << std::endl;
     auto page = crow::mustache::template_t("");
     if (file == "favicon.ico") {
         page = crow::mustache::load("imgs/favicon.ico");

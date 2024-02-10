@@ -84,7 +84,6 @@ int main()
     CROW_ROUTE(app, "/<string>")
     ([](std::string file)
      {
-        std::cout << "request for: " << file << "\n";
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
         else return genWebPages(file);
      });
