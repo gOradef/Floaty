@@ -81,7 +81,7 @@ int main()
      {
         std::cout << "request for: " << file << "\n";
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
-        if (file.empty()) {
+        if (file == nullptr) {
             return genWebPages("home");
         }
         else return genWebPages(file);
