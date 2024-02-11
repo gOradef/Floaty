@@ -72,15 +72,21 @@ int main()
        //handler of non cookie users
         return defineErrCodeOfCookie(req, res);
     });
+
+
+    CROW_ROUTE(app, "/") ([](const crow::request &req, crow::response &res)
+   {
+       //handler of non cookie users
+       res.moved("/home");
+       return res.end();
+   });
     //! Только для html
     CROW_ROUTE(app, "/<string>")
-    ([](const std::string& file)
+    ([](std::string file)
      {
         if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
         else return genWebPages(file);
      });
-
-    //TODO split jsonFileInto only classes
     CROW_ROUTE(app, "/api/getDataClassesForm")
     .methods(crow::HTTPMethod::POST)
             ([](const crow::request &req, crow::response &res)
@@ -127,23 +133,23 @@ int main()
     });
     CROW_ROUTE(app, "/api/editDataClassesInterface")
             .methods(crow::HTTPMethod::POST)
-                    ([](const crow::request &req, crow::response &res)
-                     {
-                         if (!req.get_header_value("Cookie").empty()) {
-                             if (isValidCookie(req) == 201) {
-                                 const std::string editNotes = req.body;
-                                 res = getStaticFileJson(req, false);
-                             }
-                             else { //login as user non success
-                                 res = handleErrPage(401, "Verification [user] failed");
-                                 res.end();
-                             }
-                         } //handler: user without cookie
-                         else {
-                             res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
-                         }
-                         return res.end();
-                     });
+            ([](const crow::request &req, crow::response &res)
+             {
+                 if (!req.get_header_value("Cookie").empty()) {
+                     if (isValidCookie(req) == 201) {
+                         const std::string editNotes = req.body;
+                         res = getStaticFileJson(req, false);
+                     }
+                     else { //login as user non success
+                         res = handleErrPage(401, "Verification [user] failed");
+                         res.end();
+                     }
+                 } //handler: user without cookie
+                 else {
+                     res = handleErrPage(401, "Ur cookie isnt defined. Visit login page");
+                 }
+                 return res.end();
+             });
 
     //* Response for login post req
     CROW_ROUTE(app, "/login-process")
@@ -155,7 +161,7 @@ int main()
 
     //* Response for resources of web
     CROW_ROUTE (app, "/<string>/<string>")
-    ([](std::string type,std::string file)
+    ([](const std::string& type,const std::string& file)
     {
         return sendWebResoursesByRequest(type, file);
     });
@@ -163,9 +169,12 @@ int main()
     CROW_CATCHALL_ROUTE(app)([]
     {
         return handleErrPage(404);
-    });
+    }); 
+    
+//    app .bindaddr("62.233.46.131")
     app .bindaddr("62.233.46.131")
-        .port(6010)
+        .port(443)
         .multithreaded()
+        .ssl_file("fullchain.pem", "privkey.pem")
         .run_async();
 }

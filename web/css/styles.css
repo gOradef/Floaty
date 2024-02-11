@@ -12,7 +12,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-form {
+.inputQUEST, .inputBox {
   display: flex;
   flex-direction: column;
   background-color: #222;
@@ -190,7 +190,7 @@ margin-top: auto;
 background-color: #222;
 color: white;
 position: relative;
-height: 70px;
+height: auto;
 width: 100%;
 text-align: center;
 font-size: 20px;  

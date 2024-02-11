@@ -10,7 +10,7 @@
                "listVirusCause" : ""
             },
             "absent_listVirusCause" : "",
-            "amount" : "30",
+            "amount" : "1231",
             "name" : "1_\u0410"
          },
          "\u0411" : {
@@ -56,6 +56,17 @@
             },
             "amount" : null,
             "name" : "1_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "1_\u0415"
          }
       },
       "10" : {
@@ -67,7 +78,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "10_\u0410"
          },
          "\u0411" : {
@@ -80,6 +91,50 @@
             },
             "amount" : null,
             "name" : "10_\u0411"
+         },
+         "\u0412" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "10_\u0412"
+         },
+         "\u0413" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "10_\u0413"
+         },
+         "\u0414" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "10_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "10_\u0415"
          }
       },
       "11" : {
@@ -91,7 +146,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : "24",
             "name" : "11_\u0410"
          },
          "\u0411" : {
@@ -126,7 +181,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "31",
+            "amount" : null,
             "name" : "2_\u0411"
          },
          "\u0412" : {
@@ -159,8 +214,19 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "32",
+            "amount" : null,
             "name" : "2_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "2_\u0415"
          }
       },
       "3" : {
@@ -172,7 +238,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "35",
+            "amount" : null,
             "name" : "3_\u0410"
          },
          "\u0411" : {
@@ -216,8 +282,19 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "3_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "3_\u0415"
          }
       },
       "4" : {
@@ -229,7 +306,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "4_\u0410"
          },
          "\u0411" : {
@@ -297,7 +374,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "26",
+            "amount" : null,
             "name" : "5_\u0410"
          },
          "\u0411" : {
@@ -319,7 +396,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "27",
+            "amount" : null,
             "name" : "5_\u0412"
          },
          "\u0413" : {
@@ -341,7 +418,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "30",
+            "amount" : null,
             "name" : "5_\u0414"
          },
          "\u0415" : {
@@ -352,7 +429,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "5_\u0415"
          }
       },
@@ -409,7 +486,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "23",
+            "amount" : null,
             "name" : "6_\u0414"
          },
          "\u0415" : {
@@ -433,7 +510,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "7_\u0410"
          },
          "\u0411" : {
@@ -455,7 +532,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "27",
+            "amount" : null,
             "name" : "7_\u0412"
          },
          "\u0413" : {
@@ -477,8 +554,19 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "26",
+            "amount" : null,
             "name" : "7_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "7_\u0415"
          }
       },
       "8" : {
@@ -512,7 +600,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "26",
+            "amount" : null,
             "name" : "8_\u0412"
          },
          "\u0413" : {
@@ -525,6 +613,28 @@
             },
             "amount" : null,
             "name" : "8_\u0413"
+         },
+         "\u0414" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "8_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "8_\u0415"
          }
       },
       "9" : {
@@ -547,7 +657,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "25",
+            "amount" : null,
             "name" : "9_\u0411"
          },
          "\u0412" : {
@@ -558,7 +668,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "23",
+            "amount" : null,
             "name" : "9_\u0412"
          },
          "\u0413" : {
@@ -569,7 +679,7 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "26",
+            "amount" : null,
             "name" : "9_\u0413"
          },
          "\u0414" : {
@@ -580,8 +690,19 @@
                "listRespCause" : [],
                "listVirusCause" : []
             },
-            "amount" : "23",
+            "amount" : null,
             "name" : "9_\u0414"
+         },
+         "\u0415" : {
+            "absent" : {
+               "amount" : null,
+               "listFreeMeal" : [],
+               "listNonRespCause" : [],
+               "listRespCause" : [],
+               "listVirusCause" : []
+            },
+            "amount" : null,
+            "name" : "9_\u0415"
          }
       }
    }

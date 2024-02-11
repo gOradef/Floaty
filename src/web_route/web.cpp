@@ -4,27 +4,27 @@
 crow::response genWebPages(std::string file) {
     crow::mustache::context ctx;
 
-        auto nav = crow::mustache::load_text("html/templates/navbar.html");
-        auto navControl = crow::mustache::load_text("html/templates/navbarControl.html");
-        auto footer = crow::mustache::load_text("html/templates/footer.html");
-        ctx.content_type = "text/html";
+    auto nav = crow::mustache::load_text("html/templates/navbar.html");
+    auto navControl = crow::mustache::load_text("html/templates/navbarControl.html");
+    auto footer = crow::mustache::load_text("html/templates/footer.html");
+    ctx.content_type = "text/html";
 
-        ctx["navbarFile"] = nav;
-        ctx["navbarControlFile"] = navControl;
-        ctx["footerFile"] = footer;
-
-        auto page = crow::mustache::load("html/" + file + ".html");
-            if (file == "favicon.ico") {
-                page = crow::mustache::load("imgs/favicon.ico");
-                return page.render();
-            }
-            if (page.render_string().empty()) {
-                return handleErrPage(404);
-            }
-        return page.render(ctx);
+    ctx["navbarFile"] = nav;
+    ctx["navbarControlFile"] = navControl;
+    ctx["footerFile"] = footer;
+    auto page = crow::mustache::template_t("");
+    if (file == "favicon.ico") {
+        page = crow::mustache::load("imgs/favicon.ico");
+    }
+    else {
+        page = crow::mustache::load("html/" + file + ".html");
+    }
+    if (page.render_string().empty()) {
+        return handleErrPage(404);
+    }
+    return page.render(ctx);
 }
 
-//NOTE -  Возвращает строку, не полноценный запрос
 crow::response sendWebResoursesByRequest(std::string type, std::string file) {
     if(type == "html") return handleErrPage(404);
     auto page = crow::mustache::load_text(type + '/' + file);
