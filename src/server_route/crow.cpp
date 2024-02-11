@@ -175,6 +175,6 @@ int main()
     app .bindaddr("62.233.46.131")
         .port(443)
         .multithreaded()
-        .ssl_file("fullchain.pem", "privkey.pem")
+        // .ssl_file("fullchain.pem", "privkey.pem")
         .run_async();
 }
