@@ -4,7 +4,11 @@
 
 
 Json::Value genTempClassesAsJson( const std::string &reqPath, const std::string& schoolId = "");
-std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &reqEdit, const bool& isForm = true,const std::string& schoolIdReq = "", const std::string& userCase = "");
+std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &reqEdit,
+                                                            const bool& isForm = true,
+                                                            const std::string& schoolIdReq = "",
+                                                            const std::string& userCase = "",
+                                                            const std::string& userCustomDate = "");
 
 crow::response writeEditNotesForm(std::map<std::string, Json::Value> &editNotesMap);
 

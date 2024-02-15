@@ -13,7 +13,6 @@
 <body>
   <script src="../js/getTable.js"></script>
   <style>
-
     .mainFrame {
       padding: 10px 20px 0 20px;
     }
@@ -23,6 +22,7 @@
       width: 100%;
     }
     .rootTableHeader {
+      z-index: 1;
       background-color: darkgray;
       position: sticky;
       top:0;
@@ -82,16 +82,21 @@
     <div class="popup-content">
       <span class="closeTable-btn close-btn">&times;</span>
       <h4>Загрузка данных</h4>
-      <div class="options">
-        <label for="time">Период:</label>
-        <select id="periodTable" name="time">
+      <div class="options" >
+
+        <center><label for="time">Период:</label>
+        <label for="periodTable"></label><select id="periodTable" name="time">
           <option value="today">Сегодня</option>
-          <option value="month">За месяц </option>
-          <option value="year">За учебный год</option>
           <option value="usercase">Свое..</option>
+          <option value="DTD">С.. - до..</option>
         </select>
+        </center>
         <div id="userDateCont" style="display: none; margin-top: 10px; display: none; justify-content: center;">
           <input type="date" id="userCustomDate" name="trip-start"/>
+        </div>
+        <div id="userDTDCont" style="display: none; margin-top: 10px; display: none; justify-content: center; flex-direction: column;">
+        <text> Начало: <input type="date" id="userDTDStart" name="trip-start"/></text>
+          <text>Конец: <input type="date" id="userDTDEnd" name="trip-start"/> </text>
         </div>
       </div>
 

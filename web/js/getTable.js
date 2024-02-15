@@ -1,5 +1,6 @@
 let urlParams = new URLSearchParams(location.search);
 let isTableLoaded = false;
+let isCommonCaseTableLoaded;
 let userDate;
 function fillTable(jres, date) {
     let rootTable = document.getElementById('rootTableBody');
@@ -134,12 +135,14 @@ function exportTable (period, type) {
         XLSX.writeFile(wb, filename);
     }
 }
-function getDataForTable(period = "today", dateRoot = 'none') {
+function getDataForTable(period = "today", dateRoot) {
     //delete previous table
     if (isTableLoaded === true) {
         document.getElementById('rootTableBody').innerHTML = '';
     }
-    if (period !== 'usercase') {
+    //common for today
+    if (period === 'today') {
+        isCommonCaseTableLoaded = true;
         fetch('/api/getDataClassesInterface', {
             method: 'POST',
             headers: {
@@ -159,10 +162,36 @@ function getDataForTable(period = "today", dateRoot = 'none') {
                     })
                 isTableLoaded = true;
             })
-    } else {
+    }
+    else if (period === 'dateToDate') {
+        fetch('/api/getDataClassesInterface', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                schoolId: urlParams.get("schoolId"),
+                method: 'customCase',
+                action: 'get',
+                period: period,
+                date: dateRoot
+            })
+        })
+            .then(res => {
+                const jres = res.json()
+                    .then(jres => {
+                        fillTable(jres, res.headers.get('date'));
+                    })
+                isTableLoaded = true;
+            })
+    }
+    //common custom user date
+    else {
         let splitDate = dateRoot.split('-');
         if (splitDate[1].at(0) === "0") splitDate[1] = splitDate[1].at(1);
         if (splitDate[2].at(0) === "0") splitDate[2] = splitDate[2].at(1);
+        userDate = splitDate[0] + '.' + splitDate[1] + '.' + splitDate[2];
+        isCommonCaseTableLoaded = false;
         fetch('/api/getDataClassesInterface', {
             method: 'POST',
             headers: {
@@ -171,7 +200,7 @@ function getDataForTable(period = "today", dateRoot = 'none') {
             body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 period: period,
-                date: splitDate[0] + '.' + splitDate[1] + '.' + splitDate[2],
+                date: userDate,
                 method: 'customCase',
                 action: 'get'
             })

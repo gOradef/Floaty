@@ -3,8 +3,8 @@
 #include <cstdlib>
 
 
-bool
-isCorrUserKey( const std::string& userKey, const std::string &schoolId);
+bool isCorrUserKey( const std::string& userKey, const std::string &schoolId);
+crow::response handleDTDReq(const std::string& schoolId, std::vector <Json::Value> datesList);
 
 //If  { schoolId exist -> try read template
 //else { gen template
@@ -114,7 +114,7 @@ Json::Value genTempClassesAsJson(const std::string &reqPath, const std::string& 
 
 }
 
-std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &reqEdit, const bool& isForm, const std::string& schoolIdReq,const std::string& userCase) {
+std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &reqEdit, const bool& isForm, const std::string& schoolIdReq,const std::string& userCase, const std::string& userCustomDate) {
 
     Json::Value reqEditNotesRoot;
     Json::Reader reader;
@@ -158,11 +158,21 @@ std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &r
         try {
             std::map <std::string, Json::Value> resultMap;
             Json::Value templateRoot = Json::Value(Json::objectValue);
+
             std::fstream fstream;
             std::stringstream buff;
+
             if (userCase != "templateCase") { //common admin case
+                std::string path;
+
+                if (userCustomDate.empty()) {
+                    path = "data/" + schoolIdReq + '/' + genToken(schoolIdReq) + ".json";
+                }
+                else {
+                    path = "data/" + schoolIdReq + '/' + userCustomDate + "." + schoolIdReq + ".json";
+                }
+
                 Json::StyledWriter writer;
-                const std::string& path = "data/" + schoolIdReq + '/' + genToken(schoolIdReq) + ".json";
                 fstream.open(path , std::ios::in);
                 buff << fstream.rdbuf();
                 fstream.close();
@@ -239,7 +249,6 @@ std::map<std::string, Json::Value> handlerGenMapOfEditNotes(const std::string &r
                     letterClass = el.asString().substr(el.asString().find('_')+1, el.asString().back()-1);
 
                     templateRoot["classes"][numClass].removeMember(letterClass);
-                    //                    templateRoot["classes"]
                 }
                 fstream.open(templatePath,std::ios::out);
                 fstream << writer.write(templateRoot);
@@ -403,9 +412,11 @@ crow::response getStaticFileJson(const crow::request &reqRoot, bool isShort) {
         else if (methodReq == "customCase") {
             std::string dateReq = reqJ["date"].asString();
             if (actionReq == "get") {
-
-                if (periodReq == "today") {
-                    return handleUserReq(schoolId, dateReq);
+                //TODO refactor to one if check and one foo()
+                if (periodReq == "dateToDate") {
+                    Json::Value datesArrayJ = Json::Value(Json::arrayValue);
+                    datesArrayJ = reqJ["dateToDate"];
+//                  return handleDTDReq(schoolId, datesList);
                 }
                 else if (periodReq != "") {
                     return handleUserReq(schoolId, dateReq, periodReq);
@@ -415,7 +426,15 @@ crow::response getStaticFileJson(const crow::request &reqRoot, bool isShort) {
                 }
             }
             else if (actionReq == "edit") {
-                return crow::response(400, "under construction");
+                crow::response res;
+                std::map<std::string, Json::Value> map = handlerGenMapOfEditNotes(reqJ["changesList"].toStyledString(), false, reqJ["schoolId"].asString(), "customCase",reqJ["date"].asString());
+                if (map["err"].empty()) {
+                    res.code= 200;
+                }
+                else {
+                    res.body = map["err"].asString();
+                }
+                return res;
             }
             else return crow::response(400, "undenfined action");
 
@@ -503,6 +522,7 @@ bool isCorrUserKey(const std::string& userKey, const std::string &schoolId) {
     }
 }
 
+//Note uses for today's data
 crow::response handleCommonReq(const std::string &schoolId, bool isShort) {
     crow::response res;
     std::string reqPath;
@@ -557,6 +577,7 @@ crow::response handleCommonReq(const std::string &schoolId, bool isShort) {
     return crow::response(120);
 }
 
+//Note uses for one date of user
 crow::response handleUserReq(const std::string& schoolId, const std::string& userDate, const std::string& period) {
     crow::response result;
 
@@ -572,10 +593,22 @@ crow::response handleUserReq(const std::string& schoolId, const std::string& use
             return result;
         }
         else { //if exist
-
             result.add_header("date", userDate);
             return result;
         }
     }
     return result;
+}
+
+crow::response handleDTDReq(const std::string& schoolId, std::vector<Json::Value> datesList) {
+    crow::response res;
+    std::fstream fstream;
+//    std::array datesArray =
+//    try {
+
+//    }
+//    catch (std::exception &e) {
+//        std::cout << "--- EXCEPTION: " << e.what();
+//    }
+    return res;
 }

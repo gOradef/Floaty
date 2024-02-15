@@ -28,7 +28,6 @@ document.getElementById('submitExport-btn').addEventListener('click', function()
 //End export popup
 
 //Region redactor mode
-
 document.getElementById("openRedactMode-btn").addEventListener('click', function() {
     let rootTableHeader = document.getElementById('rootTableHeader')
     let rootTable = document.getElementById('rootTableBody');
@@ -119,7 +118,7 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
         return;
     }
     if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
-
+        if (isCommonCaseTableLoaded) {
         fetch('/api/editDataClassesInterface', {
             method: 'POST',
             headers: {
@@ -129,14 +128,13 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
                 schoolId: urlParams.get("schoolId"),
                 method: 'commonCase',
                 action: 'edit',
-                changesList: changesList,
-                key: urlParams.get("key"),
+                changesList: changesList
             })
         }).then(res => {
+            alert('Запрос отправлен!');
             if (res.status === 200) {
                 alert('Данные успешно изменены!');
             }
-            alert('Запрос отправлен!');
             changesList = {
                 editChanges: {},
                 listChanges: {
@@ -145,6 +143,35 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
                 }
             };
         })
+        }
+        else if (isCommonCaseTableLoaded === false) {
+
+            fetch('/api/editDataClassesInterface', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schoolId: urlParams.get("schoolId"),
+                    method: 'customCase',
+                    action: 'edit',
+                    date: userDate,
+                    changesList: changesList
+                })
+            }).then(res => {
+                alert('Запрос отправлен!');
+                if (res.status === 200) {
+                    alert('Данные успешно изменены!');
+                }
+                changesList = {
+                    editChanges: {},
+                    listChanges: {
+                        add: [],
+                        rm: []
+                    }
+                };
+            })
+        }
     }
 })
 //End redactor mode
@@ -161,8 +188,18 @@ document.querySelector('.closeTable-btn').addEventListener('click', function() {
 document.getElementById('periodTable').addEventListener('change', function() {
     if (document.getElementById('periodTable').value === 'usercase') {
         document.getElementById('userDateCont').style.display = 'flex';
+        document.getElementById('userDTDCont').style.display = 'none';
+
     }
-    else document.getElementById('userDateCont').style.display = 'none';
+    else if (document.getElementById('periodTable').value === 'DTD') {
+
+        document.getElementById('userDTDCont').style.display = 'flex';
+        document.getElementById('userDateCont').style.display = 'none';
+    }
+    else {
+        document.getElementById('userDTDCont').style.display = 'none';
+        document.getElementById('userDateCont').style.display = 'none';
+    }
 })
 
 document.getElementById('submitTable-btn').addEventListener('click', function() {
@@ -172,6 +209,28 @@ document.getElementById('submitTable-btn').addEventListener('click', function() 
         let userCustomDate = document.getElementById('userCustomDate').value;
         userDate = userCustomDate;
         getDataForTable(selectedOption, userCustomDate);
+    }
+    else if (selectedOption === 'DTD') {
+        function getListOfDates(dateStart, dateEnd) {
+            dateStart = new Date(dateStart);
+            dateEnd = new Date(dateEnd);
+
+            let listDates = [];
+
+            let currentDate = new Date(dateStart);
+            while (currentDate <= dateEnd) {
+                listDates.push(currentDate.getFullYear() + '.' + currentDate.getMonth() + '.' + currentDate.getDate());
+                currentDate.setDate(currentDate.getDate()+1);
+            }
+            return listDates;
+        }
+
+        let dateStart = document.getElementById('userDTDStart').value;
+        let dateStop = document.getElementById('userDTDEnd').value;
+        console.log(dateStart, dateStop);
+        let dateList = getListOfDates(dateStart, dateStop);
+        getDataForTable('dateToDate', dateList);
+
     }
     else {
         userDate = 'today';
