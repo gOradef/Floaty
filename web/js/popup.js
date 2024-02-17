@@ -219,7 +219,7 @@ document.getElementById('submitTable-btn').addEventListener('click', function() 
 
             let currentDate = new Date(dateStart);
             while (currentDate <= dateEnd) {
-                listDates.push(currentDate.getFullYear() + '.' + currentDate.getMonth() + '.' + currentDate.getDate());
+                listDates.push(currentDate.getFullYear() + '.' + Number(currentDate.getMonth()+1) + '.' + currentDate.getDate());
                 currentDate.setDate(currentDate.getDate()+1);
             }
             return listDates;
