@@ -1,11 +1,8 @@
 let isRedactorModeEntered = false;
 let dataTable;
 let changesList = {
-    editChanges: {},
-    listChanges: {
-        add: [],
-        rm: []
-    }};
+    editChanges: {}
+}
 //Region export popup
 document.getElementById('openExport-btn').addEventListener('click', function() {
     document.getElementById('popupExport').style.display = 'block';
@@ -119,15 +116,15 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
     }
     if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
         if (isCommonCaseTableLoaded) {
-        fetch('/api/editDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 method: 'commonCase',
                 action: 'edit',
+            },
+            body: JSON.stringify({
                 changesList: changesList
             })
         }).then(res => {
@@ -136,26 +133,22 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
                 alert('Данные успешно изменены!');
             }
             changesList = {
-                editChanges: {},
-                listChanges: {
-                    add: [],
-                    rm: []
-                }
+                editChanges: {}
             };
         })
         }
         else if (isCommonCaseTableLoaded === false) {
 
-            fetch('/api/editDataClassesInterface', {
+            fetch('/api/interface', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
                     schoolId: urlParams.get("schoolId"),
                     method: 'customCase',
                     action: 'edit',
                     date: userDate,
+                },
+                body: JSON.stringify({
                     changesList: changesList
                 })
             }).then(res => {
@@ -207,8 +200,9 @@ document.getElementById('submitTable-btn').addEventListener('click', function() 
     let selectedOption = selectElement.options[selectElement.selectedIndex].value;
     if (selectedOption === 'usercase') {
         let userCustomDate = document.getElementById('userCustomDate').value;
+        console.log(userCustomDate);
         userDate = userCustomDate;
-        getDataForTable(selectedOption, userCustomDate);
+        getDataForTable(selectedOption, userDate);
     }
     else if (selectedOption === 'DTD') {
         function getListOfDates(dateStart, dateEnd) {
@@ -229,6 +223,7 @@ document.getElementById('submitTable-btn').addEventListener('click', function() 
         let dateStop = document.getElementById('userDTDEnd').value;
         console.log(dateStart, dateStop);
         let dateList = getListOfDates(dateStart, dateStop);
+
         getDataForTable('dateToDate', dateList);
 
     }

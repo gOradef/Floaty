@@ -143,17 +143,15 @@ function getDataForTable(period = "today", dateRoot) {
     //common for today
     if (period === 'today') {
         isCommonCaseTableLoaded = true;
-        fetch('/api/getDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 period: period,
                 method: 'commonCase',
                 action: 'get'
-            })
+            }
         })
             .then(res => {
                 const jres = res.json()
@@ -164,18 +162,16 @@ function getDataForTable(period = "today", dateRoot) {
             })
     }
     else if (period === 'dateToDate') {
-        fetch('/api/getDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 method: 'customCase',
                 action: 'get',
                 period: period,
-                date: dateRoot
-            })
+                userDate: dateRoot
+            }
         })
             .then(res => {
                 const jres = res.json()
@@ -186,31 +182,38 @@ function getDataForTable(period = "today", dateRoot) {
             })
     }
     //common custom user date
-    else {
+        //TODO add выражение
+    else if (period === 'usercase') {
         let splitDate = dateRoot.split('-');
         if (splitDate[1].at(0) === "0") splitDate[1] = splitDate[1].at(1);
         if (splitDate[2].at(0) === "0") splitDate[2] = splitDate[2].at(1);
         userDate = splitDate[0] + '.' + splitDate[1] + '.' + splitDate[2];
         isCommonCaseTableLoaded = false;
-        fetch('/api/getDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                schoolId: urlParams.get("schoolId"),
-                period: period,
-                date: userDate,
                 method: 'customCase',
-                action: 'get'
-            })
+                schoolId: urlParams.get("schoolId"),
+                action: 'get',
+                period: period,
+                userDate: userDate,
+            }
         })
             .then(res => {
+                if (res.status === 200) {
                 const jres = res.json()
                     .then(jres => {
                         fillTable(jres, res.headers.get('date'));
                     })
+                }
+                else if (res.status === 400) {
+                    alert('Ошибка: данных за выбранную дату не сущетсвует. ');
+                }
                 isTableLoaded = true;
             })
+    }
+    else {
+        alert('Unknown period');
     }
 }

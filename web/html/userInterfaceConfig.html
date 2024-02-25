@@ -196,17 +196,15 @@
         if (isTableLoaded === true) {
             document.getElementById('rootTableBody').innerHTML = '';
         }
-        fetch('/api/getDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 method: 'templateCase',
                 action: 'get',
                 key: urlParams.get("key")
-            })
+            }
         })
             .then(res => {
                 const jres = res.json()
@@ -317,17 +315,17 @@ document.getElementById('confirmChangesTable-btn').addEventListener('click', fun
     }
     if (confirm("Вы уверены? Данные, которые были изменены будут внесены на сервер.")) {
 
-        fetch('/api/editDataClassesInterface', {
+        fetch('/api/interface', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
                 schoolId: urlParams.get("schoolId"),
                 method: 'templateCase',
                 action: 'edit',
-                changesList: changesList,
                 key: urlParams.get("key"),
+            },
+            body: JSON.stringify({
+                changesList: changesList,
             })
         }).then(res => {
             if (res.status === 200) {

@@ -1,17 +1,15 @@
 #include "../../includes/Floaty/authorization.h"
 
-int isValidCookie(const crow::request &req) {
+int isValidCookie(const std::string& cookie, const std::string& schoolId) {
 
-
-    std::string cookieHeader = req.get_header_value("Cookie");
     std::string userTokenNative;
     std::vector<std::string> tokens;
     size_t start = 0, end = 0;
-    while ((end = cookieHeader.find(';', start)) != std::string::npos) {
-        tokens.push_back(cookieHeader.substr(start, end - start));
+    while ((end = cookie.find(';', start)) != std::string::npos) {
+        tokens.push_back(cookie.substr(start, end - start));
         start = end + 1;
     }
-    tokens.push_back(cookieHeader.substr(start));
+    tokens.push_back(cookie.substr(start));
     if (!tokens.empty()) {
         userTokenNative = tokens.back();
     }
@@ -23,32 +21,8 @@ int isValidCookie(const crow::request &req) {
     for (int i = 0; i < 6; ++i) {
         userTokenNative.erase(userTokenNative.begin());
     }
-
     std::string secret;
-    std::string schoolLogin;
-    if (req.body.empty()) {
-        if (req.url_params.get("schoolId") != nullptr) {
-            schoolLogin = req.url_params.get("schoolId");
-            secret = genToken(schoolLogin);
-        }
-        else {
-            return 401;
-        }
-    }
-    else  {
-        Json::Reader reader;
-        Json::Value reqRootJ;
-        reader.parse(req.body, reqRootJ);
-
-        if (reqRootJ["schoolId"].asString() != "1212") {
-            schoolLogin = reqRootJ["schoolId"].asString();
-            secret = genToken(schoolLogin);
-        }
-        else {
-            return 401;
-        }
-
-    }
+    secret = genToken(schoolId);
 
 
     try {

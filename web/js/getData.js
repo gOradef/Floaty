@@ -16,18 +16,15 @@ function parseNames(namesRoot) {
 window.addEventListener("DOMContentLoaded", (event) => {
     let urlParams = new URLSearchParams(location.search);
     let classesList = document.getElementById("classSelect");
-        fetch('/api/getDataClassesForm', {
+        fetch('/api/form', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify( {
-                Cookie: document.cookie,
+                'Content-Type': 'application/json',
                 schoolId: urlParams.get("schoolId"),
-                method: 'getCommonCaseForm'
-            })
-        })
-        //get 'names' attribute of class
+                method: 'common',
+                Cookie: document.cookie,
+                action: "get"
+            }})
             .then(response => {
                 if (response.status === 404) {
                     alert("Please wait a litl bit, and reload a page after. Data is generating \n" +
@@ -77,13 +74,16 @@ window.addEventListener("DOMContentLoaded", (event) => {
                     
                     
                     if (confirm('Подтвердите отправление формы')) {
-                        fetch('/api/editDataClassesForm?schoolId=' + urlSchoolId, {
+                        fetch('/api/form', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            schoolId: urlParams.get("schoolId"),
+                            method: 'common',
+                            Cookie: document.cookie,
+                            action: "edit"
                         },
                         body: JSON.stringify({
-                            schoolId: urlSchoolId,
                             className: className,
                             globalNum: globalNum,
                             absentNum: absentNum,
@@ -96,16 +96,16 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
                         .then(res => {
                         if (res.status === 200) {
-                                alert("Данные внесены");
+                                alert("Данные успешно внесены ✔");
                             }
                             else {
-                                alert("Произошла непредвиденная ошибка, сообщите об этом")
+                                alert("Произошла непредвиденная ошибка")
                             }
 
                         })
                     } 
                     else {
-                    alert('Отправка формы была прервана')
+                        alert('Отправка формы была прервана')
                     }
                     
 

@@ -2,4 +2,4 @@
 #include "../includes/crow/http_request.h"
 #include "../includes/Floaty/authentication.h"
 
-int isValidCookie(const crow::request &req);
+int isValidCookie(const std::string& Cookie, const std::string& schoolId);
