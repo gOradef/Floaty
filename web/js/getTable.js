@@ -170,8 +170,9 @@ function getDataForTable(period = "today", dateRoot) {
                 method: 'customCase',
                 action: 'get',
                 period: period,
+            },body: JSON.stringify({
                 userDate: dateRoot
-            }
+            })
         })
             .then(res => {
                 const jres = res.json()

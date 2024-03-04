@@ -3,8 +3,8 @@
 
 
 
-// * returns secret for jwt <y.m.d.>.<loginStr>
-// * mode 0 - default (today), 1 - previous day
+// * returns secret for jwt <y.m.d.>.<loginStr>ls
+
 std::string genToken(const std::string& loginStr) {
         time_t now;
         time(&now);

@@ -22,6 +22,7 @@ int isValidCookie(const std::string& cookie, const std::string& schoolId) {
         userTokenNative.erase(userTokenNative.begin());
     }
     std::string secret;
+
     secret = genToken(schoolId);
 
 
