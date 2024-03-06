@@ -393,9 +393,102 @@ crow::response dataInterfaceInterface::editData(const std::string& userBuff) {
 //Region dataInterfaceTemp
 
 dataInterfaceTemp::dataInterfaceTemp(const std::string &schoolId) : dataInterface(schoolId) {
-
+    reqPath = std::string("data/" + schoolId + "/schoolTemplateDate.json");
 }
 
+crow::response dataInterfaceTemp::getData() {
+    crow::response res;
+    res.set_static_file_info(reqPath);
+    return res;
+}
+
+crow::response dataInterfaceTemp::editData() {
+
+    return crow::response();
+}
+
+crow::response dataInterfaceTemp::editData(const std::string& userBuff) {
+    crow::response res;
+    Json::Value templateRoot;
+
+    Json::Value reqEditNotesRoot;
+    jReader.parse(userBuff, reqEditNotesRoot);
+    const std::string& templatePath = "data/" + schoolId + "/schoolTemplateDate.json";
+    fstream.open(templatePath , std::ios::in);
+    ostringstream << fstream.rdbuf();
+    fstream.close();
+    jReader.parse(ostringstream.str(), templateRoot);
+    reqEditNotesRoot = reqEditNotesRoot["changesList"];
+    std::string numClass;
+
+    std::string letterClass;
+
+    Json::Value listEditClass = Json::Value(Json::objectValue);
+    Json::Value listChangesClass = Json::Value(Json::objectValue);
+    Json::Value listAddClass = Json::Value(Json::arrayValue);
+    Json::Value listRmClass = Json::Value(Json::arrayValue);
+
+    listEditClass = reqEditNotesRoot["editChanges"];
+    for (auto letter : listEditClass.getMemberNames()) {
+        numClass = letter.substr(0, letter.find('_'));
+        letterClass = letter.substr(letter.find('_')+1, letter.back()-1);
+        for (auto key : listEditClass[letter].getMemberNames()) {
+            templateRoot["classes"][numClass][letterClass][key] = listEditClass[letter][key];
+            if (key.substr(0, key.find('_')) == "absent") {
+                templateRoot["classes"][numClass][letterClass]["absent"][key.substr(key.find('_')+1, key.back()-1)] = listEditClass[letter][key];
+            }
+        }
+    }
+    std::cout << userBuff;
+    listChangesClass = reqEditNotesRoot["listChanges"];
+    listAddClass = listChangesClass["add"];
+    listRmClass = listChangesClass["rm"];
+
+    for (auto el : listAddClass) {
+        numClass = el.asString().substr(0, el.asString().find('_'));
+        letterClass = el.asString().substr(el.asString().find('_')+1, el.asString().back()-1);
+
+        templateRoot["classes"][numClass][letterClass] = genLetterRoot();
+        templateRoot["classes"][numClass][letterClass]["name"] = numClass + '_' + letterClass;
+    }
+    for (auto el : listRmClass) {
+        numClass = el.asString().substr(0, el.asString().find('_'));
+        letterClass = el.asString().substr(el.asString().find('_')+1, el.asString().back()-1);
+
+        templateRoot["classes"][numClass].removeMember(letterClass);
+    }
+    fstream.open(templatePath,std::ios::out);
+    fstream << jWriter.write(templateRoot);
+    fstream.close();
+    res.code = 200;
+    std::system(std::string("./commit_data.sh -d 'template change for " + schoolId + "'").c_str());
+    return res;
+}
+
+Json::Value dataInterfaceTemp::genLetterRoot() {
+    Json::Value letterClass(Json::objectValue);
+
+    Json::Value nameOfClass;
+    Json::Value numOfPeople;
+
+    Json::Value absentSubRoot(Json::objectValue);
+    Json::Value numOfPeopleAbsent;
+    Json::Value listNonRespCause(Json::arrayValue);
+    Json::Value listRespCause(Json::arrayValue);
+    Json::Value listVirusCause(Json::arrayValue);
+    Json::Value listFreeMealIs(Json::arrayValue);
+
+    absentSubRoot["amount"] = numOfPeopleAbsent;
+    absentSubRoot["listNonRespCause"] = listNonRespCause;
+    absentSubRoot["listRespCause"] = listRespCause;
+    absentSubRoot["listFreeMeal"] = listFreeMealIs;
+    absentSubRoot["listVirusCause"] = listVirusCause;
+
+    letterClass["amount"] = numOfPeople;
+    letterClass["absent"] = absentSubRoot;
+    letterClass["name"] = Json::Value::null;
+    return letterClass;
+}
 
 //Region Form
 formReq::formReq(const crow::request& req) : baseReq(req) {
@@ -415,8 +508,10 @@ crow::response formReq::editData() {
 interfaceReq* interfaceBuilder::createInterface(const crow::request &req) {
     if (req.get_header_value("key") != "") {
 
+        schoolId = req.get_header_value("schoolId");
+        std::string userKey = req.get_header_value("key");
         interfaceTempReq client(req);
-        if (client.isCorrUserKey()) {
+        if (isCorrUserKey(userKey)) {
             return new interfaceTempReq(req);
         }
         else return new interfaceReq(req);
@@ -466,7 +561,7 @@ crow::response interfaceReq::getData() {
             // * filling dates for js @group.title [start - end]
 
             datesListJ = root["userDate"];
-            for (auto el : datesListJ) {
+            for (const auto& el : datesListJ) {
                 datesList.push_back(el.asString());
             }
 
@@ -478,7 +573,7 @@ crow::response interfaceReq::getData() {
                 Jreader.parse(sbuff.str(), templateJson);
                 templateJson = templateJson["classes"];
 
-                for (auto num : templateJson.getMemberNames()) {
+                for (const auto& num : templateJson.getMemberNames()) {
                     for (auto letter : templateJson[num].getMemberNames()) {
                         //TODO брать из шаблона оболочку
                         // * classesNames.insert(templateJson[num][letter]["name"].asString());
@@ -546,9 +641,10 @@ crow::response interfaceReq::editData() {
 
 interfaceTempReq::interfaceTempReq(const crow::request& req) : interfaceReq(req) {
     userKey = req.get_header_value("key");
+    interface = new dataInterfaceTemp(schoolId);
 }
 
-bool interfaceTempReq::isCorrUserKey() {
+bool interfaceBuilder::isCorrUserKey(const std::string& userKey) {
     Json::Reader reader;
     std::fstream fstream;
     std::stringstream buff_str;
@@ -581,127 +677,13 @@ bool interfaceTempReq::isCorrUserKey() {
 }
 
 crow::response interfaceTempReq::getData() {
-    std::fstream fstream;
-    std::stringstream buff_str;
-    crow::response res;
-    if (isCorrUserKey()) {
-        res.set_static_file_info(std::string("data/" + schoolId + "/schoolTemplateDate.json"));
-        return res;
-    }
-    else {
-        return crow::response(400, "Wrong superKey");
-    }
+    return interface->getData();
 }
 
-Json::Value interfaceTempReq::genLetterRoot() {
-        Json::Value letterClass(Json::objectValue);
-
-        Json::Value nameOfClass;
-        Json::Value numOfPeople;
-
-        Json::Value absentSubRoot(Json::objectValue);
-        Json::Value numOfPeopleAbsent;
-        Json::Value listNonRespCause(Json::arrayValue);
-        Json::Value listRespCause(Json::arrayValue);
-        Json::Value listVirusCause(Json::arrayValue);
-        Json::Value listFreeMealIs(Json::arrayValue);
-
-        absentSubRoot["amount"] = numOfPeopleAbsent;
-        absentSubRoot["listNonRespCause"] = listNonRespCause;
-        absentSubRoot["listRespCause"] = listRespCause;
-        absentSubRoot["listFreeMeal"] = listFreeMealIs;
-        absentSubRoot["listVirusCause"] = listVirusCause;
-
-        letterClass["amount"] = numOfPeople;
-        letterClass["absent"] = absentSubRoot;
-        letterClass["name"] = Json::Value::null;
-        return letterClass;
-}
 crow::response interfaceTempReq::editData() {
-    crow::response res;
-    Json::Value templateRoot;
-    Json::Reader reader;
-    Json::StyledWriter writer;
-    std::fstream fstream;
-    std::ostringstream buff;
-
-    Json::Value reqEditNotesRoot;
-    reader.parse(userBuff, reqEditNotesRoot);
-    const std::string& templatePath = "data/" + schoolId + "/schoolTemplateDate.json";
-    fstream.open(templatePath , std::ios::in);
-    buff << fstream.rdbuf();
-    fstream.close();
-    reader.parse(buff.str(), templateRoot);
-    reqEditNotesRoot = reqEditNotesRoot["changesList"];
-    std::string numClass;
-    std::string letterClass;
-
-    Json::Value listEditClass = Json::Value(Json::objectValue);
-    Json::Value listChangesClass = Json::Value(Json::objectValue);
-    Json::Value listAddClass = Json::Value(Json::arrayValue);
-    Json::Value listRmClass = Json::Value(Json::arrayValue);
-
-    listEditClass = reqEditNotesRoot["editChanges"];
-    for (auto letter : listEditClass.getMemberNames()) {
-        numClass = letter.substr(0, letter.find('_'));
-        letterClass = letter.substr(letter.find('_')+1, letter.back()-1);
-        for (auto key : listEditClass[letter].getMemberNames()) {
-            templateRoot["classes"][numClass][letterClass][key] = listEditClass[letter][key];
-            if (key.substr(0, key.find('_')) == "absent") {
-                templateRoot["classes"][numClass][letterClass]["absent"][key.substr(key.find('_')+1, key.back()-1)] = listEditClass[letter][key];
-            }
-        }
-    }
-    std::cout << userBuff;
-    listChangesClass = reqEditNotesRoot["listChanges"];
-    listAddClass = listChangesClass["add"];
-    listRmClass = listChangesClass["rm"];
-
-    for (auto el : listAddClass) {
-        numClass = el.asString().substr(0, el.asString().find('_'));
-        letterClass = el.asString().substr(el.asString().find('_')+1, el.asString().back()-1);
-
-        templateRoot["classes"][numClass][letterClass] = genLetterRoot();
-        templateRoot["classes"][numClass][letterClass]["name"] = numClass + '_' + letterClass;
-    }
-    for (auto el : listRmClass) {
-        numClass = el.asString().substr(0, el.asString().find('_'));
-        letterClass = el.asString().substr(el.asString().find('_')+1, el.asString().back()-1);
-
-        templateRoot["classes"][numClass].removeMember(letterClass);
-    }
-    fstream.open(templatePath,std::ios::out);
-    fstream << writer.write(templateRoot);
-    fstream.close();
-    res.code = 200;
-    std::system(std::string("./commit_data.sh -d 'template change for " + schoolId + "'").c_str());
-    return res;
+    return interface->editData(userBuff);
 }
 
-Json::Value genLetterRoot() {
-    Json::Value letterClass(Json::objectValue);
-
-    Json::Value nameOfClass;
-    Json::Value numOfPeople;
-
-    Json::Value absentSubRoot(Json::objectValue);
-    Json::Value numOfPeopleAbsent;
-    Json::Value listNonRespCause(Json::arrayValue);
-    Json::Value listRespCause(Json::arrayValue);
-    Json::Value listVirusCause(Json::arrayValue);
-    Json::Value listFreeMealIs(Json::arrayValue);
-
-    absentSubRoot["amount"] = numOfPeopleAbsent;
-    absentSubRoot["listNonRespCause"] = listNonRespCause;
-    absentSubRoot["listRespCause"] = listRespCause;
-    absentSubRoot["listFreeMeal"] = listFreeMealIs;
-    absentSubRoot["listVirusCause"] = listVirusCause;
-
-    letterClass["amount"] = numOfPeople;
-    letterClass["absent"] = absentSubRoot;
-    letterClass["name"] = Json::Value::null;
-    return letterClass;
-}
 Json::Value genTempClassesAsJson(const std::string &reqPath, const std::string& schoolId){
     std::fstream fstream;
     std::stringstream stringstream;

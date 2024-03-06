@@ -46,7 +46,7 @@ public:
     dataInterface() {};
     dataInterface(const std::string& schoolId);
     virtual ~dataInterface() {};
-    virtual crow::response getOptionalData() {};
+    virtual crow::response getOptionalData() { return crow::response(); }; //dependency of abstract class interfaceInterface
     virtual crow::response getData() = 0;
     virtual void setDate(const std::string& userDate) {};
     virtual crow::response editData(const std::string& userBuff) = 0;
@@ -58,7 +58,7 @@ public:
 class dataInterfaceForm : public dataInterface{
 
 public:
-    dataInterfaceForm() {};
+    dataInterfaceForm() = default;
     dataInterfaceForm(const std::string& schoolId);
     crow::response getData();
     crow::response editData(const std::string& userBuff);
@@ -80,10 +80,15 @@ public:
 
 
 class dataInterfaceTemp : public dataInterface {
+    Json::Value genLetterRoot();
 
 public:
-    Json::Value genLetterRoot();
     dataInterfaceTemp(const std::string& schoolId);
+    crow::response getData();
+    crow::response editData();
+
+    //! Garbage
+    crow::response editData(const std::string& userBuff);
 };
 
 //Region Form
@@ -99,6 +104,8 @@ public:
 //Region builderOfInterface
 class interfaceReq;
 class interfaceBuilder {
+    std::string schoolId;
+    bool isCorrUserKey(const std::string& userKey); //depend of constructor for data
 public:
     interfaceBuilder() {};
     interfaceReq* createInterface(const crow::request& req);
@@ -118,15 +125,12 @@ public:
 
 //Region InterfaceTemplate
 class interfaceTempReq : public interfaceReq {
-    Json::Value genLetterRoot();
     std::string userKey;
     crow::response getData();
     crow::response editData();
 public:
-    bool isCorrUserKey();
     interfaceTempReq();
     interfaceTempReq(const crow::request &req);
-
 };
 
 Json::Value genTempClassesAsJson( const std::string &reqPath, const std::string& schoolId = "");
