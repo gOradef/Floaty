@@ -29,7 +29,7 @@ RAPIDJSON_NAMESPACE_BEGIN
 /*!
     The classes can be wrapped including but not limited to:
 
-    - \c std::ostringstream
+    - \c std::sbuff
     - \c std::stringstream
     - \c std::wpstringstream
     - \c std::wstringstream

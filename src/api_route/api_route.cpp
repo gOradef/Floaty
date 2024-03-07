@@ -48,16 +48,16 @@ int dataInterface::genNewData() {
     Json::Value newData;
     try {
         fstream.open(std::string("data/" + schoolId + "/schoolTemplateDate.json"), std::ios::in);
-        ostringstream << fstream.rdbuf();
+        sbuff << fstream.rdbuf();
         fstream.close();
 
-        if (!ostringstream.str().empty()) {
+        if (!sbuff.str().empty()) {
             fstream.open(reqPath, std::ios::out);
-            fstream << ostringstream.str();
+            fstream << sbuff.str();
             fstream.close();
 
             Json::Reader reader;
-            reader.parse(ostringstream.str(), newData);
+            reader.parse(sbuff.str(), newData);
             return 200;
         }
         else {
@@ -76,10 +76,10 @@ int dataInterface::genNewData() {
 
 
             Json::Value nameOfClass;
-            Json::Value numOfPeople;
+            Json::Value numOfPeople = 0;
 
             Json::Value absentSubRoot(Json::objectValue);
-            Json::Value numOfPeopleAbsent;
+            Json::Value numOfPeopleAbsent = 0;
             Json::Value listNonRespCause(Json::arrayValue);
             Json::Value listRespCause(Json::arrayValue);
             Json::Value listVirusCause(Json::arrayValue);
@@ -124,8 +124,8 @@ Json::Value dataInterface::getCurrentData() {
             genNewData();
         }
         Json::Value root;
-        ostringstream << fstream.rdbuf();
-        jReader.parse(ostringstream.str(), root);
+        sbuff << fstream.rdbuf();
+        jReader.parse(sbuff.str(), root);
         return root["classes"];
     }
     catch (std::exception &e) {
@@ -334,6 +334,108 @@ crow::response dataInterfaceInterface::getOptionalData() {
     }
 }
 
+crow::response dataInterfaceInterface::getDTDData(const std::string& userBuff) {
+    crow::response res;
+    std::string path;
+    Json::Value root;
+//!   std::set<std::string> classesNames;
+    std::set<std::string> lastNamesRecpCause;
+
+    jReader.parse(userBuff, root);
+    std::vector<std::string> datesList;
+    Json::Value datesListJ = Json::Value(Json::arrayValue);
+
+    // * filling dates for js @group.title [start - end]
+    datesListJ = root["userDate"];
+    for (const auto& el : datesListJ) {
+        datesList.push_back(el.asString());
+    }
+    Json::Value resultJ;
+    Json::Value templateJson;
+    fstream.open("data/" + schoolId + "/" + "schoolTemplateDate.json", std::ios::in);
+    if (fstream.good()) {
+        sbuff << fstream.rdbuf();
+        fstream.close();
+        jReader.parse(sbuff.str(), templateJson);
+        templateJson = templateJson["classes"];
+
+        for (const auto& num : templateJson.getMemberNames()) {
+            for (auto letter : templateJson[num].getMemberNames()) {
+// !                classesNames.insert(templateJson[num][letter]["name"].asString());
+
+                resultJ[num][letter]["amount"] = templateJson[num][letter]["amount"];
+                resultJ[num][letter]["name"] = templateJson[num][letter]["name"];
+                resultJ[num][letter]["absent"] = Json::Value(Json::objectValue);
+
+
+                resultJ[num][letter]["absent"]["amount"] = 0;
+
+                //TODO classAdmin
+            }
+        }
+    }
+    else {
+        return crow::response(500, "--- ERR => no templateFile in root dir \n");
+    }
+    /*
+     Патронажный журнал / 1 янв. - 1 февр.
+     1. Класс (t) +
+     2. Общее кол-во в классе (t) +
+     3. Отсутсвующие в классе (each date +) (+)
+     4. Фамилии тех, кто осутвовал, хотя бы раз (each date + set)
+     5. Кол-во + фамилии (each date + set)
+        5.1. ОРВИ
+        5.2. Уваж. прич.
+        5.3. Неуваж. прич.
+        5.4. Бесплатники
+    6. Клас. рук., прикрепленный к классу (ещё нужно собирать как-то - либо самим редактировать шаблон, либо дать самим клас.рук., чтобы они хотя бы раз заполнили)
+     `
+    */ //TODO sum amounts of skips
+    // reading data from given datesList and insert it to sets
+    for (auto el : datesList) {
+        std::cout << "In loop for: " << el << "\n";
+        path = "data/" + schoolId + "/" + el + '.' + schoolId + ".json";
+        std::cout << path;
+        fstream.open(path, std::ios::in);
+        if (fstream.good()) {
+            std::ostringstream ss;
+            ss << fstream.rdbuf();
+            fstream.close();
+            Json::Value tmpData;
+            jReader.parse(ss.str(), tmpData);
+            for (auto const& num : tmpData["classes"].getMemberNames()) {
+                for (auto const& letter : tmpData["classes"][num].getMemberNames()) {
+                    for (auto const& prop : tmpData["classes"][num][letter]["absent"].getMemberNames()) {
+                        if (tmpData["classes"][num][letter]["absent"][prop].type() == Json::ValueType::intValue) { //integer
+                            std::cout << "INTEGER\n";
+                            resultJ[num][letter]["absent"][prop] = resultJ[num][letter]["absent"][prop].asInt() + tmpData["classes"][num][letter]["absent"][prop].asInt();
+                        }
+                        else if (tmpData["classes"][num][letter]["absent"][prop].isArray()) {
+                            std::cout << "ARRAY\n";
+                            resultJ[num][letter]["absent"][prop].append(tmpData["classes"][num][letter]["absent"][prop]);
+                        }
+                        else {
+                            std::cout << "WTF - " << prop << '\n';
+                            std::cout << tmpData["classes"][num][letter]["absent"][prop].type() << '\n';
+                        }
+
+                    }
+                }
+            }
+            //TODO absents
+//            resultJ["classes"] = resultJ; //! Дублирование
+//            std::cout << resultJ;
+            Json::Value jbuff;
+            jbuff["classes"] = resultJ;
+            res.body = jWriter.write(jbuff);
+        }
+        else {
+            std::cout << "Bad input for " << path << "\n";
+        }
+    }
+    return res;
+}
+
 void dataInterfaceInterface::setDate(const std::string &date) {
     this->userDate = date;
 }
@@ -350,9 +452,9 @@ crow::response dataInterfaceInterface::editData(const std::string& userBuff) {
         std::string path = "data/" + schoolId + '/' + userDate + ".json";
 
         fstream.open(path, std::ios::in);
-        ostringstream << fstream.rdbuf();
+        sbuff << fstream.rdbuf();
         fstream.close();
-        jReader.parse(ostringstream.str(), templateRoot);
+        jReader.parse(sbuff.str(), templateRoot);
 
         std::string numClass;
         std::string letterClass;
@@ -415,9 +517,9 @@ crow::response dataInterfaceTemp::editData(const std::string& userBuff) {
     jReader.parse(userBuff, reqEditNotesRoot);
     const std::string& templatePath = "data/" + schoolId + "/schoolTemplateDate.json";
     fstream.open(templatePath , std::ios::in);
-    ostringstream << fstream.rdbuf();
+    sbuff << fstream.rdbuf();
     fstream.close();
-    jReader.parse(ostringstream.str(), templateRoot);
+    jReader.parse(sbuff.str(), templateRoot);
     reqEditNotesRoot = reqEditNotesRoot["changesList"];
     std::string numClass;
 
@@ -544,76 +646,8 @@ crow::response interfaceReq::getData() {
             return interface->getOptionalData();
         }
         else if (period == "dateToDate") {
-            crow::response res;
-            std::string path;
-            std::fstream fstream;
-            std::stringstream sbuff;
-
-            Json::Reader Jreader;
-            Json::Value root;
-            std::set<std::string> classesNames;
-            std::set<std::string> lastNamesRecpCause;
-            Jreader.parse(userBuff, root);
-            std::vector<std::string> datesList;
-            Json::Value datesListJ = Json::Value(Json::objectValue);
-            datesList = root.getMemberNames();
-
-            // * filling dates for js @group.title [start - end]
-
-            datesListJ = root["userDate"];
-            for (const auto& el : datesListJ) {
-                datesList.push_back(el.asString());
-            }
-
-            Json::Value templateJson;
-            fstream.open("data/" + schoolId + "/" + "schoolTemplateDate.json", std::ios::in);
-            if (fstream.good()) {
-                sbuff << fstream.rdbuf();
-                fstream.close();
-                Jreader.parse(sbuff.str(), templateJson);
-                templateJson = templateJson["classes"];
-
-                for (const auto& num : templateJson.getMemberNames()) {
-                    for (auto letter : templateJson[num].getMemberNames()) {
-                        //TODO брать из шаблона оболочку
-                        // * classesNames.insert(templateJson[num][letter]["name"].asString());
-                    }
-
-                }
-            }
-            else {
-                return crow::response(500, "--- ERR => no templateFile in root dir \n");
-            }
-            /*
-             Патронажный журнал / 1 янв. - 1 февр.
-             1. Класс (t)
-             2. Общее кол-во в классе (t)
-             3. Отсутсвующие в классе (each date +)
-             4. Фамилии тех, кто осутвовал, хотя бы раз (each date + set)
-             5. Кол-во + фамилии (each date + set)
-                5.1. ОРВИ
-                5.2. Уваж. прич.
-                5.3. Неуваж. прич.
-                5.4. Бесплатники
-            6. Клас. рук., прикрепленный к классу (ещё нужно собирать как-то - либо самим редактировать шаблон, либо дать самим клас.рук., чтобы они хотя бы раз заполнили)
-             `
-            */
-            // reading data from given datesList and insert it to sets
-            for (auto el : datesList) {
-                path = "data/" + schoolId + "/" + el + '.' + schoolId + ".json";
-                fstream.open(path, std::ios::in);
-                if (fstream.good()) {
-                    sbuff << fstream.rdbuf();
-                    fstream.close();
-
-                    std::cout << el << "----->"<< sbuff.str();
-                    //TODO absents
-                }
-                else {
-                    std::cout << "Bad input for " << path << "\n";
-                }
-            }
-            return res;
+            std::cout << userBuff;
+            return interface->getDTDData(userBuff);
         }
     }
     else {

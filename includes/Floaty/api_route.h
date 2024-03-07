@@ -32,7 +32,7 @@ public:
 class dataInterface {
 protected:
     std::fstream fstream;
-    std::ostringstream ostringstream;
+    std::ostringstream sbuff;
     Json::Reader jReader;
     Json::StyledWriter jWriter;
     std::string schoolId;
@@ -46,8 +46,9 @@ public:
     dataInterface() {};
     dataInterface(const std::string& schoolId);
     virtual ~dataInterface() {};
-    virtual crow::response getOptionalData() { return crow::response(); }; //dependency of abstract class interfaceInterface
     virtual crow::response getData() = 0;
+    virtual crow::response getOptionalData() { return crow::response(); }; //dependency of abstract class interfaceInterface
+    virtual crow::response getDTDData(const std::string& userBuff) { return {}; };
     virtual void setDate(const std::string& userDate) {};
     virtual crow::response editData(const std::string& userBuff) = 0;
 };
@@ -70,11 +71,11 @@ class dataInterfaceInterface : public dataInterface{
     std::string userDate;
 public:
     dataInterfaceInterface(const std::string& schoolId, const std::string& userDate);
-    crow::response getData();
-    crow::response getOptionalData(); //data like [yy.mm.dd]
-    crow::response getDTDDate();
-    void setDate(const std::string& userDate);
-    crow::response editData(const std::string& userBuff);
+    crow::response getData() override;
+    crow::response getOptionalData() override; //data like [yy.mm.dd]
+    crow::response getDTDData(const std::string& userBuff) override;
+    void setDate(const std::string& userDate) override;
+    crow::response editData(const std::string& userBuff) override;
 
 };
 

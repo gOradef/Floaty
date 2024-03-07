@@ -307,7 +307,7 @@ public:
 
 public:
   /** \brief Serialize a Value in <a HREF="http://www.json.org">JSON</a> format.
-   * \param out Stream to write to. (Can be ostringstream, e.g.)
+   * \param out Stream to write to. (Can be sbuff, e.g.)
    * \param root Value to serialize.
    * \note There is no point in deriving from Writer, since write() should not
    * return a value.
