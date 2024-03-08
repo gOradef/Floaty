@@ -149,7 +149,7 @@ public:
 
     void useSSL() {
         app
-        .ssl_file("fullchain.pem", "privkey.pem")
+        .ssl_file("fullchain.pem", "privkey.pem");
     }
     void run() {
         app
