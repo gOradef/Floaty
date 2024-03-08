@@ -147,7 +147,11 @@ public:
         });
     }
 
-    auto run() {
+    void useSSL() {
+        app
+        .ssl_file("fullchain.pem", "privkey.pem")
+    }
+    void run() {
         app
         .multithreaded()
         .run_async();
@@ -160,6 +164,7 @@ int main()
 {
 //    62.233.46.131
 //    Server server("62.233.46.131", 443);
+//    server.useSSL();
     Server server("127.0.0.1", 443);
     server.initRoutes();
     server.run();
