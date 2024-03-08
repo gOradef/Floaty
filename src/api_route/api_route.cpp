@@ -3,6 +3,7 @@
 #include "vector"
 #include "json/value.h"
 #include <cstdlib>
+#include "nlohmann/json.hpp"
 
 baseReq::baseReq() {};
 baseReq::baseReq(const crow::request &req) {
@@ -406,25 +407,40 @@ crow::response dataInterfaceInterface::getDTDData(const std::string& userBuff) {
             for (auto const& num : tmpData["classes"].getMemberNames()) {
                 for (auto const& letter : tmpData["classes"][num].getMemberNames()) {
                     for (auto const& prop : tmpData["classes"][num][letter]["absent"].getMemberNames()) {
-                        if (tmpData["classes"][num][letter]["absent"][prop].type() == Json::ValueType::intValue) { //integer
+                        Json::Value* ptProp = &tmpData["classes"][num][letter]["absent"][prop];
+                        if (ptProp->type() == Json::ValueType::intValue) { //integer
                             std::cout << "INTEGER\n";
-                            resultJ[num][letter]["absent"][prop] = resultJ[num][letter]["absent"][prop].asInt() + tmpData["classes"][num][letter]["absent"][prop].asInt();
+                            resultJ[num][letter]["absent"][prop] = resultJ[num][letter]["absent"][prop].asInt() + ptProp->asInt();
                         }
                         else if (tmpData["classes"][num][letter]["absent"][prop].isArray()) {
                             std::cout << "ARRAY\n";
-                            resultJ[num][letter]["absent"][prop].append(tmpData["classes"][num][letter]["absent"][prop]);
+
+                            //Settind up merged array of data
+                            Json::Value mergedArray = Json::ValueType(Json::arrayValue);
+                            std::set<Json::Value> uniqVals;
+                            for (auto resVal : resultJ[num][letter]["absent"][prop]) {
+                                mergedArray.append(resVal);
+                                uniqVals.insert(resVal);
+                            }
+                            for (auto tmpItem : *ptProp) {
+                                if (uniqVals.find(tmpItem) == uniqVals.end()) {
+                                    mergedArray.append(tmpItem);
+                                    uniqVals.insert(tmpItem);
+                                }
+                            }
+
+                            resultJ[num][letter]["absent"]["amount_" + prop] = mergedArray.size();
+                            resultJ[num][letter]["absent"][prop] = mergedArray;
                         }
                         else {
                             std::cout << "WTF - " << prop << '\n';
-                            std::cout << tmpData["classes"][num][letter]["absent"][prop].type() << '\n';
+                            std::cout << ptProp->type() << '\n';
                         }
-
                     }
                 }
             }
-            //TODO absents
-//            resultJ["classes"] = resultJ; //! Дублирование
-//            std::cout << resultJ;
+
+
             Json::Value jbuff;
             jbuff["classes"] = resultJ;
             res.body = jWriter.write(jbuff);
