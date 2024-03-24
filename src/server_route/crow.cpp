@@ -163,9 +163,9 @@ crow::SimpleApp Server::app;
 int main()
 {
 //    62.233.46.131
-//    Server server("62.233.46.131", 443);
-//    server.useSSL();
-    Server server("127.0.0.1", 443);
+    Server server("62.233.46.131", 443);
+    Server::useSSL();
+//    Server server("127.0.0.1", 443);
     server.initRoutes();
     Server::run();
     return 0;
