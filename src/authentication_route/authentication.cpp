@@ -30,7 +30,7 @@ crow::response getResponseAndGenJWT(const Json::Value &loginJ, const Json::Value
         token_builder.set_subject("userToken");
 
         std::string secret_key = "super-mega-giga-kilo-long-secret";
-        std::string jwt = token_builder.sign(jwt::algorithm::hs256{ std::string(secret_key) });
+        std::string jwt = token_builder.sign(jwt::algorithm::hs256{std::string(secret_key)});
 
         // Формирование JSON-ответа с токеном
         rapidjson::StringBuffer sb;

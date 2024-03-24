@@ -85,6 +85,13 @@ public:
             return res.end();
         });
 
+        //! Только для html
+        CROW_ROUTE(app, "/<string>")
+                ([](std::string file) {
+                    if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
+                    else return genWebPages(file);
+                });
+
         //Region API
         CROW_ROUTE(app, "/api/form")
                 .methods(crow::HTTPMethod::POST)
@@ -138,19 +145,13 @@ public:
         CROW_CATCHALL_ROUTE(app)([] {
             return handleErrPage(404);
         });
-	//! Тол�Lко дл�O html
-        CROW_ROUTE(app, "/<string>")
-                ([](std::string file) {
-                    if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
-                    else return genWebPages(file);
-                });
     }
-
-    void useSSL() {
+    [[maybe_unused]]
+    static void useSSL() {
         app
         .ssl_file("fullchain.pem", "privkey.pem");
     }
-    void run() {
+    static void run() {
         app
         .multithreaded()
         .run_async();
@@ -162,9 +163,10 @@ crow::SimpleApp Server::app;
 int main()
 {
 //    62.233.46.131
-    Server server("62.233.46.131", 443);
-    server.useSSL();
-//    Server server("127.0.0.1", 443);
+//    Server server("62.233.46.131", 443);
+//    server.useSSL();
+    Server server("127.0.0.1", 443);
     server.initRoutes();
-    server.run();
+    Server::run();
+    return 0;
 }
