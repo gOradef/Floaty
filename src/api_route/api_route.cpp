@@ -3,7 +3,6 @@
 #include "vector"
 #include "json/value.h"
 #include <cstdlib>
-#include "nlohmann/json.hpp"
 
 baseReq::baseReq() {};
 baseReq::baseReq(const crow::request &req) {
@@ -171,8 +170,8 @@ crow::response dataInterfaceForm::editData(const std::string& userBuff) {
     std::map<std::string, Json::Value> absentMap;
     try {
         std::string className = reqEditNotesRoot["className"].asString();
-        std::string globalNum = reqEditNotesRoot["globalNum"].asString();
-        std::string absentNum = reqEditNotesRoot["absentNum"].asString();
+        Json::Value globalNum = reqEditNotesRoot["globalNum"];
+        Json::Value absentNum = reqEditNotesRoot["absentNum"];
         Json::Value listAbsent = Json::Value(Json::arrayValue);
 
         absentMap["classNum"] = className.substr(0, className.find('_'));
@@ -228,14 +227,14 @@ crow::response dataInterfaceForm::editData(const std::string& userBuff) {
         buff_J["classes"]
         [editNotesMap["classNum"].asString()]
         [editNotesMap["classLetter"].asString()]
-        ["amount"] = globalNum.asString();
+        ["amount"] = globalNum;
     }
     else {
         try {
             rootTemplateDay["classes"]
             [editNotesMap["classNum"].asString()]
             [editNotesMap["classLetter"].asString()]
-            ["amount"] = editNotesMap["globalNum"].asString();
+            ["amount"] = editNotesMap["globalNum"];
 
             Json::StyledWriter writer;
             fstream.open("data/" + schoolId + '/' + "schoolTemplateDate.json", std::ios::out);
@@ -308,7 +307,7 @@ crow::response dataInterfaceInterface::getData() {
         return res;
     }
     else { //if exist
-        res.add_header("date", std::string("Сегодня (" + genToken() + ')'));
+        res.add_header("date", std::string("Today (" + genToken() + ')'));
         return res;
     }
     return crow::response(400, "unknown type of req");

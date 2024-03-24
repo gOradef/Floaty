@@ -16,12 +16,74 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #222;
-  width: 230px;
+  width: 270px;
+  max-width: 280px;
   border-radius: 15px;
   text-align: center;
   align-items: center;
   color: white;
 }
+/*.specialInput {*/
+/*  display: inherit;*/
+/*  text-align: start;*/
+/*}*/
+/*.specialInput > i {*/
+/*  margin-left: 10px;*/
+/*}*/
+
+.preSubmitWindow {
+  background: #1D1D1D;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  z-index: 1;
+  border: 2px solid #526f8c;
+  padding-right: 20px;
+  width: auto;
+  min-width: 230px;
+  min-height: 200px;
+  /*display: none;*/
+}
+.overlay {
+  display: none;
+  z-index: 1;
+  background-color: black;
+  opacity: 0.5;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.preSubmitWindow {
+  display: none;
+  padding: 10px 20px 10px 20px;
+}
+.preSubmitWindow > ul {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+.preSubmitWindow > ul > li {
+  text-wrap: normal;
+  margin: 6px 0 0 0;
+}
+.preSubmitWindow > .uaction {
+  display: flex;
+  justify-content: space-around;
+}
+.uactionBtn {
+  border: none;
+  color: white;
+}
+.breakSubmitBtn {
+  background-color: #914743;
+}
+
+.processSubmitBtn {
+  background-color: #5cb85c;
+}
+
 .navbar {
   position: sticky;
   top: 0;
@@ -86,6 +148,9 @@ body {
 }
 .inputFormField > div {
   margin-bottom: 4px;
+}
+.inputFormField > textarea {
+  width: 170px;
 }
 
 .loginButton {
@@ -154,6 +219,7 @@ input[type="password"] {
 
 .inputCont {
   color: white;
+  text-align: center;
   border-radius: 15px;
   width: 300px;
   height: 50vh;

@@ -146,12 +146,12 @@ public:
             return handleErrPage(404);
         });
     }
-
-    void useSSL() {
+    [[maybe_unused]]
+    static void useSSL() {
         app
         .ssl_file("fullchain.pem", "privkey.pem");
     }
-    void run() {
+    static void run() {
         app
         .multithreaded()
         .run_async();
@@ -167,5 +167,6 @@ int main()
 //    server.useSSL();
     Server server("127.0.0.1", 443);
     server.initRoutes();
-    server.run();
+    Server::run();
+    return 0;
 }
