@@ -25,7 +25,7 @@
       z-index: 1;
       background-color: darkgray;
       position: sticky;
-      top:0;
+      top:65px;
     }
 
     td, th {
@@ -76,7 +76,7 @@
   </style>
   {{{navbarControlFile}}}
 <div style="height: 30px"></div> <!--spacer -->
-<!--Region Table-->
+  <!--Region Table-->
   <div id="popupTable" class="popup">
     <div class="popup-content">
       <span class="closeTable-btn close-btn">&times;</span>
@@ -133,11 +133,12 @@
   <!--End Export-->
 
   <div class="actionMenu">
+    <br><br><br><br><br><br><br><br><br><br>
     <button id="getTable-btn" class="actionBtn" >Показать</button>
 
     <div class="redact">
       <button id="openRedactMode-btn" class="actionBtn" >Редактировать</button>
-      <button id="confirmChangesTable-btn" class="actionBtn" >Подтвердить изменения</button>
+      <button id="confirmChangesTable-btn" class="actionBtn" style="display: none;" >Подтвердить изменения</button>
     </div>
 
 

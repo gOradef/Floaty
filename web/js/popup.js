@@ -5,6 +5,14 @@ let changesList = {
 }
 //Region export popup
 document.getElementById('openExport-btn').addEventListener('click', function() {
+    if (!isTableLoaded) {
+        alert("Сначала загрузите таблицу");
+        return;
+    }
+    if (isRedactorModeEntered) {
+        alert("Сначала закройте режим редактирования");
+        return;
+    }
     document.getElementById('popupExport').style.display = 'block';
 });
 
