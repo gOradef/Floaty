@@ -4,7 +4,6 @@
 
 
 
-
 class dataInterface;
 //Region general Reqs abstract
 class baseReq {
