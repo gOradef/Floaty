@@ -1,9 +1,50 @@
 #include "json/json.h"
 #include "fstream"
-#include "authentication.h"
+#include "Floaty/authentication.h"
+#include "Floaty/connectionpool.h"
+
+
+class User {
+protected:
+// connection to Postgres
+    ConnectionPool* _connectionPool;
+    pqxx::connection* _connection;
+
+// attributes of any user
+    std::string _org_id;
+    std::string _user_id;
+
+public:
+    User(ConnectionPool *connectionPool,
+         const crow::request &req);
+    ~User();
+
+    std::vector<std::string> getRoles() {
+        std::vector<std::string> roles;
+        pqxx::read_transaction readTransaction(*_connection);
+        auto res = readTransaction.exec_prepared("user_roles_get", _org_id, _user_id);
+        for (auto role : res) {
+            roles.emplace_back(role.front().as<std::string>());
+        }
+        return roles;
+    }
+};
 
 
 
+
+
+class Teacher : User {
+    std::string class_id;
+public:
+    Teacher(ConnectionPool *connectionPool,
+            const crow::request &req);
+};
+
+
+
+
+//! ARCHIVED
 class dataInterface;
 //Region general Reqs abstract
 class baseReq {

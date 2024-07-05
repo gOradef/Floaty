@@ -4,6 +4,30 @@
 #include "json/value.h"
 #include <cstdlib>
 
+
+User::User(ConnectionPool *connectionPool, const crow::request &req) {
+    this->_connectionPool = connectionPool;
+    this->_connection = _connectionPool->getConnection();
+
+    std::string user_token = req.get_header_value("token");
+    jwt::decoded_jwt decodedJwt = jwt::decode(user_token);
+    std::set<std::string> aSet = decodedJwt.get_audience();
+    std::ostringstream stream;
+    std::copy(aSet.begin(), aSet.end(), std::ostream_iterator<std::string>(stream, ","));
+
+    this->_org_id = stream.str();
+    this->_user_id = decodedJwt.get_subject();
+}
+User::~User() {
+    _connectionPool->releaseConnection(_connection);
+}
+
+Teacher::Teacher(ConnectionPool *connectionPool, const crow::request &req) : User(connectionPool, req) {
+    this->class_id = req.url_params.get("class");
+}
+
+
+//! ARCHIVED
 baseReq::baseReq() {};
 baseReq::baseReq(const crow::request &req) {
     schoolId = req.get_header_value("schoolId");

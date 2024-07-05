@@ -6,13 +6,14 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
     for (int i = 0; i < pool_size; ++i) {
         pqxx::connection *c = new pqxx::connection(connection_string);
         //login
-        c->prepare("is_valid_user", "SELECT * from is_valid_user($1, $2);"); //return bool and user_id
-        c->prepare("get_user_roles", "SELECT * from get_user_roles($1::uuid);");
-        c->prepare("get_school_id", "select id from schools join lateral jsonb_array_elements(members) as mem on true where mem->>'id' = $1;");
-
+        c->prepare("is_valid_user", "SELECT * from is_valid_user($1, $2);"); //return bool and user_id in different rows
+        c->prepare("user_roles_get", "SELECT * from user_roles_get($1::uuid, $2::uuid);"); //return many rows of roles
+        c->prepare("school_id_get", "select school_id_get($1::uuid);");
+        c->prepare("is_user_has_role", "select 1 from schools where id = $1::uuid "
+                          "and members -> $2::text -> roles ? $3");
         //data encoding | decoding
         c->prepare("encode", "select encode($1, 'hex');");
-        c->prepare("decode", "select decode($1, 'hex');");
+        c->prepare("decode", "select convert_from(decode($1, 'hex'), 'UTF-8');");
 
         //get | edit data for teacher
 

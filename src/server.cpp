@@ -8,30 +8,75 @@
 class Server {
     static crow::SimpleApp app;
     static ConnectionPool* _connectionPool;
+    static const std::string& _jwt_secret;
 //    crow::mustache::context ctx;
 
+//Region Check JWT
     static bool isValidJWT(const std::string& userjwt) {
-        jwt::decoded_jwt decodedJwt = jwt::decode(userjwt);
-
-        std::string user_id_encoded = decodedJwt.get_subject();
-        std::string school_id_encoded = decodedJwt.get_payload_claim("aud").as_string();
-
-
-        pqxx::connection* c = _connectionPool->getConnection();
-        pqxx::read_transaction readTransaction(*c);
-        try {
-            const std::string& user_id_decode = readTransaction.exec_prepared1("decode", user_id_encoded).front().as<std::string>();
-            const std::string& school_id_decode = readTransaction.exec_prepared1("decode", school_id_encoded).front().as<std::string>();
-        }
-        catch (std::exception &e) {
-            std::cout << "[ERROR] Cannot decode user's jwt claims. \n" << e.what();
-        }
 
         jwt::verifier verify = jwt::verify();
+        verify.allow_algorithm(jwt::algorithm::hs256(_jwt_secret));
         verify.with_issuer("Floaty");
 
+        jwt::decoded_jwt decoded_token = jwt::decode(userjwt);
+        try {
+            verify.verify(decoded_token);
+            // * check exp time
+            {
+                auto exp = decoded_token.get_payload_claim("exp").as_int();
 
-        _connectionPool->releaseConnection(c);
+                auto exp_time_t = std::chrono::system_clock::from_time_t(exp);
+                auto now = std::chrono::system_clock::now();
+
+                if (now > exp_time_t) throw jwt::token_verification_exception();
+            }
+
+            pqxx::connection* c = _connectionPool->getConnection();
+            pqxx::read_transaction rtx(*c);
+
+            auto token_user_id = decoded_token.get_subject();
+            auto token_school_id = decoded_token.get_payload_claim("aud").as_string();
+
+            const std::string& token_user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
+            const std::string& token_school_id_decoded = rtx.exec_prepared1("decode", token_school_id).front().as<std::string>();
+            // * check org_id
+            {
+                auto school_id = rtx.exec_prepared1("get_school_id", token_user_id_decoded).front().as<std::string>();
+
+                if (token_school_id_decoded != school_id) throw std::runtime_error("Disrespect school id");
+            }
+
+            // * check roles
+            {
+                picojson::array token_roles = decoded_token.get_payload_claim("roles").as_array();
+
+                const std::string& user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
+                picojson::array available_roles;
+                auto roles = rtx.exec_prepared("user_roles_get", token_school_id_decoded, user_id_decoded);
+
+                if (roles.empty()) {
+                    throw std::runtime_error("No roles found for user");
+                }
+                for (auto role : roles) {
+                    available_roles.emplace_back(role.front().as<std::string>());
+                }
+                if (token_roles != available_roles) throw std::runtime_error("Disrespect roles");
+            }
+            return true;
+
+        }
+        catch (jwt::error::signature_verification_error& e) {
+            std::cerr << "Signature verif. err: " << e;
+            return false;
+        }
+        catch(jwt::error::token_verification_exception& e) {
+            std::cerr << "Expired time of token: " << e.what() << '\n';
+            return false;
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Exception: " << e.what() << '\n';
+            return false;
+        }
     }
 
     std::string getAdminKey(const std::string& reqPath) {
@@ -138,7 +183,6 @@ public:
             return "res.end()";
         });
 
-
         CROW_ROUTE(app, "/api/login")
         .methods(crow::HTTPMethod::POST)
         ([this](const crow::request &req){
@@ -161,71 +205,62 @@ public:
             const std::string& hashedLogin = hashSHA256(userLogin);
             const std::string& hashedPassword = hashSHA256(userPassword);
 
-//            std::cout << hashedLogin << '\n' << hashedPassword << '\n'; //!debug
-
             if (c->is_open()) {
-                pqxx::read_transaction readTransacion(*c);
+                pqxx::read_transaction readTransaction(*c);
+
+            try {
+                auto result = readTransaction.exec_prepared("is_valid_user", hashedLogin, hashedPassword).front();
+                if (!result[0].as<bool>()) return crow::response(400, "Wrong creds");
+
+                const std::string& user_id = result[1].as<std::string>();
+                //                std::cout << "[INFO] Tech id: " << user_id << '\n'; //!debug
+
+                auto roles = readTransaction.exec_prepared("user_roles_get", user_id);
+                picojson::array available_roles;
+                for (auto role : roles) {
+                    picojson::value role_v(role.front().as<std::string>());
+                    available_roles.push_back(role_v);
+                }
+                if (roles.capacity() == 0) return crow::response(400, "U r doesnt have any available roles. "
+                                                                      "Contact with admin for granting privileges");
 
 
-                try {
-
-                    auto result = readTransacion.exec_prepared("is_valid_user", hashedLogin, hashedPassword).front();
-                    if (!result[0].as<bool>()) return crow::response(400, "Wrong creds");
-
-                    const std::string& user_id = result[1].as<std::string>();
-                    //                std::cout << "[INFO] Tech id: " << user_id << '\n'; //!debug
-
-                    auto roles = readTransacion.exec_prepared("get_user_roles", user_id);
-                    picojson::array available_roles;
-                    for (auto role : roles) {
-                        picojson::value role_v(role.front().as<std::string>());
-                        available_roles.push_back(role_v);
-                    }
-                    if (roles.capacity() == 0) return crow::response(400, "U r doesnt have any available roles. "
-                                                                          "Contact with admin for granting privileges");
-
-
-                    const std::string& school_id = readTransacion.exec_prepared1("get_school_id", user_id).front().as<std::string>();
+                const std::string& school_id = readTransaction.exec_prepared1("get_school_id", user_id).front().as<std::string>();
 //                        std::cout << "[INFO] SCHOOL ID iS: " << school_id << '\n'; //!debug
 
-                    const std::string& user_id_encoded = readTransacion.exec_prepared1("encode", user_id).front().as<std::string>();
+                const std::string& user_id_encoded = readTransaction.exec_prepared1("encode", user_id).front().as<std::string>();
 //                        std::cout << "[INFO] SUB IS: " << user_id << '\n'; //!debug
-
-                    const std::string& school_id_encoded = readTransacion.exec_prepared1("encode", school_id).front().as<std::string>();
-
+                const std::string& school_id_encoded = readTransaction.exec_prepared1("encode", school_id).front().as<std::string>();
 
 
+                auto jwt_builder = jwt::create();
+                jwt_builder.set_issuer("Floaty");
 
-                    auto jwt_builder = jwt::create();
-                    jwt_builder.set_issuer("Floaty");
+                //id, school_id
+                jwt_builder.set_subject(user_id_encoded);
+                jwt_builder.set_audience(school_id_encoded);
 
-                    //id, school_id
-                    jwt_builder.set_subject(user_id_encoded);
-                    jwt_builder.set_audience(school_id_encoded);
+                //roles
+                jwt_builder.set_payload_claim("roles", jwt::claim(available_roles));
 
-                    //roles
-                    jwt_builder.set_payload_claim("roles", jwt::claim(available_roles));
+                //time
+                jwt_builder.set_issued_at(std::chrono::system_clock::now());
+                jwt_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600)); //1 hour
 
-                    //time
-                    jwt_builder.set_issued_at(std::chrono::system_clock::now());
-                    jwt_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds(3600)); //1 hour
+                auto jwt = jwt_builder.sign(jwt::algorithm::hs256(_jwt_secret));
 
-                    //TODO read key from another place. key.txt?
-                    std::string key;
-                    auto jwt = jwt_builder.sign(jwt::algorithm::hs256(key));
+                std::cout << jwt << '\n';
+                crow::json::wvalue jsonResponse;
+                jsonResponse["token"] = jwt;
 
-                    std::cout << jwt << '\n';
-                    crow::json::wvalue jsonResponse;
-                    jsonResponse["token"] = jwt;
-
-                    _connectionPool->releaseConnection(c);
-                    return crow::response(200, jsonResponse);
-                }
-                catch (std::exception &e) {
-                    std::string msg = e.what();
-                    std::cerr << "ERR: " <<  e.what() << '\n';
-                    return crow::response(500, std::string("ERR: " + msg));
-                }
+                _connectionPool->releaseConnection(c);
+                return crow::response(200, jsonResponse);
+            }
+            catch (std::exception &e) {
+                std::string msg = e.what();
+                std::cerr << "ERR: " <<  e.what() << '\n';
+                return crow::response(500, std::string("ERR: " + msg));
+            }
 
                 //TODO: refactor into no 1one else and many if statements
             }
@@ -237,7 +272,35 @@ public:
 
            return crow::response(200, "all is good");
         });
+        CROW_ROUTE(app, "/api/jwtcheck").methods(crow::HTTPMethod::POST)
+        ([](const crow::request& req){
+            Json::Reader reader;
+            Json::Value jwt;
+//            jwt["token"] = req.get_header_value("Authorization");
+            reader.parse(req.body, jwt);
+            if (isValidJWT(jwt["token"].asString())) return "JWT is good, bruh! U r free to go \n";
+            else return "bad. redo token";
+        });
 
+
+        //Region user's api (global)
+        CROW_ROUTE(app, "/api/user/roles")
+        .methods(crow::HTTPMethod::POST)
+        ([](const crow::request &req, crow::response &res){
+            const std::string& token = req.get_header_value("token");
+            if (isValidJWT(token)) {
+                User user(_connectionPool, req);
+            }
+            return res.end();
+        });
+//
+//        CROW_ROUTE(app, "/temp").methods(crow::HTTPMethod::POST)
+//        ([](const crow::request& req){
+//                    auto c = _connectionPool->getConnection();
+//                    pqxx::work work(*c);
+//                    _connectionPool->releaseConnection(c);
+//                    return 1;
+//                });
         CROW_ROUTE(app, "/api/organisation/register")
                 .methods(crow::HTTPMethod::POST)([this](const crow::request &req, crow::response &res){
 
@@ -315,6 +378,8 @@ public:
 
 crow::SimpleApp Server::app;
 ConnectionPool* Server::_connectionPool;
+const std::string& Server::_jwt_secret = "dyXJY7wN2fbhxxI6+KZ47IuGfKt0kFXHQQt1gACG7YUB/zwHxA4nRCq0J1pmxthUAi23oHfA8rNMXv0Oi4LuRw==";
+
 int main()
 {
 
