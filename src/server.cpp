@@ -358,7 +358,6 @@ public:
          * @brief Needed for updating class_data. Like list of students, amount students
          */
         CROW_ROUTE(app, "/api/user/class/update").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res) {
-            //todo is valid jwt check
             std::string token = req.get_header_value("token");
             auto f = [](const crow::request& req, crow::response& res) {
                 classHandler user(_connectionPool, req);
