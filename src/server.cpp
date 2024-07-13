@@ -9,6 +9,7 @@ class Server {
     static crow::SimpleApp app;
     static ConnectionPool* _connectionPool;
     static const std::string& _jwt_secret;
+
 //    crow::mustache::context ctx;
 
 //Region Check JWT
@@ -41,7 +42,7 @@ class Server {
             const std::string& token_school_id_decoded = rtx.exec_prepared1("decode", token_school_id).front().as<std::string>();
             // * check org_id
             {
-                auto school_id = rtx.exec_prepared1("get_school_id", token_user_id_decoded).front().as<std::string>();
+                auto school_id = rtx.exec_prepared1("school_id_get", token_user_id_decoded).front().as<std::string>();
 
                 if (token_school_id_decoded != school_id) throw std::runtime_error("Disrespect school id");
             }
@@ -62,6 +63,7 @@ class Server {
                 }
                 if (token_roles != available_roles) throw std::runtime_error("Disrespect roles");
             }
+            _connectionPool->releaseConnection(c);
             return true;
 
         }
@@ -78,7 +80,33 @@ class Server {
             return false;
         }
     }
-
+    constexpr static const auto verifier = []
+            (const std::string& jwtToken,
+                    const crow::request& req,
+                    crow::response& res,
+                    const std::function<void(const crow::request& req, crow::response& res)>& f)
+    {
+        if (isValidJWT(jwtToken)) {
+            try {
+                f(req, res);
+            }
+            catch (std::invalid_argument &e) {
+                res.code = 400;
+                res.body = e.what();
+                std::cerr << "[ERR]: " << e.what();
+            }
+            catch (std::runtime_error &e) {
+                res.code = 400;
+                res.body = e.what();
+                std::cerr << "[ERR]: " << e.what();
+            }
+        }
+        else {
+            res.code = 401;
+            res.body = "Unauthorized";
+        }
+        return res.end();
+    };
     std::string getAdminKey(const std::string& reqPath) {
         std::string key;
         std::stringstream buff;
@@ -156,9 +184,7 @@ public:
             .port(port);
 
     }
-    void initRoutes() {
-        crow::mustache::set_global_base("web");
-
+    void initWeb() {
         CROW_ROUTE(app, "/interface")([this](const crow::request &req, crow::response &res) {
             return defineErrCodeOfCookie(req, res);
         });
@@ -174,20 +200,23 @@ public:
                     if (file == "userForm" || file == "userInterface") return handleErrPage(0, "no access");
                     else return genWebPages(file);
                 });
-        //Region API
-        CROW_ROUTE(app, "/api/signup")
-        .methods(crow::HTTPMethod::POST)
-        ([](const crow::request &req){
+    }
+
+//Region API
+    void initAPI() {
+        CROW_ROUTE(app, "/api/signup").methods(crow::HTTPMethod::POST)([](const crow::request &req){
+            bool isWithSchool;
+            if (req.url_params.get("school")) {
+
+            }
 
             crow::response res(500, "under temporary development");
             return "res.end()";
         });
 
-        CROW_ROUTE(app, "/api/login")
-        .methods(crow::HTTPMethod::POST)
-        ([this](const crow::request &req){
-
+        CROW_ROUTE(app, "/api/login").methods(crow::HTTPMethod::POST) ([this](const crow::request &req){
             pqxx::connection* c = _connectionPool->getConnection();
+            pqxx::read_transaction readTransaction(*c);
 
             Json::Reader jReader;
             Json::Value reqBody;
@@ -205,17 +234,21 @@ public:
             const std::string& hashedLogin = hashSHA256(userLogin);
             const std::string& hashedPassword = hashSHA256(userPassword);
 
-            if (c->is_open()) {
-                pqxx::read_transaction readTransaction(*c);
-
             try {
                 auto result = readTransaction.exec_prepared("is_valid_user", hashedLogin, hashedPassword).front();
                 if (!result[0].as<bool>()) return crow::response(400, "Wrong creds");
 
-                const std::string& user_id = result[1].as<std::string>();
-                //                std::cout << "[INFO] Tech id: " << user_id << '\n'; //!debug
 
-                auto roles = readTransaction.exec_prepared("user_roles_get", user_id);
+                // * UUID in postgres
+                const std::string& user_id = result[1].as<std::string>();
+//                std::cout << "[INFO] Tech id: " << user_id << '\n'; //!debug
+
+                // * UUID in postgres
+                const std::string& school_id = readTransaction.exec_prepared1("school_id_get", user_id).front().as<std::string>();
+//                std::cout << "[INFO] SCHOOL ID iS: " << school_id << '\n'; //!debug
+
+
+                auto roles = readTransaction.exec_prepared("user_roles_get", school_id, user_id);
                 picojson::array available_roles;
                 for (auto role : roles) {
                     picojson::value role_v(role.front().as<std::string>());
@@ -225,12 +258,12 @@ public:
                                                                       "Contact with admin for granting privileges");
 
 
-                const std::string& school_id = readTransaction.exec_prepared1("get_school_id", user_id).front().as<std::string>();
-//                        std::cout << "[INFO] SCHOOL ID iS: " << school_id << '\n'; //!debug
+
 
                 const std::string& user_id_encoded = readTransaction.exec_prepared1("encode", user_id).front().as<std::string>();
-//                        std::cout << "[INFO] SUB IS: " << user_id << '\n'; //!debug
+//                std::cout << "[INFO] SUB IS: " << user_id << '\n'; //!debug
                 const std::string& school_id_encoded = readTransaction.exec_prepared1("encode", school_id).front().as<std::string>();
+//                std::cout << "[INFO] AUD iS: " << school_id_encoded << '\n'; //!debug
 
 
                 auto jwt_builder = jwt::create();
@@ -263,13 +296,6 @@ public:
             }
 
                 //TODO: refactor into no 1one else and many if statements
-            }
-            else {
-                std::cout << "c is closed \n";
-            }
-
-
-
            return crow::response(200, "all is good");
         });
         CROW_ROUTE(app, "/api/jwtcheck").methods(crow::HTTPMethod::POST)
@@ -278,29 +304,69 @@ public:
             Json::Value jwt;
 //            jwt["token"] = req.get_header_value("Authorization");
             reader.parse(req.body, jwt);
-            if (isValidJWT(jwt["token"].asString())) return "JWT is good, bruh! U r free to go \n";
+            if (isValidJWT(jwt["token"].asString()))
+                return "JWT is good, bruh! U r free to go \n";
             else return "bad. redo token";
         });
 
 
         //Region user's api (global)
-        CROW_ROUTE(app, "/api/user/roles")
-        .methods(crow::HTTPMethod::POST)
-        ([](const crow::request &req, crow::response &res){
+        CROW_ROUTE(app, "/api/user/roles").methods(crow::HTTPMethod::POST)([this](const crow::request &req, crow::response &res){
             const std::string& token = req.get_header_value("token");
-            if (isValidJWT(token)) {
-                User user(_connectionPool, req);
-            }
-            return res.end();
+
+            auto f = [](const crow::request& req, crow::response& res){
+                Request user(_connectionPool, req);
+                auto roles = user.getRoles();
+                crow::json::wvalue json;
+                json["roles"] = roles;
+                res.body = json.dump();
+            };
+            return verifier(token, req, res, f);
         });
-//
-//        CROW_ROUTE(app, "/temp").methods(crow::HTTPMethod::POST)
-//        ([](const crow::request& req){
-//                    auto c = _connectionPool->getConnection();
-//                    pqxx::work work(*c);
-//                    _connectionPool->releaseConnection(c);
-//                    return 1;
-//                });
+
+        CROW_ROUTE(app, "/api/user/classes").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res){
+            const std::string& token = req.get_header_value("token");
+
+            auto f = [](const crow::request& req, crow::response& res){
+                Request user(_connectionPool, req);
+                std::map<std::string, std::string> classes = user.getClasses();
+                crow::json::wvalue json;
+                for (auto& [id, name] : classes) {
+                    json["classes"][id] = name;
+                }
+                res.body = json.dump();
+            };
+            return verifier(token, req, res, f);
+        });
+
+
+    CROW_ROUTE(app, "/api/user/class/students").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res){
+        const std::string& token = req.get_header_value("token");
+
+        auto f = [](const crow::request& req, crow::response& res){
+            classHandler user(_connectionPool, req);
+            crow::json::wvalue studentsJson = user.getClassStudents();
+            res.body = studentsJson.dump();
+        };
+
+        return verifier(token, req, res, f);
+    });
+
+
+
+        /**
+         * @brief Needed for updating class_data. Like list of students, amount students
+         */
+        CROW_ROUTE(app, "/api/user/class/update").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res) {
+            //todo is valid jwt check
+            std::string token = req.get_header_value("token");
+            auto f = [](const crow::request& req, crow::response& res) {
+                classHandler user(_connectionPool, req);
+                user.updateClassStudents(req.body);
+            };
+            return verifier(token, req, res, f);
+        });
+
         CROW_ROUTE(app, "/api/organisation/register")
                 .methods(crow::HTTPMethod::POST)([this](const crow::request &req, crow::response &res){
 
@@ -310,7 +376,13 @@ public:
 
                     return res.end();
                 });
+        CROW_ROUTE(app, "/api/org/invite").methods(crow::HTTPMethod::POST)([](const crow::request& req, crow::response &res){
 
+            return res.end();
+        });
+    }
+
+    static void initArchivedAPI() {
         CROW_ROUTE(app, "/api/form")
                 .methods(crow::HTTPMethod::POST)
                         ([](const crow::request &req, crow::response &res) {
@@ -348,7 +420,7 @@ public:
 
         // * Response for login post req
         CROW_ROUTE(app, "/login-process")
-                .methods("POST"_method)
+                .methods(crow::HTTPMethod::POST)
                 ([](const crow::request &req, crow::response &res) {
                     res = genTokenAndSend(req);
                     return res.end();
@@ -362,6 +434,17 @@ public:
         CROW_CATCHALL_ROUTE(app)([] {
             return handleErrPage(404);
         });
+    }
+
+    void initRoutes() {
+        crow::mustache::set_global_base("web");
+
+        initWeb();
+
+        initAPI();
+
+        initArchivedAPI();
+
     }
     [[maybe_unused]]
     static void useSSL() {
@@ -379,7 +462,6 @@ public:
 crow::SimpleApp Server::app;
 ConnectionPool* Server::_connectionPool;
 const std::string& Server::_jwt_secret = "dyXJY7wN2fbhxxI6+KZ47IuGfKt0kFXHQQt1gACG7YUB/zwHxA4nRCq0J1pmxthUAi23oHfA8rNMXv0Oi4LuRw==";
-
 int main()
 {
 
@@ -392,7 +474,7 @@ int main()
                             "password = FloatyTheBest "
                             "hostaddr = " "127.0.0.1 "
                             "port = " "5432 ";
-    ConnectionPool cp(psql_data, 2);
+    ConnectionPool cp(psql_data, 20);
     Server server("127.0.0.1", 80, &cp);
     server.initRoutes();
     Server::run();

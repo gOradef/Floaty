@@ -1,31 +1,124 @@
 #include "Floaty/api_route.h"
-#include "jwt-cpp/jwt.h"
-#include "vector"
-#include "json/value.h"
 #include <cstdlib>
 
-
-User::User(ConnectionPool *connectionPool, const crow::request &req) {
+Request::Request(ConnectionPool *connectionPool, const crow::request &req) {
     this->_connectionPool = connectionPool;
     this->_connection = _connectionPool->getConnection();
 
     std::string user_token = req.get_header_value("token");
     jwt::decoded_jwt decodedJwt = jwt::decode(user_token);
-    std::set<std::string> aSet = decodedJwt.get_audience();
-    std::ostringstream stream;
-    std::copy(aSet.begin(), aSet.end(), std::ostream_iterator<std::string>(stream, ","));
 
-    this->_org_id = stream.str();
-    this->_user_id = decodedJwt.get_subject();
+    pqxx::read_transaction rtx(*_connection);
+
+    this->_org_id = rtx.exec_prepared1("decode",decodedJwt.get_payload_claim("aud").as_string()).front().as<std::string>();
+    this->_user_id = rtx.exec_prepared1("decode", decodedJwt.get_subject()).front().as<std::string>();
 }
-User::~User() {
+Request::~Request() {
     _connectionPool->releaseConnection(_connection);
 }
 
-Teacher::Teacher(ConnectionPool *connectionPool, const crow::request &req) : User(connectionPool, req) {
-    this->class_id = req.url_params.get("class");
+std::vector<std::string> Request::getRoles() {
+    std::vector<std::string> roles;
+    pqxx::read_transaction readTransaction(*_connection);
+    auto res = readTransaction.exec_prepared("user_roles_get", _org_id, _user_id);
+    for (auto role : res) {
+        roles.emplace_back(role.front().as<std::string>());
+    }
+    return roles;
 }
 
+std::map<std::string, std::string> Request::getClasses() {
+    std::map<std::string, std::string> classesMap;
+    pqxx::read_transaction work(*_connection);
+    auto result = work.exec_prepared("user_classes_get", _org_id, _user_id);
+    for (auto row : result) {
+        auto id = row["id"].as<std::string>();
+        auto name = row["class_name"].as<std::string>();
+//        std::cout << id << '\t' << name << '\n'; //!debug
+
+        classesMap[id] = name;
+    }
+    return classesMap;
+}
+
+/**
+ *
+ * @throws std::invalid_argument in case wrong constuct
+ */
+classHandler::classHandler(ConnectionPool *connectionPool, const crow::request &req) : Request(connectionPool, req) {
+    if (req.url_params.get("class") == nullptr)
+        throw std::invalid_argument("No class parameter in URL_params");
+
+    std::string temp_class_id = req.url_params.get("class");
+
+    pqxx::read_transaction rtx(*_connection);
+    bool isClassExists = rtx.exec_prepared1("is_class_valid", _org_id, _user_id, temp_class_id).front().as<bool>();
+    if (!isClassExists) {
+        throw std::invalid_argument("Such class doesnt exist");
+    }
+    this->_class_id = temp_class_id;
+
+}
+
+/**
+ *
+ * @return json: {"students": [], "fstudents": []}
+ */
+crow::json::wvalue classHandler::getClassStudents() {
+    crow::json::wvalue json;
+    pqxx::read_transaction rtx(*_connection);
+
+    for (auto stud_type : this->_stud_types) {
+        std::vector<std::string> vec;
+        auto fios = rtx.exec_prepared("class_" + stud_type + "_get",
+                                      this->_org_id,
+                                      this->_user_id,
+                                      this->_class_id
+                          );
+        for (auto fio : fios) {
+            vec.emplace_back(fio.front().as<std::string>());
+        }
+        json[stud_type] = vec;
+
+    }
+    return json;
+}
+/**
+ * @brief Sets available students into db depending onto param.
+ * @param changes - json. {stud_type["[f]students"]->action[get / remove]->fios[json array]}
+ * @throws std::runtime_error exception
+
+ */
+    void classHandler::updateClassStudents(const std::string &changes) {
+
+        crow::json::rvalue root = crow::json::load(changes);
+
+        if (!root)
+            throw std::runtime_error("Cant parse changes of user. Is it valid?");
+
+        pqxx::work work(*_connection);
+
+        for (auto& stud_type : _stud_types) {
+            for (auto& action : _actions) {
+                if (root.has(stud_type) && root[stud_type].has(action)) {
+                    std::vector<std::string> vec;
+                    for (auto fio : root[stud_type][action]) {
+                        vec.emplace_back(fio);
+                    }
+                    work.exec_prepared("class_" + stud_type + "_" + action, this->_org_id,
+                                       this->_user_id,
+                                       this->_class_id,
+                                       vec);
+                }
+            }
+        }
+
+        work.commit();
+}
+
+void classHandler::insertAbsentData(const std::string &changes) {
+
+}
 
 //! ARCHIVED
 baseReq::baseReq() {};

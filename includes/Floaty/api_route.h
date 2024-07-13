@@ -3,8 +3,12 @@
 #include "Floaty/authentication.h"
 #include "Floaty/connectionpool.h"
 
+#include "jwt-cpp/jwt.h"
+#include "vector"
+#include "json/value.h"
+#include "crow/json.h"
 
-class User {
+class Request {
 protected:
 // connection to Postgres
     ConnectionPool* _connectionPool;
@@ -15,30 +19,34 @@ protected:
     std::string _user_id;
 
 public:
-    User(ConnectionPool *connectionPool,
-         const crow::request &req);
-    ~User();
+    Request(ConnectionPool *connectionPool,
+            const crow::request &req);
+    std::vector<std::string> getRoles();
+    std::map<std::string, std::string> getClasses();
 
-    std::vector<std::string> getRoles() {
-        std::vector<std::string> roles;
-        pqxx::read_transaction readTransaction(*_connection);
-        auto res = readTransaction.exec_prepared("user_roles_get", _org_id, _user_id);
-        for (auto role : res) {
-            roles.emplace_back(role.front().as<std::string>());
-        }
-        return roles;
-    }
+    ~Request();
 };
 
 
 
 
 
-class Teacher : User {
-    std::string class_id;
+class classHandler : Request {
+    std::string _class_id;
+
+    std::vector<std::string> _stud_types{"students", "fstudents"};
+    std::vector<std::string> _actions {"get", "remove"}; //? maybe 'set' as well?
+    /** @brief id - new array */
 public:
-    Teacher(ConnectionPool *connectionPool,
-            const crow::request &req);
+    classHandler(ConnectionPool *connectionPool,
+                 const crow::request &req);
+
+    /**
+     * @return Returns map[id] = name of classes where id is uuid in postgres
+     */
+    crow::json::wvalue getClassStudents();
+    void updateClassStudents(const std::string& changes);
+    void insertAbsentData(const std::string& changes);
 };
 
 
