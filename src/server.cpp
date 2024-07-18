@@ -107,6 +107,7 @@ class Server {
         }
         return res.end();
     };
+    [[deprecated]]
     std::string getAdminKey(const std::string& reqPath) {
         std::string key;
         std::stringstream buff;
@@ -119,6 +120,7 @@ class Server {
         jReader.parse(buff.str(), jKeyVal);
         return jKeyVal["superAdminKey"].asString();
     }
+    [[deprecated]]
     void defineErrCodeOfCookie(const crow::request &req, crow::response &res) {
         if (req.get_header_value("Cookie").empty()) {
             res.moved("/login");
@@ -357,11 +359,20 @@ public:
         /**
          * @brief Needed for updating class_data. Like list of students, amount students
          */
-        CROW_ROUTE(app, "/api/user/class/update").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res) {
+        CROW_ROUTE(app, "/api/user/class/students/update").methods(crow::HTTPMethod::POST)([](const crow::request &req, crow::response &res) {
             std::string token = req.get_header_value("token");
             auto f = [](const crow::request& req, crow::response& res) {
                 classHandler user(_connectionPool, req);
                 user.updateClassStudents(req.body);
+            };
+            return verifier(token, req, res, f);
+        });
+
+        CROW_ROUTE(app, "/api/user/class/data/update").methods(crow::HTTPMethod::POST)([](const crow::request& req, crow::response& res){
+            std::string token = req.get_header_value("token");
+            auto f = [](const crow::request& req, crow::response& res) {
+                classHandler user(_connectionPool, req);
+                user.insertData(req.body);
             };
             return verifier(token, req, res, f);
         });

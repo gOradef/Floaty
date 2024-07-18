@@ -20,7 +20,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare("user_classes_get", "select * from user_classes_get($1::uuid, $2::uuid)");
 
         //get | edit data for classes
-        c->prepare("is_class_valid", "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
+        c->prepare("is_class_owned", "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
 
         //get list of students in class
         {
@@ -47,18 +47,21 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         //set [add, remove] fstudents
         {
             c->prepare("class_fstudents_add", "call class_fstudents_add("
-                                                   "$1::uuid, "
-                                                   "$2::uuid, "
-                                                   "$3::uuid, "
-                                                   "$4::text[]"
-                                                   ")");
+                                              "$1::uuid, "
+                                              "$2::uuid, "
+                                              "$3::uuid, "
+                                              "$4::text[]"
+                                              ")");
             c->prepare("class_fstudents_remove", "call class_fstudents_remove("
-                                                      "$1::uuid, "
-                                                      "$2::uuid, "
-                                                      "$3::uuid, "
-                                                      "$4::text[]"
-                                                      ")");
+                                                 "$1::uuid, "
+                                                 "$2::uuid, "
+                                                 "$3::uuid, "
+                                                 "$4::text[]"
+                                                 ")");
+        }
 
+        //class_amount
+        {
             c->prepare("class_amount_set", "call class_amount_set("
                                                 "$1::uuid, "
                                                 "$2::uuid, "
@@ -72,6 +75,10 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
                                                  ")");
         }
 
+        //insert_data
+        {
+            c->prepare("class_data_insert", "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
+        }
 
         //get | edit data for Headteacher
 

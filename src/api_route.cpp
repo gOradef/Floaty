@@ -42,7 +42,6 @@ std::map<std::string, std::string> Request::getClasses() {
 }
 
 /**
- *
  * @throws std::invalid_argument in case wrong constuct
  */
 classHandler::classHandler(ConnectionPool *connectionPool, const crow::request &req) : Request(connectionPool, req) {
@@ -52,9 +51,9 @@ classHandler::classHandler(ConnectionPool *connectionPool, const crow::request &
     std::string temp_class_id = req.url_params.get("class");
 
     pqxx::read_transaction rtx(*_connection);
-    bool isClassExists = rtx.exec_prepared1("is_class_valid", _org_id, _user_id, temp_class_id).front().as<bool>();
+    bool isClassExists = rtx.exec_prepared1("is_class_owned", _org_id, _user_id, temp_class_id).front().as<bool>();
     if (!isClassExists) {
-        throw std::invalid_argument("Such class doesnt exist");
+        throw std::invalid_argument("Such class doesnt exists");
     }
     this->_class_id = temp_class_id;
 
@@ -84,10 +83,9 @@ crow::json::wvalue classHandler::getClassStudents() {
     return json;
 }
 /**
- * @brief Sets available students into db depending onto param.
+ * @brief Sets input students into class list, depending onto params.
  * @param changes - json. {stud_type["[f]students"]->action[get / remove]->fios[json array]}
  * @throws std::runtime_error exception
-
  */
     void classHandler::updateClassStudents(const std::string &changes) {
 
@@ -116,8 +114,40 @@ crow::json::wvalue classHandler::getClassStudents() {
         work.commit();
 }
 
-void classHandler::insertAbsentData(const std::string &changes) {
+/**
+ *
+ * @param changes - json
+ * @example input:
+ * @code
+ * {
+ *   "absent_fios": {
+ *     "global": [],
+ *     "ORVI": [],
+ *     "fstudents": [],
+ *     "respectful": [],
+ *     "not_respectful": []
+ *   }
+ * }
+ *@endcode
+ *
+ * @throws std::runtime_error
+ */
 
+void classHandler::insertData(const std::string &changes) {
+    if (changes.empty())
+        throw std::runtime_error("Empty request");
+
+    crow::json::rvalue jsonRoot = crow::json::load(changes);
+    if (!jsonRoot)
+        throw std::runtime_error("Can not read body request. Is is json format?");
+    if (!jsonRoot.has("absent_lists"))
+        throw std::runtime_error("Can not read body request. Is is has head?");
+
+    pqxx::work work(*_connection);
+    auto res = work.exec_prepared("class_data_insert", _org_id, _class_id, changes);
+
+
+    work.commit();
 }
 
 //! ARCHIVED

@@ -36,6 +36,11 @@ class classHandler : Request {
 
     std::vector<std::string> _stud_types{"students", "fstudents"};
     std::vector<std::string> _actions {"get", "remove"}; //? maybe 'set' as well?
+    std::vector<std::string> _cause_types {"global",
+                                           "ORVI",
+                                           "not_respectful",
+                                           "respectful",
+                                           "fstudents"};
     /** @brief id - new array */
 public:
     classHandler(ConnectionPool *connectionPool,
@@ -46,7 +51,7 @@ public:
      */
     crow::json::wvalue getClassStudents();
     void updateClassStudents(const std::string& changes);
-    void insertAbsentData(const std::string& changes);
+    void insertData(const std::string& changes);
 };
 
 
