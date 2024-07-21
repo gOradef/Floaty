@@ -185,7 +185,7 @@ crow::json::wvalue schoolManager::getData(const std::string& date) {
 // Prepare JSON result
     crow::json::wvalue root;
     for (const auto& row : res) {
-        root[row["class_id"].as<std::string>()] = row["class_body"].as<std::string>();
+        root[row["class_id"].as<std::string>()] = crow::json::load(row["class_body"].as<std::string>());
     }
 
     return root;

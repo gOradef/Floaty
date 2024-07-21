@@ -387,13 +387,12 @@ public:
                 schoolManager schoolManager(_connectionPool, req);
                 crow::json::wvalue data;
                 if (req.url_params.get("date") != nullptr) {
-                    data["data"] = schoolManager.getData(req.url_params.get("date"));
-                    data["date"] = req.url_params.get("date");
+                    data = schoolManager.getData(req.url_params.get("date"));
+                    data = req.url_params.get("date");
                 }
                 else {
-                    data["data"] = schoolManager.getData();
+                    data = schoolManager.getData();
                 }
-
                 res.body = data.dump();
             };
             return verifier(token, req, res, f);
