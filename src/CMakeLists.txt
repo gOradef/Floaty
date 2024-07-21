@@ -30,8 +30,8 @@ target_link_libraries(Floaty PRIVATE
         jsoncpp
         crypto
         ssl
-        pq
         pqxx
+        pq
         c
         com_err
         gcc
@@ -47,9 +47,6 @@ target_link_libraries(Floaty PRIVATE
         sasl2
         stdc++
 )
-set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
-
 if(UNIX AND NOT APPLE)
     set_target_properties(Floaty PROPERTIES
             INSTALL_RPATH_USE_LINK_PATH TRUE

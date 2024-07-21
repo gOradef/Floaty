@@ -149,6 +149,52 @@ void classHandler::insertData(const std::string &changes) {
     work.commit();
 }
 
+schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Request(cp, req) {
+    pqxx::read_transaction readTransaction(*_connection);
+    auto res = readTransaction.exec_prepared("is_user_has_role", _org_id, _user_id, "dev").front().front().as<bool>();
+
+    if (!res)
+        throw std::invalid_argument("User doesnt have needed role. Request access from admin");
+
+    _changes = req.body;
+}
+
+crow::json::wvalue schoolManager::getData(const std::string& date) {
+    pqxx::read_transaction readTransaction(*_connection);
+
+    if (!date.empty()) {
+        // Check if the date is valid
+        if (!readTransaction.exec_params1("select is_date($1)", date).front().as<bool>()) {
+            throw std::runtime_error("Such date isn't a date");
+        }
+
+        // Check if school data exists for the given date
+        if (!readTransaction.exec_prepared1("is_school_data_exists", _org_id, date).front().as<bool>()) {
+            return crow::json::wvalue(nullptr);
+        }
+    }
+
+// Execute the query with the appropriate date parameter or nullptr if date is empty
+    pqxx::result res;
+    if (date.empty()) {
+        res = readTransaction.exec_prepared("school_data_get", _org_id, nullptr);
+    }
+    else {
+        res = readTransaction.exec_prepared("school_data_get", _org_id, date);
+    }
+// Prepare JSON result
+    crow::json::wvalue root;
+    for (const auto& row : res) {
+        root[row["class_id"].as<std::string>()] = row["class_body"].as<std::string>();
+    }
+
+    return root;
+}
+
+/**
+ * @return data for today
+ */
+
 //! ARCHIVED
 baseReq::baseReq() {};
 baseReq::baseReq(const crow::request &req) {
