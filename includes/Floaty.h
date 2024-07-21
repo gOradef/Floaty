@@ -1,5 +1,5 @@
 #include <string>
-#include "server.h"
+#include <server.h>
 #include "Floaty/authorization.h"
 #include "Floaty/authentication.h"
 #include "Floaty/web_route.h"

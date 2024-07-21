@@ -13,11 +13,7 @@
 
 // clang-format off
 #pragma once
-#include "crow/common.h"
-namespace crow
-{
 extern "C" {
-
 #include <stddef.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && \
   (!defined(_MSC_VER) || _MSC_VER<1600) && !defined(__WINE__)
@@ -35,9 +31,15 @@ typedef unsigned __int64 uint64_t;
 #else
 #include <stdint.h>
 #endif
+#include <assert.h>
+#include <ctype.h>
+#include <string.h>
+#include <limits.h>
+}
 
-
-
+#include "crow/common.h"
+namespace crow
+{
 /* Maximium header size allowed. If the macro is not defined
  * before including this header then the default is used. To
  * change the maximum header size, define the macro in the build
@@ -96,6 +98,7 @@ enum http_connection_flags // This is basically 7 booleans placed into 1 integer
                                                                                         \
   /* Callback-related errors */                                                         \
   CROW_XX(CB_message_begin, "the on_message_begin callback failed")                     \
+  CROW_XX(CB_method, "the on_method callback failed")                                   \
   CROW_XX(CB_url, "the \"on_url\" callback failed")                                     \
   CROW_XX(CB_header_field, "the \"on_header_field\" callback failed")                   \
   CROW_XX(CB_header_value, "the \"on_header_value\" callback failed")                   \
@@ -177,6 +180,7 @@ enum http_errno {
     struct http_parser_settings
     {
         http_cb on_message_begin;
+        http_cb on_method;
         http_data_cb on_url;
         http_data_cb on_header_field;
         http_data_cb on_header_value;
@@ -188,12 +192,6 @@ enum http_errno {
 
 
 // SOURCE (.c) CODE
-#include <assert.h>
-#include <stddef.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
-
 static uint32_t max_header_size = CROW_HTTP_MAX_HEADER_SIZE;
 
 #ifndef CROW_ULLONG_MAX
@@ -859,6 +857,8 @@ reexecute:
           goto error;
         }
 
+        CROW_CALLBACK_NOTIFY_NOADVANCE(method);
+
         ++parser->index;
         break;
       }
@@ -1273,7 +1273,14 @@ reexecute:
 
         switch (parser->header_state) {
           case h_upgrade:
-            parser->flags |= F_UPGRADE;
+            // Crow does not support HTTP/2 at the moment.
+            // According to the RFC https://datatracker.ietf.org/doc/html/rfc7540#section-3.2
+            // "A server that does not support HTTP/2 can respond to the request as though the Upgrade header field were absent"
+            // => `F_UPGRADE` is not set if the header starts by "h2".
+            // This prevents the parser from skipping the request body.
+            if (ch != 'h' || p+1 == (data + len) || *(p+1) != '2') {
+              parser->flags |= F_UPGRADE;
+            }
             parser->header_state = h_general;
             break;
 
@@ -2003,7 +2010,6 @@ http_parser_set_max_header_size(uint32_t size) {
 //#undef CROW_IS_HOST_CHAR
 #undef CROW_STRICT_CHECK
 
-}
 }
 
 // clang-format on

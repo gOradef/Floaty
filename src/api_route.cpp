@@ -146,7 +146,6 @@ void classHandler::insertData(const std::string &changes) {
     pqxx::work work(*_connection);
     auto res = work.exec_prepared("class_data_insert", _org_id, _class_id, changes);
 
-
     work.commit();
 }
 

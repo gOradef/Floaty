@@ -3,9 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 include(../cmake/iflib-inc.cmake)
 project(buildSrc)
 
-message(STATUS "Setting virtual environment vars for build..")
-
-set(LIBS_DIR ${CMAKE_SOURCE_DIR}/libs)
+set(LIBS_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
 set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
 
 list(APPEND SOURCES
@@ -18,25 +16,43 @@ list(APPEND SOURCES
 )
 add_definitions(-DCROW_ENABLE_SSL)
 
-#link_libraries(${LIBS_DIR}/libcrypto.so.3)
-#link_libraries(${LIBS_DIR}/libjsoncpp.so)
-#link_libraries(${LIBS_DIR}/libc.so.6)
-#link_libraries(${LIBS_DIR}/libgcc_s.so.1)
-#link_libraries(${LIBS_DIR}/libstdc++.so.6)
-#link_libraries(${LIBS_DIR}/libm.so.6)
-#find_package(openssl)
-#link_libraries(${LIBS_DIR}/libssl.so.3)
-add_executable(Floaty ${SOURCES}
-        connectionpool.cpp)
+add_executable(Floaty ${SOURCES})
+
 target_include_directories(Floaty PRIVATE ${INCLUDES})
 
-target_link_libraries(Floaty -L${LIBS_DIR})
-
-target_link_libraries(Floaty
-        -lcrypto
-        -ljsoncpp
-#        -lgcc
-#        -lstdc++
-        -lssl
-        -lpqxx
+set_target_properties(Floaty PROPERTIES
+        INSTALL_RPATH "${LIBS_DIRECTORY}"
+        BUILD_WITH_INSTALL_RPATH TRUE
 )
+set(CMAKE_LIBRARY_PATH ${LIBS_DIRECTORY})
+
+target_link_libraries(Floaty PRIVATE
+        jsoncpp
+        crypto
+        ssl
+        pq
+        pqxx
+        c
+        com_err
+        gcc
+
+        gssapi_krb5
+        keyutils
+        k5crypto
+        krb5
+        krb5support
+        lber
+        ldap
+        resolv
+        sasl2
+        stdc++
+)
+set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR})
+
+if(UNIX AND NOT APPLE)
+    set_target_properties(Floaty PROPERTIES
+            INSTALL_RPATH_USE_LINK_PATH TRUE
+            INSTALL_RPATH ${LIBS_DIRECTORY}
+    )
+endif()

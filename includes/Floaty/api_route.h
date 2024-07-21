@@ -54,7 +54,29 @@ public:
     void insertData(const std::string& changes);
 };
 
+class schoolManager : Request {
+    schoolManager(ConnectionPool* cp,
+                  const crow::request& req);
 
+    //Classes
+    void classCreate();
+    void classRename();
+    void classStudentsEdit();
+    void classDrop();
+
+    void classMoveToNextYear();
+
+
+    //Data
+    std::string dataGet();
+    std::string dataGet(const std::string& date);
+    void dataUpdate(const std::string& changes);
+    std::string dataSummaryGet();
+    std::string dataSummaryGet(const std::string& dateStart,
+                               const std::string& dateEnd);
+
+    
+};
 
 
 //! ARCHIVED
