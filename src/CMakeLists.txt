@@ -9,9 +9,6 @@ set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
 list(APPEND SOURCES
         server.cpp
         api_route.cpp
-        authentication.cpp
-        authorization.cpp
-        web.cpp
         connectionpool.cpp
 )
 add_definitions(-DCROW_ENABLE_SSL)
