@@ -10,16 +10,20 @@ Content-Type: application/json
 > {%
     client.test("Login", function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
-        client.assert(response.body.token !== null
-            && response.body.name !== null,
-            `Expected jwt and name but didnt get it. Body: '${response.body}'`)
     })
-    client.global.set("auth_token", response.body.token); %}
+%}
+
+### Refresh token
+POST http://localhost:80/api/auth/refresh
+Content-Type: application/json
+
+> {% client.test('Refresh token', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
 
 ### Get user roles
 GET http://localhost:80/api/user/roles
 Content-Type: application/json
-token: {{auth_token}}
 
 > {% client.test('Get roles', function () {
     client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -28,8 +32,6 @@ token: {{auth_token}}
 
 ### Get user available classes
 GET http://localhost:80/api/user/classes
-Content-Type: application/json
-token: {{auth_token}}
 
 > {% client.test('Get classes', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -39,7 +41,6 @@ token: {{auth_token}}
 
 ### Get students list of class_id
 GET http://localhost:80/api/user/classes/{{class_id}}/students
-token: {{auth_token}}
 Content-Type: application/json
 
 > {% client.test('Get students of class', function () {
@@ -51,7 +52,6 @@ Content-Type: application/json
 
 ###
 PUT http://localhost:80/api/user/classes/{{class_id}}/students
-token: {{auth_token}}
 Content-Type: application/json
 
 {
@@ -67,7 +67,6 @@ Content-Type: application/json
 
 ### Insert data
 PUT  http://localhost:80/api/user/classes/{{class_id}}/data
-token: {{auth_token}}
 Content-Type: application/json
 
 {
@@ -85,7 +84,6 @@ Content-Type: application/json
 
 ### Insert data as teacher
 PUT http://localhost:80/api/user/classes/{{class_id}}/data
-token: {{auth_token}}
 Content-Type: application/json
 
 {
@@ -100,35 +98,40 @@ Content-Type: application/json
 
 > {% client.test('Get inserted data for today', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
-        client.assert(response.body.includes('students'), `Expected students object but received body: '${response.body}' `)
     }) %}
 
 
 ### Get today's inserted data for class_id
 GET http://localhost:80/api/user/classes/{{class_id}}/data
-token: {{auth_token}}
 Content-Type: application/json
 
 > {% client.test('Get inserted data for today', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
-        client.assert(response.body.includes('students'), `Expected students object but received body: '${response.body}' `)
+        client.assert(response.body.includes("data"), `Expected students object but received body: '${response.body}' `)
     }) %}
 
-### Get custom date inserted data for class_id
+### Get custom date inserted data for class_id. [Expecting null]
 GET http://localhost:80/api/user/classes/{{class_id}}/data/2024-07-20
-token: {{auth_token}}
 Content-Type: application/json
 
 > {% client.test('Get inserted data for custom date', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
-        client.assert(response.body.includes('students'), `Expected students object but received body: '${response.body}' `)
+        client.assert(response.body.includes('null'), `Expected students object but received body: '${response.body}' `)
+    }) %}
+
+### Get custom date inserted data for class_id [Expecting value]
+GET http://localhost:80/api/user/classes/{{class_id}}/data/2024-07-28
+Content-Type: application/json
+
+> {% client.test('Get inserted data for custom date', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+        client.assert(!response.body.includes('null'), `Expected students object but received body: '${response.body}' `)
     }) %}
 
 ###
 # Region Admin - classes
 ### Get all classes
 GET http://localhost:80/api/org/classes
-token: {{auth_token}}
 
 > {% client.test('Get all classes', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -137,7 +140,6 @@ token: {{auth_token}}
 
 ### Get students of class
 GET http://localhost:80/api/org/classes/{{class_id}}/students
-token: {{auth_token}}
 
 > {% client.test('Get students of class', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -183,7 +185,6 @@ token: {{auth_token}}
 
 ### Get data for today
 GET  http://localhost:80/api/org/data
-token: {{auth_token}}
 
 > {% client.test('Get data for today', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -191,7 +192,6 @@ token: {{auth_token}}
 
 ### Get data for custom date
 GET  http://localhost:80/api/org/data/2024-07-26
-token: {{auth_token}}
 
 > {% client.test('Get data for custom date', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -200,16 +200,7 @@ token: {{auth_token}}
 
 ### Get summarized data
 GET http://localhost:80/api/org/data-summary?startDate=2024-07-01&endDate=2024-07-28
-token: {{auth_token}}
 
 > {% client.test('Get summarized data', function () {
-        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
-    }) %}
-
-### Get list of all classes
-GET http://localhost:80/api/org/classes
-token: {{auth_token}}
-
-> {% client.test('Get list of classes', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}

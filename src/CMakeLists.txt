@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-include(../cmake/iflib-inc.cmake)
+#include(../cmake/iflib-inc.cmake)
 project(buildSrc)
 
 set(LIBS_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
@@ -21,6 +21,7 @@ target_include_directories(Floaty PRIVATE ${INCLUDES})
 #        INSTALL_RPATH "${LIBS_DIRECTORY}"
 #        BUILD_WITH_INSTALL_RPATH TRUE
 #)
+#set(CMAKE_LIBRARY_PATH ${LIBS_DIRECTORY})
 
 target_link_libraries(Floaty PRIVATE
         jsoncpp

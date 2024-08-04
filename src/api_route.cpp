@@ -1,11 +1,16 @@
 #include "Floaty/api_route.h"
 #include <cstdlib>
+#include <crow/app.h>
+#include <crow/middlewares/cookie_parser.h>
 
 Request::Request(ConnectionPool *connectionPool, const crow::request &req) {
     this->_connectionPool = connectionPool;
     this->_connection = _connectionPool->getConnection();
 
-    std::string user_token = req.get_header_value("token");
+    auto app = crow::App<crow::CookieParser> {};
+    auto& ctx = app.get_context<crow::CookieParser>(req);
+    std::string user_token = ctx.get_cookie("Floaty_access_token");
+    // std::string user_token = req.get_header_value("token");
     jwt::decoded_jwt decodedJwt = jwt::decode(user_token);
 
     pqxx::read_transaction rtx(*_connection);

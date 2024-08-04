@@ -1,0 +1,1 @@
+sudo pacman -S asio boost libpqxx postgresql
