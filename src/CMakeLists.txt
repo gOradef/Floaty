@@ -17,11 +17,10 @@ add_executable(Floaty ${SOURCES})
 
 target_include_directories(Floaty PRIVATE ${INCLUDES})
 
-set_target_properties(Floaty PROPERTIES
-        INSTALL_RPATH "${LIBS_DIRECTORY}"
-        BUILD_WITH_INSTALL_RPATH TRUE
-)
-set(CMAKE_LIBRARY_PATH ${LIBS_DIRECTORY})
+#set_target_properties(Floaty PROPERTIES
+#        INSTALL_RPATH "${LIBS_DIRECTORY}"
+#        BUILD_WITH_INSTALL_RPATH TRUE
+#)
 
 target_link_libraries(Floaty PRIVATE
         jsoncpp
@@ -44,9 +43,9 @@ target_link_libraries(Floaty PRIVATE
         sasl2
         stdc++
 )
-if(UNIX AND NOT APPLE)
-    set_target_properties(Floaty PROPERTIES
-            INSTALL_RPATH_USE_LINK_PATH TRUE
-            INSTALL_RPATH ${LIBS_DIRECTORY}
-    )
-endif()
+#if(UNIX AND NOT APPLE)
+#    set_target_properties(Floaty PROPERTIES
+#            INSTALL_RPATH_USE_LINK_PATH TRUE
+#            INSTALL_RPATH ${LIBS_DIRECTORY}
+#    )
+#endif()

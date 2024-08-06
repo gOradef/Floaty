@@ -659,7 +659,7 @@ int main()
 //    Server server("62.233.46.131", 443);
 //    Server::useSSL();
 //    Server server("192.168.1.126", 80);
-    std::string psql_data = "dbname = FloatyDB "
+    std::string psql_data = "dbname = floatydb "
                             "user = floatyapi "
                             "password = FloatyTheBest "
                             "hostaddr = 127.0.0.1 "
