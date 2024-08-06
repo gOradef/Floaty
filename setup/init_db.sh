@@ -33,8 +33,6 @@ echo "just jking :)"
 sudo su postgres -c "psql --command 'create role floatyapi WITH LOGIN ' "
 
 # Create user
-
-# shellcheck disable=SC2288
 sudo su postgres -c "psql --command 'create user floatyapi WITH PASSWORD '\''FloatyTheBest'\'' ROLE floatyapi'"
 
 # Create database

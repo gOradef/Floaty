@@ -1,1 +1,1 @@
-sudo pacman -S asio boost libpqxx postgresql
+sudo pacman -Syu asio boost libpqxx postgresql cmake ninja gcc --needed
