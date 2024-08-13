@@ -56,7 +56,7 @@ class Server {
             try {
 
                 //Chech if user's creds are valid
-                auto result = readTransaction.exec_prepared("is_valid_user", hashedLogin, hashedPassword).front();
+                auto result = readTransaction.exec_prepared(psqlMethods::userChechMethods::isValidUser, hashedLogin, hashedPassword).front();
 
                 if (!result[0].as<bool>()) {
                     res.code = 400;
@@ -69,10 +69,10 @@ class Server {
                 const std::string& userUUID = result[1].as<std::string>();
 
                 // * UUID in postgres
-                const std::string& schoolUUID = readTransaction.exec_prepared1("school_id_get", userUUID).front().as<std::string>();
+                const std::string& schoolUUID = readTransaction.exec_prepared1(psqlMethods::userDataGetters::getSchoolId, userUUID).front().as<std::string>();
 
                 //Get roles from postgres
-                auto roles = readTransaction.exec_prepared("user_roles_get", schoolUUID, userUUID);
+                auto roles = readTransaction.exec_prepared(psqlMethods::userDataGetters::getUserRoles, schoolUUID, userUUID);
                 picojson::array available_roles;
                 for (auto role : roles) {
                     picojson::value role_v(role.front().as<std::string>());
@@ -86,7 +86,7 @@ class Server {
                 }
 
                 //Get available classes from postgres
-                auto classes = readTransaction.exec_prepared("user_classes_get", schoolUUID, userUUID);
+                auto classes = readTransaction.exec_prepared(psqlMethods::userDataGetters::getUserClasses, schoolUUID, userUUID);
                 picojson::array available_classes;
                 for (auto class_v : classes) {
                     picojson::value classes_virtual(class_v.front().as<std::string>());
@@ -194,6 +194,14 @@ class Server {
             res.end(); // End the response
         }
 
+        static void signupUsingInvite(const crow::request& req, crow::response& res, const std::string& schoolID) {
+            auto f = [](const crow::request& req, crow::response& res)
+            {
+                crow::json::wvalue invite_creds = crow::json::load(req.body);
+                
+            };
+            return verifier(req, res, f);
+        }
     };
     struct routes_user
     {
@@ -361,6 +369,7 @@ class Server {
             };
             return verifier(req, res, f);
         }
+
         static void createNewUser(const crow::request& req, crow::response& res)
         {
             auto f = [&](const crow::request& req, crow::response& res){

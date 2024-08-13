@@ -240,12 +240,14 @@ public:
 
 
     /**
-     * @param creds @warning <b>alredy hashed </>
+     * @param creds
      * @code
      * {
      *  login: smth,
      *  password: smth,
-     *  user_name: {{last_name + first_name}}
+     *  name: {{last_name + first_name}},
+     *  roles: [], (optional)
+     *  classes: [] (optional)
      * }
      * @endcode
      */
@@ -254,7 +256,9 @@ public:
     void userDrop(const std::string& userID);
 
     //User grants
-    void userGrantClass(const std::string& userID, const std::string& classID);
+    void userGrantClass(const std::string& userID, const std::vector<std::string>& classes);
+    void userDegrantClass(const std::string& userID, const std::vector<std::string>& classes);
+
     void userGrantRoles(const std::string& userID, const std::string& roles);
 
     void classStudentsEdit(); //update

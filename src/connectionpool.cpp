@@ -2,93 +2,101 @@
 // Created by goradef on 15.06.2024.
 //
 #include "Floaty/connectionpool.h"
+
+#include "Floaty/api_route.h"
+
+
 ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_size) {
     for (int i = 0; i < pool_size; ++i) {
         auto *c = new pqxx::connection(connection_string);
 
-        //data encoding | decoding
-        c->prepare("encode", "select encode($1, 'hex')");
-        c->prepare("decode", "select convert_from(decode($1, 'hex'), 'UTF-8')");
+        // ### Encoding methods
+        c->prepare(psqlMethods::encodingMethods::encode, "select encode($1, 'hex')");
+        c->prepare(psqlMethods::encodingMethods::decode, "select convert_from(decode($1, 'hex'), 'UTF-8')");
 
-        c->prepare("is_date", "select is_date($1)");
+        //Chechers
+        c->prepare(psqlMethods::userChechMethods::isLoginOccupied, "select EXISTS(select 1 from users where login = $1)");
+        c->prepare(psqlMethods::userChechMethods::isUserExists, "select exists (select 1 from users where school_id = $1::uuid and id = $2::uuid)");
+        c->prepare(psqlMethods::userChechMethods::isValidUser, "SELECT * from is_valid_user($1::text, $2::text)"); //return bool and user_id in different rows
+        c->prepare(psqlMethods::userChechMethods::isUserHasRole, "select is_user_has_role($1::uuid, $2::uuid, $3::text)");
 
-        //sign up
-        c->prepare("is_login_occupied", "select EXISTS(select 1 from users where login = $1)");
-        c->prepare("user_name_get", "select name from users where school_id = $1::uuid"
+
+        c->prepare(psqlMethods::userDataGetters::getUserName, "select name from users where school_id = $1::uuid"
                                     " and id = $2::uuid");
+        c->prepare(psqlMethods::userDataGetters::getUserRoles, "SELECT * from user_roles_get($1::uuid, $2::uuid)"); //return many rows of roles
+        c->prepare(psqlMethods::userDataGetters::getSchoolId, "select school_id_get($1::uuid)");
+        c->prepare(psqlMethods::userDataGetters::getUserClasses, "select * from user_classes_get($1::uuid, $2::uuid)");
+        c->prepare(psqlMethods::userDataGetters::getClassStudents, "select class_students_get($1::uuid, $2::uuid, $3::uuid)");
 
-        //login
-        c->prepare("is_valid_user", "SELECT * from is_valid_user($1::text, $2::text)"); //return bool and user_id in different rows
-        c->prepare("is_user_has_role", "select is_user_has_role($1::uuid, $2::uuid, $3::text)");
+        // Global | Requests
+        c->prepare(psqlMethods::isDate, "select is_date($1)");
 
-        c->prepare("user_roles_get", "SELECT * from user_roles_get($1::uuid, $2::uuid)"); //return many rows of roles
-        c->prepare("school_id_get", "select school_id_get($1::uuid)");
-        c->prepare("user_classes_get", "select * from user_classes_get($1::uuid, $2::uuid)");
 
-        //get | edit data for classes
-        c->prepare("is_class_owned", "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
-        c->prepare("is_class_exists", "select is_class_exists($1::uuid, uuid_or_null($2))");
-        //get list of students in class
-
-        c->prepare("class_students_get", "select class_students_get($1::uuid, $2::uuid, $3::uuid)");
-        c->prepare("class_fstudents_get", "select class_fstudents_get($1::uuid, $2::uuid, $3::uuid)");
+        // * Class Handler
+        c->prepare(psqlMethods::classHandler::checks::isClassOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
+        c->prepare(psqlMethods::classHandler::checks::isClassExists, "select is_class_exists($1::uuid, uuid_or_null($2))");
 
 
         //set [add, remove] students
-        c->prepare("class_students_add", "call class_students_add("
+        {
+        c->prepare(psqlMethods::classHandler::students::addStudents, "call class_students_add("
                                               "$1::uuid, "
                                               "$2::uuid, "
                                               "$3::uuid, "
                                               "$4::text[]"
                                               ")");
-        c->prepare("class_students_remove", "call class_students_remove("
+        c->prepare(psqlMethods::classHandler::students::removeStudents, "call class_students_remove("
                                                  "$1::uuid, "
                                                  "$2::uuid, "
                                                  "$3::uuid, "
                                                  "$4::text[]"
                                                  ")");
 
-    //set [add, remove] fstudents
+        }
 
-        c->prepare("class_fstudents_add", "call class_fstudents_add("
-                                          "$1::uuid, $2::uuid, "
-                                          "$3::uuid, $4::text[])");
-        c->prepare("class_fstudents_remove", "call class_fstudents_remove("
-                                                 "$1::uuid, $2::uuid, "
-                                                 "$3::uuid, $4::text[])");
+        //set [add, remove] fstudents
+        {
+            c->prepare(psqlMethods::classHandler::students::addFStudents, "call class_fstudents_add("
+                                              "$1::uuid, $2::uuid, "
+                                              "$3::uuid, $4::text[])");
+            c->prepare(psqlMethods::classHandler::students::removeFStudents, "call class_fstudents_remove("
+                                                     "$1::uuid, $2::uuid, "
+                                                     "$3::uuid, $4::text[])");
+        }
+
+        //Includes check on existing data. If data in null -> generates by self
+        c->prepare(psqlMethods::classHandler::data::insertData, "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
+        c->prepare(psqlMethods::classHandler::data::getInsertedData, "select class_data_get($1::uuid,$2::uuid,$3::date)");
 
 
-        //insert_data
-        //Includes check on existing data. If data in null -> generated by self
-        c->prepare("class_data_insert", "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
-        c->prepare("class_data_get", "select class_data_get($1::uuid,$2::uuid,$3::date)");
+        // Region schoolManager - admin
 
-        //get | edit data for Headteacher
+        //* Classes interface
 
-        //Region classes
-        c->prepare("school_class_students_get", "select * from school_class_students_get($1::uuid, $2::uuid)");
-        c->prepare("school_classes_get","select * from school_classes_get($1::uuid)");
-        c->prepare("class_create", "call class_create($1::uuid, $2::uuid, $3::text)");
-        c->prepare("class_drop", "call class_drop($1::uuid, $2::uuid)");
-        c->prepare("class_rename", "call class_rename($1::uuid, $2::uuid, $3::text)");
+        c->prepare(psqlMethods::schoolManager::classes::getAllClasses,"select * from school_classes_get($1::uuid)");
+        c->prepare(psqlMethods::schoolManager::classes::getClassStudents, "select * from school_class_students_get($1::uuid, $2::uuid)");
+        c->prepare(psqlMethods::schoolManager::classes::createClass, "call class_create($1::uuid, $2::uuid, $3::text)");
+        c->prepare(psqlMethods::schoolManager::classes::dropClass, "call class_drop($1::uuid, $2::uuid)");
+        c->prepare(psqlMethods::schoolManager::classes::renameClass, "call class_rename($1::uuid, $2::uuid, $3::text)");
 
-        //Region users
-        c->prepare("is_user_exists", "select exists (select 1 from users where school_id = $1::uuid and id = $2::uuid)");
-        c->prepare("school_users_get", "select * from school_users_get($1::uuid)");
-        c->prepare("user_create", "call user_create($1::uuid, $2::text, $3::text, $4::text)");
-        c->prepare("user_create_with_context", "call user_create_with_context("
+        //* Users interface
+        c->prepare(psqlMethods::schoolManager::users::getAllUsers, "select * from school_users_get($1::uuid)");
+        c->prepare(psqlMethods::schoolManager::users::createUser, "call user_create($1::uuid, $2::text, $3::text, $4::text)");
+        c->prepare(psqlMethods::schoolManager::users::createUserWithContext, "call user_create_with_context("
                                                "$1::uuid, $2::text, $3::text, $4::text, "
                                                "null_to_array($5::text[]), "
-                                               "null_to_array($5::text[])"
+                                               "null_to_array($6::text[])"
                                                ")");
-        c->prepare("school_user_drop" ,"call school_user_drop($1::uuid,uuid_or_null($2))");
+        c->prepare(psqlMethods::schoolManager::users::grantClassToUser, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
+        c->prepare(psqlMethods::schoolManager::users::degrantClassToUser, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
+        c->prepare(psqlMethods::schoolManager::users::dropUser ,"call school_user_drop($1::uuid,uuid_or_null($2))");
         //get | edi data for admin
 
         //Region data
 
-        c->prepare("is_school_data_exists", "select is_school_data_exists($1::uuid, $2::date)");
-        c->prepare("school_data_get", "select * from school_data_get($1::uuid, $2::date)");
-        c->prepare("school_data_summarized_get", "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
+        c->prepare(psqlMethods::schoolManager::data::isSchoolDataExists, "select is_school_data_exists($1::uuid, $2::date)");
+        c->prepare(psqlMethods::schoolManager::data::getSchoolData, "select * from school_data_get($1::uuid, $2::date)");
+        c->prepare(psqlMethods::schoolManager::data::getSchoolSummarizedData, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
         connections.push_back(c);
     }
