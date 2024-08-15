@@ -7,8 +7,9 @@ set(LIBS_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
 set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
 
 list(APPEND SOURCES
+        main.cpp
         server.cpp
-        api_route.cpp
+        api.cpp
         connectionpool.cpp
 )
 add_definitions(-DCROW_ENABLE_SSL)

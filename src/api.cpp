@@ -1,4 +1,4 @@
-#include "Floaty/api_route.h"
+#include "Floaty/api.h"
 #include <cstdlib>
 #include <crow/app.h>
 #include <crow/middlewares/cookie_parser.h>
@@ -287,6 +287,23 @@ crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &st
 }
 
 //Region classes
+/**
+     *
+     * @return
+     * @code
+     *  {
+     *    "class_id": {
+     *      "name": "[num]_[letter]",
+     *      "amount": 0
+     *      "list_students": [],
+     *      "list_fstudents": [],
+     *      "owner_id": "owner_uuid",
+     *      "owner_name": "FI"
+     *
+     *    }
+     *  }
+     *  @endcode
+     */
 crow::json::wvalue schoolManager::getClasses() {
     pqxx::read_transaction readTransaction(*_connection);
 
@@ -315,6 +332,16 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
     }
     return json;
 };
+
+/**
+     * @param json
+     * @code
+     * {
+     *  "class_name": "1_А",
+     *  "class_owner": "uuid"
+     * }
+     * @endcode
+     */
 void schoolManager::classCreate(const crow::json::rvalue &json) {
     pqxx::work work(*_connection);
     std::string class_name = json["class_name"].s();
@@ -337,6 +364,19 @@ void schoolManager::classDrop(const std::string& classID) {
     work.commit();
 }
 
+
+/**
+     *
+     * @param json
+     * @code
+     *
+     * {
+     *  "class_id": 00000000-0000-0000-0000-000000000000
+     *  "class_newName": "1_А" //format: [num]_[letter]
+     * }
+     *
+     * @endcode
+     */
 void schoolManager::classRename(const crow::json::rvalue &json) {
     const std::string& classID = json["class_id"].s();
     const std::string& className = json["class_name"].s();
@@ -349,6 +389,20 @@ void schoolManager::classRename(const crow::json::rvalue &json) {
     work.commit();
 }
 //Region Users
+/**
+    *
+    * @return json
+    * @code
+    *  {
+    *    "user_id": {
+    *      "name": "FI",
+    *      "roles": ["roles"], // or null
+    *      "classes": ["classes_id"], // or null
+    *
+    *    }
+    *  }
+    * @encdode
+    */
 crow::json::wvalue schoolManager::getUsers() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::users::getAllUsers, _org_id);
@@ -362,6 +416,18 @@ crow::json::wvalue schoolManager::getUsers() {
 }
 
 
+/**
+     * @param creds
+     * @code
+     * {
+     *  login: smth,
+     *  password: smth,
+     *  name: {{last_name + first_name}},
+     *  roles: [], (optional)
+     *  classes: [] (optional)
+     * }
+     * @endcode
+     */
 void schoolManager::userCreate(const crow::json::rvalue &creds) {
 
     // Extract credentials
@@ -436,6 +502,17 @@ void schoolManager::userDegrantClass(const std::string& userID, const std::vecto
 }
 
 // Region invites
+/**
+     *
+     * @param invite_body should contain:
+     * @code
+     *  {
+     *  "roles": [],
+     *  "classes": [],
+     *  "name": []
+     *  }
+     * @endcode
+     */
 void schoolManager::inviteCreate(const std::string& invite_body) {
     // Check if login is alredy is use
     pqxx::work work(*_connection);
