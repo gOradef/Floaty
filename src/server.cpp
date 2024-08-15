@@ -56,14 +56,13 @@ class Server {
             try {
 
                 //Chech if user's creds are valid
-                auto result = readTransaction.exec_prepared(psqlMethods::userChechMethods::isValidUser, hashedLogin, hashedPassword).front();
+                auto result = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isUserValid, hashedLogin, hashedPassword).front();
 
                 if (!result[0].as<bool>()) {
                     res.code = 400;
                     res.body = "Wrong creds";
                     return res.end();
                 }
-
 
                 // * UUID in postgres
                 const std::string& userUUID = result[1].as<std::string>();
@@ -194,13 +193,109 @@ class Server {
             res.end(); // End the response
         }
 
+        static void getInviteProps(const crow::request& req, crow::response& res, const std::string& schoolID) {
+            const crow::json::rvalue root_body = crow::json::load(req.body);
+            const crow::json::rvalue& invite_creds = root_body["invite"];
+
+            if (!invite_creds ||
+                !invite_creds.has("code") ||
+                !invite_creds.has("secret")
+                ) {
+                res.code = 400;
+                res.write("No \"invite\" field or \"code\" or \"secret\"");
+                return res.end();
+                }
+            const std::string& invite_code = invite_creds["code"].s();
+            const std::string& invite_secret = invite_creds["secret"].s();
+
+            auto con = _connectionPool->getConnection();
+            pqxx::read_transaction work(*con);
+            auto props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret).front().front().as<std::string>();
+            res.body = props;
+            return res.end();
+        }
+
         static void signupUsingInvite(const crow::request& req, crow::response& res, const std::string& schoolID) {
-            auto f = [](const crow::request& req, crow::response& res)
-            {
-                crow::json::wvalue invite_creds = crow::json::load(req.body);
-                
-            };
-            return verifier(req, res, f);
+            const crow::json::rvalue root_body = crow::json::load(req.body);
+            const crow::json::rvalue& invite_creds = root_body["invite"];
+            const crow::json::rvalue& user_creds = root_body["user"];
+
+            try {
+                if (!invite_creds ||
+                    !invite_creds.has("code") ||
+                    !invite_creds.has("secret")
+                    ) {
+                    throw api::exceptions::wrongRequest("No \"invite\" field or \"code\" or \"secret\"");
+                }
+                if (!user_creds ||
+                    !user_creds.has("login") ||
+                    !user_creds.has("password")
+                    ) {
+                    throw api::exceptions::wrongRequest("No \"user\" field or login, password in it");
+                }
+
+                const std::string& invite_code = invite_creds["code"].s();
+                const std::string& invite_secret = invite_creds["secret"].s();
+
+                const std::string& user_loginHashed = hashSHA256(user_creds["login"].s());
+                const std::string& user_passwordHashed = hashSHA256(user_creds["password"].s());
+
+                //* Get con for checking validality of invite
+                auto con = _connectionPool->getConnection();
+                pqxx::work work(*con);
+
+                //* Check if invite creds are valid
+                auto isValidInvite = work.exec_prepared(psqlMethods::invites::isInviteValid, schoolID, invite_code, invite_secret).front().front().as<bool>();
+                if (!isValidInvite) {
+                    throw api::exceptions::wrongRequest("No such invite");
+                }
+                //* Check if login is alredy is use
+                bool isLoginOccupied = work.exec_prepared(psqlMethods::userCheckMethods::isLoginOccupied, user_loginHashed).front().front().as<bool>();
+                if (isLoginOccupied)
+                    throw api::exceptions::conflict("Login is already occupied. Please, try another");
+
+                //* Get invite_props
+                auto invite_props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret).front().front().as<std::string>();
+
+                crow::json::rvalue json_props = crow::json::load(invite_props);
+                if (!json_props) {
+                    throw api::exceptions::conflict("Wrong format of invite_body created by administrator");
+                }
+                std::vector<std::string> roles;
+                std::vector<std::string> classes;
+
+                for (const auto& el : json_props["roles"]) {
+                    roles.emplace_back(el.s());
+                }
+                for (const auto& el : json_props["classes"]) {
+                    classes.emplace_back(el.s());
+                }
+                std::string name;
+                name = json_props["name"].s();
+                //? name = user_creds["name"].s();
+
+                //* Create user
+                work.exec_prepared(psqlMethods::schoolManager::users::createUserWithContext,
+                    schoolID,
+                    user_loginHashed,
+                    user_passwordHashed,
+                    name,
+                    roles,
+                    classes
+                    );
+                work.commit();
+                res.code = 201;
+            }
+            catch (api::exceptions::wrongRequest& e) {
+            // Check if json has invite data
+                res.code = 400;
+                res.write(e.what());
+            }
+            catch(api::exceptions::conflict& e) {
+                res.code = 409;
+                res.write(e.what());
+            }
+            return res.end();
         }
     };
     struct routes_user
@@ -456,8 +551,7 @@ class Server {
             };
             return verifier(req, res, f);
         }
-        static void getDataSummary(const crow::request& req, crow::response& res)
-        {
+        static void getDataSummary(const crow::request& req, crow::response& res) {
             auto f = [](const crow::request& req, crow::response& res){
                 schoolManager schoolManager(_connectionPool, req);
 
@@ -486,6 +580,116 @@ class Server {
             return verifier(req, res, f);
         }
 
+        static void grantRolesToUser(const crow::request& req, crow::response& res, const std::string& userID) {
+            auto f = [&](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+                std::vector<std::string> roles;
+
+                //Checking request body
+                if (!crow::json::load(req.body))
+                    throw api::exceptions::wrongRequest("Not parseble request body. Is it json?");
+
+                crow::json::rvalue json = crow::json::load(req.body);
+                if (!json.has("roles") || json["roles"].t() != crow::json::type::List)
+                    throw api::exceptions::wrongRequest("No roles field or it is not a array");
+
+                //Iterating through array
+                for (const auto& el : json["roles"])
+                    roles.emplace_back(el.s());
+                user.userGrantRoles(userID, roles);
+            };
+            return verifier(req, res, f);
+        }
+        static void degrantRolesToUser(const crow::request& req, crow::response& res, const std::string& userID) {
+            auto f = [&](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+                std::vector<std::string> roles;
+
+                //Checking request body
+                if (!crow::json::load(req.body))
+                    throw api::exceptions::wrongRequest("Not parseble request body. Is it json?");
+
+                crow::json::rvalue json = crow::json::load(req.body);
+                if (!json.has("roles") || json["roles"].t() != crow::json::type::List)
+                    throw api::exceptions::wrongRequest("No roles field or it is not a array");
+
+                //Iterating through array
+                for (const auto& el : json["roles"])
+                    roles.emplace_back(el.s());
+                user.userDegrantRoles(userID, roles);
+            };
+            return verifier(req, res, f);
+        }
+
+        static void grantClassesToUser(const crow::request& req, crow::response& res, const std::string& userID) {
+            auto f = [&](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+                std::vector<std::string> classes;
+
+                //Checking request body
+                if (!crow::json::load(req.body))
+                    throw api::exceptions::wrongRequest("Not parseble request body. Is it json?");
+
+                crow::json::rvalue json = crow::json::load(req.body);
+                if (!json.has("classes") || json["classes"].t() != crow::json::type::List)
+                    throw api::exceptions::wrongRequest("No classes field or it is not a array");
+
+                //Iterating through array
+                for (const auto& el : json["classes"])
+                    classes.emplace_back(el.s());
+
+                user.userGrantClass(userID, classes);
+                res.code = 201;
+            };
+            return verifier(req, res, f);
+        }
+        static void degrantClassesToUser(const crow::request& req, crow::response& res, const std::string& userID) {
+            auto f = [&](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+                std::vector<std::string> classes;
+                if (!crow::json::load(req.body))
+                    throw api::exceptions::wrongRequest("Not parseble request body. Is it json?");
+
+                crow::json::rvalue json = crow::json::load(req.body);
+                if (!json.has("classes") || json["classes"].t() != crow::json::type::List)
+                    throw api::exceptions::wrongRequest("No classes field");
+
+                //Iterating through array
+                for (const auto& el : json["classes"])
+                    classes.emplace_back(el.s());
+
+                user.userDegrantClass(userID, classes);
+                res.code = 201;
+            };
+            return verifier(req, res, f);
+        }
+
+
+        static void getAllInvites(const crow::request& req, crow::response& res) {
+            auto f = [](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+                auto invites = user.getAllInvites();
+                res.body = invites.dump();
+                return res.end();
+            };
+            return verifier(req,res, f);
+        }
+        static void createInvite(const crow::request& req, crow::response& res) {
+            auto f = [](const crow::request& req, crow::response& res) {
+                schoolManager user(_connectionPool, req);
+
+                if (!crow::json::load(req.body))
+                    throw api::exceptions::wrongRequest("Body cant be parse properly");
+
+                auto json = crow::json::load(req.body);
+                if (!json.has("roles") || !json.has("classes") || !json.has("name"))
+                    throw api::exceptions::wrongRequest("Body doesnt have roles, classes or name field");
+
+                user.inviteCreate(req.body);
+                return res.end();
+            };
+            return verifier(req,res, f);
+        }
     };
 
 
@@ -675,8 +879,17 @@ public:
         .methods(crow::HTTPMethod::POST)
         (routes_auth::login);
 
-        CROW_ROUTE(Server::app, "/api/auth/refresh").methods(crow::HTTPMethod::POST)
+        CROW_ROUTE(Server::app, "/api/auth/refresh")
+        .methods(crow::HTTPMethod::POST)
         (routes_auth::refreshToken);
+
+        CROW_ROUTE(app, "/api/signup/invite/<string>")
+        .methods(crow::HTTPMethod::GET)
+        (routes_auth::getInviteProps);
+
+        CROW_ROUTE(app, "/api/signup/invite/<string>")
+        .methods(crow::HTTPMethod::POST)
+        (routes_auth::signupUsingInvite);
 
         //User section
         CROW_ROUTE(app, "/api/user/roles")
@@ -789,7 +1002,37 @@ public:
         .methods(crow::HTTPMethod::GET)
         (routes_admin::getDataSummary);
 
-//Region TODO future
+        //Get all invites
+        CROW_ROUTE(app, "/api/org/invites")
+        .methods(crow::HTTPMethod::GET)
+        (routes_admin::getAllInvites);
+
+        //Create new invite
+        CROW_ROUTE(app, "/api/org/invites")
+        .methods(crow::HTTPMethod::POST)
+        (routes_admin::createInvite);
+
+        //Region grant roles
+        CROW_ROUTE(app, "/api/org/users/<string>/grant/roles")
+        .methods(crow::HTTPMethod::PATCH)
+        (routes_admin::grantRolesToUser);
+
+        CROW_ROUTE(app, "/api/org/users/<string>/degrant/roles")
+        .methods(crow::HTTPMethod::PATCH)
+        (routes_admin::degrantRolesToUser);
+
+
+        //Region grants classes
+        CROW_ROUTE(app, "/api/org/users/<string>/grant/classes")
+        .methods(crow::HTTPMethod::PATCH)
+        (routes_admin::grantClassesToUser);
+
+        CROW_ROUTE(app, "/api/org/users/<string>/degrant/classes")
+        .methods(crow::HTTPMethod::PATCH)
+        (routes_admin::degrantClassesToUser);
+
+
+        //Region TODO future
         CROW_ROUTE(app, "/api/organisation/register")
                 .methods(crow::HTTPMethod::POST)
                 ([](const crow::request &req, crow::response &res){
@@ -800,10 +1043,8 @@ public:
 
                     return res.end();
                 });
-        CROW_ROUTE(app, "/api/org/invite").methods(crow::HTTPMethod::POST)([](const crow::request& req, crow::response &res){
 
-            return res.end();
-        });
+
     }
 
 

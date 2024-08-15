@@ -105,8 +105,7 @@ protected:
     };
 
 public:
-    Request(ConnectionPool *connectionPool,
-            const crow::request &req);
+    Request(ConnectionPool *connectionPool, const crow::request &req);
     std::vector<std::string> getRoles();
     crow::json::wvalue getAvailibleClasses();
 
@@ -259,7 +258,27 @@ public:
     void userGrantClass(const std::string& userID, const std::vector<std::string>& classes);
     void userDegrantClass(const std::string& userID, const std::vector<std::string>& classes);
 
-    void userGrantRoles(const std::string& userID, const std::string& roles);
+    //Region Invites
+
+    /**
+     *
+     * @param invite_body should contain:
+     * @code
+     *  {
+     *  "roles": [],
+     *  "classes": [],
+     *  "name": []
+     *  }
+     * @endcode
+     */
+    void inviteCreate(const std::string& invite_body);
+
+    crow::json::wvalue getAllInvites();
+
+    void inviteDrop(const std::string& reqID);
+
+    void userGrantRoles(const std::string& userID, const std::vector<std::string>& roles);
+    void userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles);
 
     void classStudentsEdit(); //update
 

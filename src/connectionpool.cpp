@@ -10,16 +10,31 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
     for (int i = 0; i < pool_size; ++i) {
         auto *c = new pqxx::connection(connection_string);
 
-        // ### Encoding methods
+        //* Encoding methods
         c->prepare(psqlMethods::encodingMethods::encode, "select encode($1, 'hex')");
         c->prepare(psqlMethods::encodingMethods::decode, "select convert_from(decode($1, 'hex'), 'UTF-8')");
 
-        //Chechers
-        c->prepare(psqlMethods::userChechMethods::isLoginOccupied, "select EXISTS(select 1 from users where login = $1)");
-        c->prepare(psqlMethods::userChechMethods::isUserExists, "select exists (select 1 from users where school_id = $1::uuid and id = $2::uuid)");
-        c->prepare(psqlMethods::userChechMethods::isValidUser, "SELECT * from is_valid_user($1::text, $2::text)"); //return bool and user_id in different rows
-        c->prepare(psqlMethods::userChechMethods::isUserHasRole, "select is_user_has_role($1::uuid, $2::uuid, $3::text)");
+        //* Chechers
+        c->prepare(psqlMethods::userCheckMethods::isLoginOccupied, "select EXISTS(select 1 from users where login = $1)");
+        c->prepare(psqlMethods::userCheckMethods::isUserExists, "select exists (select 1 from users where school_id = $1::uuid and id = $2::uuid)");
+        c->prepare(psqlMethods::userCheckMethods::isUserValid, "SELECT * from is_valid_user($1::text, $2::text)"); //return bool and user_id in different rows
+        c->prepare(psqlMethods::userCheckMethods::isUserHasRole, "select is_user_has_role($1::uuid, $2::uuid, $3::text)");
 
+
+
+        //* Invites
+        c->prepare(psqlMethods::invites::getAllInvites, "select req_id, req_secret, req_body from schools_invites "//todo not sure about ->>'name'
+                                                        "where school_id = $1::uuid");
+        c->prepare(psqlMethods::invites::isInviteValid, "select is_valid_request($1::uuid, $2, $3)");
+        c->prepare(psqlMethods::invites::createInvite, "call school_invite_create($1::uuid, $2::jsonb)");
+        c->prepare(psqlMethods::invites::dropInvite, "delete from schools_invites "
+                                                  "where school_id = $1::uuid "
+                                                  "and req_id = $2 "
+                                                  "and req_secret = $3");
+        c->prepare(psqlMethods::invites::getProperties, "select req_body from schools_invites "
+                                                        "where school_id = $1::uuid "
+                                                        "and req_id = $2 "
+                                                        "and req_secret = $3");
 
         c->prepare(psqlMethods::userDataGetters::getUserName, "select name from users where school_id = $1::uuid"
                                     " and id = $2::uuid");
@@ -28,7 +43,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::userDataGetters::getUserClasses, "select * from user_classes_get($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::userDataGetters::getClassStudents, "select class_students_get($1::uuid, $2::uuid, $3::uuid)");
 
-        // Global | Requests
+        // Global
         c->prepare(psqlMethods::isDate, "select is_date($1)");
 
 
@@ -72,7 +87,6 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         // Region schoolManager - admin
 
         //* Classes interface
-
         c->prepare(psqlMethods::schoolManager::classes::getAllClasses,"select * from school_classes_get($1::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::getClassStudents, "select * from school_class_students_get($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::createClass, "call class_create($1::uuid, $2::uuid, $3::text)");
@@ -87,8 +101,15 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
                                                "null_to_array($5::text[]), "
                                                "null_to_array($6::text[])"
                                                ")");
-        c->prepare(psqlMethods::schoolManager::users::grantClassToUser, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
-        c->prepare(psqlMethods::schoolManager::users::degrantClassToUser, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
+        //Grant classes to user
+        c->prepare(psqlMethods::schoolManager::users::grantClassesToUser, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
+        c->prepare(psqlMethods::schoolManager::users::degrantClassesToUser, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
+
+        //Grant roles to user
+        c->prepare(psqlMethods::schoolManager::users::grantRolesToUser, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
+        c->prepare(psqlMethods::schoolManager::users::degrantRolesToUser, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
+
+        //Drop user
         c->prepare(psqlMethods::schoolManager::users::dropUser ,"call school_user_drop($1::uuid,uuid_or_null($2))");
         //get | edi data for admin
 

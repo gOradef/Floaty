@@ -16,10 +16,17 @@ namespace psqlMethods {
         inline str encode = "encode";
         inline str decode = "decode";
     };
-    namespace userChechMethods {
+    namespace invites {
+        inline str getAllInvites = "invites_get";
+        inline str isInviteValid = "is_invite_valid";
+        inline str createInvite = "invite_create";
+        inline str getProperties = "invite_props_get";
+        inline str dropInvite = "drop_invite"; // drops row with invite
+    }
+    namespace userCheckMethods {
         inline str isLoginOccupied = "is_login_occupied";
         inline str isUserExists = "is_user_exists";
-        inline str isValidUser = "is_valid_user";
+        inline str isUserValid = "is_valid_user";
         inline str isUserHasRole = "is_user_has_role";
     };
     namespace userDataGetters {
@@ -32,23 +39,23 @@ namespace psqlMethods {
 
     namespace classHandler {
 
-     namespace checks {
-         inline str isClassOwned = "is_class_owned";
-         inline str isClassExists = "is_class_exists";
-     }
-    namespace students { ///@param school, user, class, [vector of users]
-         inline str addStudents = "class_students_add";
-         inline str removeStudents = "class_students_remove";
+        namespace checks {
+            inline str isClassOwned = "is_class_owned";
+            inline str isClassExists = "is_class_exists";
+        }
 
-         inline str addFStudents = "class_fstudents_add";
-         inline str removeFStudents = "class_fstudents_remove";
+        ///@param school, user, class, [vector of users]
+        namespace students {
+            inline str addStudents = "class_students_add";
+            inline str removeStudents = "class_students_remove";
 
-     }
-        namespace data
-     {
-         inline str getInsertedData = "class_data_insert";
-         inline str insertData = "class_data_get";
-     }
+            inline str addFStudents = "class_fstudents_add";
+            inline str removeFStudents = "class_fstudents_remove";
+        }
+            namespace data {
+            inline str getInsertedData = "class_data_insert";
+            inline str insertData = "class_data_get";
+        }
     }
 
     namespace schoolManager {
@@ -66,9 +73,13 @@ namespace psqlMethods {
             inline str createUser = "user_create"; //school_id, login, password, name
             inline str createUserWithContext = "user_create_with_context"; //school_id, login, password, name, roles, classes
             inline str dropUser = "school_user_drop"; //school_id, user_id
-            inline str grantClassToUser = "school_user_class_grant";
-            inline str degrantClassToUser = "school_user_class_degrant";
 
+
+            inline str grantRolesToUser = "school_user_roles_grant";
+            inline str degrantRolesToUser = "school_user_roles_degrant";
+
+            inline str grantClassesToUser = "school_user_class_grant";
+            inline str degrantClassesToUser = "school_user_class_degrant";
         }
         namespace data
         {

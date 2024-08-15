@@ -186,7 +186,7 @@ void classHandler::insertData(const std::string &changes) {
 
 schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Request(cp, req) {
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::userChechMethods::isUserHasRole, _org_id, _user_id, "admin").front().front().as<bool>();
+    auto res = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isUserHasRole, _org_id, _user_id, "admin").front().front().as<bool>();
 
     if (!res)
         throw std::invalid_argument("User doesnt have needed role. Request access from admin");
@@ -197,7 +197,7 @@ schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Req
 void schoolManager::isLoginOccupied(const std::string &login) {
     pqxx::read_transaction readTransaction(*_connection);
 
-    bool isLoginOccupied = readTransaction.exec_prepared(psqlMethods::userChechMethods::isLoginOccupied, login).front().front().as<bool>();
+    bool isLoginOccupied = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isLoginOccupied, login).front().front().as<bool>();
     if (isLoginOccupied)
         throw api::exceptions::conflict("Login is already occupied. Please, try another");
 }
@@ -211,7 +211,7 @@ void schoolManager::isClassExists(const std::string &classID) {
 
 void schoolManager::isUserExists(const std::string &userID) {
     pqxx::read_transaction readTransaction(*_connection);
-    bool isUserExists = readTransaction.exec_prepared(psqlMethods::userChechMethods::isUserExists, _org_id, userID).front().front().as<bool>();
+    bool isUserExists = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isUserExists, _org_id, userID).front().front().as<bool>();
 
     if (!isUserExists)
         throw api::exceptions::wrongRequest("No such user: " + userID);
@@ -398,6 +398,22 @@ void schoolManager::userDrop(const std::string &userID) {
     work.exec_prepared(psqlMethods::schoolManager::users::dropUser, _org_id, userID);
     work.commit();
 }
+
+void schoolManager::userGrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
+    isUserExists(userID);
+
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::schoolManager::users::grantRolesToUser, _org_id, userID, roles);
+    work.commit();
+}
+void schoolManager::userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
+    isUserExists(userID);
+
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::schoolManager::users::degrantRolesToUser, _org_id, userID, roles);
+    work.commit();
+}
+
 void schoolManager::userGrantClass(const std::string& userID, const std::vector<std::string>& classes) {
     isUserExists(userID);
     for (auto& classID : classes) {
@@ -405,7 +421,7 @@ void schoolManager::userGrantClass(const std::string& userID, const std::vector<
     }
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::grantClassToUser, _org_id, userID, classes);
+    work.exec_prepared(psqlMethods::schoolManager::users::grantClassesToUser, _org_id, userID, classes);
     work.commit();
 }
 void schoolManager::userDegrantClass(const std::string& userID, const std::vector<std::string>& classes) {
@@ -415,6 +431,29 @@ void schoolManager::userDegrantClass(const std::string& userID, const std::vecto
     }
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::degrantClassToUser, _org_id, userID, classes);
+    work.exec_prepared(psqlMethods::schoolManager::users::degrantClassesToUser, _org_id, userID, classes);
     work.commit();
+}
+
+// Region invites
+void schoolManager::inviteCreate(const std::string& invite_body) {
+    // Check if login is alredy is use
+    pqxx::work work(*_connection);
+
+    work.exec_prepared(psqlMethods::invites::createInvite, _org_id, invite_body);
+    work.commit();
+}
+
+crow::json::wvalue schoolManager::getAllInvites() {
+    pqxx::read_transaction rtx(*_connection);
+    auto res = rtx.exec_prepared(psqlMethods::invites::getAllInvites, _org_id);
+    crow::json::wvalue json;
+    for (auto invite : res) {
+        std::string req_id = invite["req_id"].c_str();
+        std::string req_secret = invite["req_secret"].c_str();
+        crow::json::rvalue props  = crow::json::load(invite["req_body"].c_str());
+        json[req_id]["secret"] = req_secret;
+        json[req_id]["body"] = props;
+    }
+    return json;
 }
