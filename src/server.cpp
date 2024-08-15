@@ -2,7 +2,6 @@
 // Created by goradef on 15.08.2024.
 //
 
-
 #include "Floaty/server.h"
 
 using Session = crow::SessionMiddleware<crow::InMemoryStore>;
@@ -172,7 +171,8 @@ inline void Server::route_admin() {
     (routes_admin::degrantClassesToUser);
 }
 
-inline void Server::initRoutes() {
+
+void Server::initRoutes() {
     route_auth();
     route_user();
     route_classHandler();

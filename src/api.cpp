@@ -1,7 +1,4 @@
 #include "Floaty/api.h"
-#include <cstdlib>
-#include <crow/app.h>
-#include <crow/middlewares/cookie_parser.h>
 
 Request::Request(ConnectionPool *connectionPool, const crow::request &req) {
     this->_connectionPool = connectionPool;

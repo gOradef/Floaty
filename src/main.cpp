@@ -12,7 +12,7 @@ int main() {
                             "port = 5432 "
                             "options='--client_encoding=UTF8' ";
     ConnectionPool cp(postgres_creds, 20);
-    Server("127.0.0.1", 80, &cp);
+    Server("127.0.0.1", 18080, &cp);
     Server::initRoutes();
     Server::run();
     return 0;
