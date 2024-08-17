@@ -12,8 +12,8 @@ Request::Request(ConnectionPool *connectionPool, const crow::request &req) {
 
     pqxx::read_transaction rtx(*_connection);
 
-    this->_org_id = rtx.exec_prepared1(psqlMethods::encodingMethods::decode,decodedJwt.get_payload_claim("aud").as_string()).front().as<std::string>();
-    this->_user_id = rtx.exec_prepared1(psqlMethods::encodingMethods::decode, decodedJwt.get_subject()).front().as<std::string>();
+    this->_org_id = rtx.exec_prepared1(psqlMethods::encoding::decode,decodedJwt.get_payload_claim("aud").as_string()).front().as<std::string>();
+    this->_user_id = rtx.exec_prepared1(psqlMethods::encoding::decode, decodedJwt.get_subject()).front().as<std::string>();
 }
 Request::~Request() {
     _connectionPool->releaseConnection(_connection);
@@ -22,7 +22,7 @@ Request::~Request() {
 std::vector<std::string> Request::getRoles() {
     std::vector<std::string> roles;
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::userDataGetters::getUserRoles, _org_id, _user_id);
+    auto res = readTransaction.exec_prepared(psqlMethods::userData::getRoles, _org_id, _user_id);
     for (auto role : res) {
         roles.emplace_back(role.front().as<std::string>());
     }
@@ -43,7 +43,7 @@ crow::json::wvalue Request::getAvailibleClasses() {
     crow::json::wvalue classesMap;
     pqxx::read_transaction work(*_connection);
 
-    auto result = work.exec_prepared(psqlMethods::userDataGetters::getUserClasses, _org_id, _user_id);
+    auto result = work.exec_prepared(psqlMethods::userData::getClasses, _org_id, _user_id);
     for (auto row : result) {
         auto id = row["class_id"].as<std::string>();
         auto name = row["class_name"].as<std::string>();
@@ -61,7 +61,7 @@ classHandler::classHandler(ConnectionPool *connectionPool,
                            const std::string& classID) : Request(connectionPool, req) {
 
     pqxx::read_transaction rtx(*_connection);
-    bool isClassOwned = rtx.exec_prepared1(psqlMethods::classHandler::checks::isClassOwned, _org_id, _user_id, classID).front().as<bool>();
+    bool isClassOwned = rtx.exec_prepared1(psqlMethods::classes::checks::isOwned, _org_id, _user_id, classID).front().as<bool>();
     if (!isClassOwned) {
         throw api::exceptions::wrongRequest("Such class doesnt exists");
     }
@@ -75,7 +75,7 @@ classHandler::classHandler(ConnectionPool *connectionPool,
 crow::json::wvalue classHandler::getClassStudents() {
     pqxx::read_transaction rtx(*_connection);
 
-    auto studs = rtx.exec_prepared(psqlMethods::userDataGetters::getClassStudents,
+    auto studs = rtx.exec_prepared(psqlMethods::userData::getClassStudents,
         _org_id,
         _user_id,
         _class_id);
@@ -87,7 +87,7 @@ crow::json::wvalue classHandler::getClassStudents() {
 
 crow::json::wvalue classHandler::getInsertedDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::classHandler::data::getInsertedData, _org_id, _class_id, nullptr);
+    auto res = readTransaction.exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, nullptr);
     crow::json::wvalue json;
     json = crow::json::load(res.front().front().as<std::string>());
     return json;
@@ -97,7 +97,7 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
     this->isInputIsDateType(date);
 
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::classHandler::data::getInsertedData, _org_id, _class_id, date);
+    auto res = readTransaction.exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, date);
     crow::json::wvalue json;
     json = crow::json::load(res.front().front().as<std::string>());
     return json;
@@ -176,14 +176,14 @@ void classHandler::insertData(const std::string &changes) {
     }
 
     pqxx::work work(*_connection);
-    auto res = work.exec_prepared(psqlMethods::classHandler::data::insertData, _org_id, _class_id, changes);
+    auto res = work.exec_prepared(psqlMethods::classes::data::insertData, _org_id, _class_id, changes);
 
     work.commit();
 }
 
 schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Request(cp, req) {
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isUserHasRole, _org_id, _user_id, "admin").front().front().as<bool>();
+    auto res = readTransaction.exec_prepared(psqlMethods::userChecks::hasRole, _org_id, _user_id, "admin").front().front().as<bool>();
 
     if (!res)
         throw std::invalid_argument("User doesnt have needed role. Request access from admin");
@@ -194,13 +194,13 @@ schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Req
 void schoolManager::isLoginOccupied(const std::string &login) {
     pqxx::read_transaction readTransaction(*_connection);
 
-    bool isLoginOccupied = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isLoginOccupied, login).front().front().as<bool>();
+    bool isLoginOccupied = readTransaction.exec_prepared(psqlMethods::userChecks::isLoginOccupied, login).front().front().as<bool>();
     if (isLoginOccupied)
         throw api::exceptions::conflict("Login is already occupied. Please, try another");
 }
 void schoolManager::isClassExists(const std::string &classID) {
     pqxx::read_transaction readTransaction(*_connection);
-    bool isClassExists = readTransaction.exec_prepared1(psqlMethods::classHandler::checks::isClassExists, _org_id, classID).front().as<bool>();
+    bool isClassExists = readTransaction.exec_prepared1(psqlMethods::classes::checks::isExists, _org_id, classID).front().as<bool>();
 
     if (!isClassExists)
         throw api::exceptions::wrongRequest("No such class: " + classID);
@@ -208,11 +208,20 @@ void schoolManager::isClassExists(const std::string &classID) {
 
 void schoolManager::isUserExists(const std::string &userID) {
     pqxx::read_transaction readTransaction(*_connection);
-    bool isUserExists = readTransaction.exec_prepared(psqlMethods::userCheckMethods::isUserExists, _org_id, userID).front().front().as<bool>();
+    bool isUserExists = readTransaction.exec_prepared(psqlMethods::userChecks::isExists, _org_id, userID).front().front().as<bool>();
 
     if (!isUserExists)
         throw api::exceptions::wrongRequest("No such user: " + userID);
 }
+
+void schoolManager::isInviteExists(const std::string& inviteID) {
+    pqxx::read_transaction readTransaction(*_connection);
+    bool isInviteExists = readTransaction.exec_prepared(psqlMethods::invites::isExists, _org_id, inviteID).front().front().as<bool>();
+
+    if (!isInviteExists)
+        throw api::exceptions::wrongRequest("No such invite: " + inviteID);
+}
+
 
 //Region Data
 
@@ -223,10 +232,10 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
 
     pqxx::read_transaction readTransaction(*_connection);
     // Check if school data doesnt exists for the given date
-    if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isSchoolDataExists, _org_id, date).front().as<bool>())
+    if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
         return crow::json::load(nullptr);
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getSchoolData, _org_id, date);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
 
     // Prepare JSON result
     crow::json::wvalue root;
@@ -255,7 +264,7 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
 crow::json::wvalue schoolManager::getDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getSchoolData, _org_id, nullptr);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, nullptr);
 
     // Prepare JSON result
     crow::json::wvalue root;
@@ -273,7 +282,7 @@ crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &st
     crow::json::wvalue json;
 
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getSchoolSummarizedData, _org_id, startDate, endDate);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getSummarized, _org_id, startDate, endDate);
 
     for (auto row : res) {
         auto class_id = row["class_id"].as<std::string>();
@@ -304,7 +313,7 @@ crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &st
 crow::json::wvalue schoolManager::getClasses() {
     pqxx::read_transaction readTransaction(*_connection);
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getAllClasses, _org_id);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getAll, _org_id);
     crow::json::wvalue json;
     for (auto row : res) {
         auto class_id = row["class_id"].as<std::string>();
@@ -319,7 +328,7 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 
     pqxx::read_transaction readTransaction(*_connection);
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getClassStudents, _org_id, classID);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getStudents, _org_id, classID);
 
     crow::json::wvalue json;
     for (auto row : res) {
@@ -348,7 +357,7 @@ void schoolManager::classCreate(const crow::json::rvalue &json) {
     this->urlParams.isWithOwner ? owner_id = std::make_unique<std::string>(json["class_owner"].s()) :
             owner_id = nullptr;
 
-    work.exec_prepared(psqlMethods::schoolManager::classes::createClass, _org_id, owner_id, class_name);
+    work.exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name);
     work.commit();
 }
 
@@ -357,7 +366,7 @@ void schoolManager::classDrop(const std::string& classID) {
     isClassExists(classID);
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::classes::dropClass, _org_id, classID);
+    work.exec_prepared(psqlMethods::schoolManager::classes::drop, _org_id, classID);
     work.commit();
 }
 
@@ -382,7 +391,7 @@ void schoolManager::classRename(const crow::json::rvalue &json) {
 
     pqxx::work work(*_connection);
 
-    work.exec_prepared(psqlMethods::schoolManager::classes::renameClass, _org_id, classID, className);
+    work.exec_prepared(psqlMethods::schoolManager::classes::rename, _org_id, classID, className);
     work.commit();
 }
 //Region Users
@@ -402,7 +411,7 @@ void schoolManager::classRename(const crow::json::rvalue &json) {
     */
 crow::json::wvalue schoolManager::getUsers() {
     pqxx::read_transaction readTransaction(*_connection);
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::users::getAllUsers, _org_id);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::users::getAll, _org_id);
     crow::json::wvalue json;
     for (auto row : res) {
         auto userID = row[0].as<std::string>();
@@ -448,7 +457,7 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
             : classes = nullptr;
 
     // Execute the prepared query
-    work.exec_prepared(psqlMethods::schoolManager::users::createUserWithContext, _org_id, login, pwd, name, roles, classes);
+    work.exec_prepared(psqlMethods::schoolManager::users::createWithContext, _org_id, login, pwd, name, roles, classes);
     work.commit();
 }
 
@@ -458,22 +467,35 @@ void schoolManager::userDrop(const std::string &userID) {
 
     pqxx::work work(*_connection);
 
-    work.exec_prepared(psqlMethods::schoolManager::users::dropUser, _org_id, userID);
+    work.exec_prepared(psqlMethods::schoolManager::users::drop, _org_id, userID);
     work.commit();
 }
+///@param userID - uuid of user
+///@param newPassword - already hashed
+void schoolManager::userResetPassword(const std::string& userID, const std::string& newPassword) {
+    isUserExists(userID);
+
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::schoolManager::users::resetPassword, _org_id,
+        userID,
+        newPassword);
+
+    work.commit();
+}
+
 
 void schoolManager::userGrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
     isUserExists(userID);
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::grantRolesToUser, _org_id, userID, roles);
+    work.exec_prepared(psqlMethods::schoolManager::users::grantRoles, _org_id, userID, roles);
     work.commit();
 }
 void schoolManager::userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
     isUserExists(userID);
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::degrantRolesToUser, _org_id, userID, roles);
+    work.exec_prepared(psqlMethods::schoolManager::users::degrantRoles, _org_id, userID, roles);
     work.commit();
 }
 
@@ -484,7 +506,7 @@ void schoolManager::userGrantClass(const std::string& userID, const std::vector<
     }
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::grantClassesToUser, _org_id, userID, classes);
+    work.exec_prepared(psqlMethods::schoolManager::users::grantClasses, _org_id, userID, classes);
     work.commit();
 }
 void schoolManager::userDegrantClass(const std::string& userID, const std::vector<std::string>& classes) {
@@ -494,7 +516,7 @@ void schoolManager::userDegrantClass(const std::string& userID, const std::vecto
     }
 
     pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::degrantClassesToUser, _org_id, userID, classes);
+    work.exec_prepared(psqlMethods::schoolManager::users::degrantClasses, _org_id, userID, classes);
     work.commit();
 }
 
@@ -514,13 +536,13 @@ void schoolManager::inviteCreate(const std::string& invite_body) {
     // Check if login is alredy is use
     pqxx::work work(*_connection);
 
-    work.exec_prepared(psqlMethods::invites::createInvite, _org_id, invite_body);
+    work.exec_prepared(psqlMethods::invites::create, _org_id, invite_body);
     work.commit();
 }
 
 crow::json::wvalue schoolManager::getAllInvites() {
     pqxx::read_transaction rtx(*_connection);
-    auto res = rtx.exec_prepared(psqlMethods::invites::getAllInvites, _org_id);
+    auto res = rtx.exec_prepared(psqlMethods::invites::getAll, _org_id);
     crow::json::wvalue json;
     for (auto invite : res) {
         std::string req_id = invite["req_id"].c_str();
@@ -531,3 +553,19 @@ crow::json::wvalue schoolManager::getAllInvites() {
     }
     return json;
 }
+void schoolManager::inviteDrop(const std::string& reqID) {
+    isInviteExists(reqID);
+
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::invites::drop, _org_id, reqID);
+    work.commit();
+}
+//todo add route to drop invte and drop user password
+/*
+ * 1. Name psql method
+ * 2. Add it to connectionPool
+ * 3. create api function
+ * 4. create function in interface
+ * 5. route it
+ *
+ */

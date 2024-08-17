@@ -1,13 +1,17 @@
 
 ### Login
-POST http://localhost:80/api/login
+
+#
+#
+#//  "login": "test1010",
+#//  "password": "kakdela"
+#
+POST http://localhost:18080/api/login
 Content-Type: application/json
 
 {
   "login": "Tester_#1",
   "password": "I_am_the_best"
-//  "login": "test1010",
-//  "password": "kakdela"
 }
 > {%
     client.test("Login", function () {
@@ -16,7 +20,7 @@ Content-Type: application/json
 %}
 
 ### Refresh token
-POST http://localhost:80/api/auth/refresh
+POST http://localhost:18080/api/auth/refresh
 Content-Type: application/json
 
 > {% client.test('Refresh token', function () {
@@ -24,7 +28,7 @@ Content-Type: application/json
     }) %}
 
 ### Get data of invite
-GET http://localhost:80/api/signup/invite/00000000-0000-0000-0000-000000000000
+GET http://localhost:18080/api/signup/invite/00000000-0000-0000-0000-000000000000
 Content-Type: application/json
 
 {
@@ -39,7 +43,7 @@ Content-Type: application/json
     }) %}
 
 ### Sign up using invite code
-POST http://localhost:80/api/signup/invite/00000000-0000-0000-0000-000000000000
+POST http://localhost:18080/api/signup/invite/00000000-0000-0000-0000-000000000000
 Content-Type: application/json
 
 {
@@ -59,7 +63,7 @@ Content-Type: application/json
 
 
 ### Get user roles
-GET http://localhost:80/api/user/roles
+GET http://localhost:18080/api/user/roles
 Content-Type: application/json
 
 > {% client.test('Get roles', function () {
@@ -68,7 +72,7 @@ Content-Type: application/json
     }) %}
 
 ### Get user available classes
-GET http://localhost:80/api/user/classes
+GET http://localhost:18080/api/user/classes
 
 > {% client.test('Get classes', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -77,7 +81,7 @@ GET http://localhost:80/api/user/classes
     client.global.set('class_id', 'f501a40b-acd6-4b6e-8428-cb52707f4f94') %}
 
 ### Get students list of class_id
-GET http://localhost:80/api/user/classes/{{class_id}}/students
+GET http://localhost:18080/api/user/classes/{{class_id}}/students
 Content-Type: application/json
 
 > {% client.test('Get students of class', function () {
@@ -86,7 +90,7 @@ Content-Type: application/json
 }) %}
 
 ### Insert studs into class
-PUT http://localhost:80/api/user/classes/{{class_id}}/students
+PUT http://localhost:18080/api/user/classes/{{class_id}}/students
 Content-Type: application/json
 
 {
@@ -101,7 +105,7 @@ Content-Type: application/json
     }) %}
 
 ### Insert data
-PUT  http://localhost:80/api/user/classes/{{class_id}}/data
+PUT  http://localhost:18080/api/user/classes/{{class_id}}/data
 Content-Type: application/json
 
 {
@@ -119,7 +123,7 @@ Content-Type: application/json
 
 
 ### Get today's inserted data for class_id
-GET http://localhost:80/api/user/classes/{{class_id}}/data
+GET http://localhost:18080/api/user/classes/{{class_id}}/data
 Content-Type: application/json
 
 > {% client.test('Get inserted data for today', function () {
@@ -128,7 +132,7 @@ Content-Type: application/json
     }) %}
 
 ### Get custom date inserted data for class_id. [Expecting null]
-GET http://localhost:80/api/user/classes/{{class_id}}/data/2024-07-20
+GET http://localhost:18080/api/user/classes/{{class_id}}/data/2024-07-20
 Content-Type: application/json
 
 > {% client.test('Get inserted data for custom date', function () {
@@ -137,7 +141,7 @@ Content-Type: application/json
     }) %}
 
 ### Get custom date inserted data for class_id [Expecting value] (that class doesnt exists yet)
-GET http://localhost:80/api/user/classes/{{class_id}}/data/2024-08-14
+GET http://localhost:18080/api/user/classes/{{class_id}}/data/2024-08-14
 Content-Type: application/json
 
 > {% client.test('Get inserted data for custom date', function () {
@@ -148,7 +152,7 @@ Content-Type: application/json
 
 
 ### Get all classes
-GET http://localhost:80/api/org/classes
+GET http://localhost:18080/api/org/classes
 
 > {% client.test('Get all classes', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
@@ -156,14 +160,14 @@ GET http://localhost:80/api/org/classes
 
 
 ### Get students of class
-GET http://localhost:80/api/org/classes/{{class_id}}/students
+GET http://localhost:18080/api/org/classes/{{class_id}}/students
 
 > {% client.test('Get students of class', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
 ### Create class
-#POST http://localhost:80/api/org/classes
+#POST http://localhost:18080/api/org/classes
 #token: {{auth_token}}
 #Content-Type: application/json
 #
@@ -172,7 +176,7 @@ GET http://localhost:80/api/org/classes/{{class_id}}/students
 #}
 #
 ## Create class with owner
-#POST http://localhost:80/api/org/classes?withOwner=true
+#POST http://localhost:18080/api/org/classes?withOwner=true
 #token: {{auth_token}}
 #Content-Type: application/json
 #
@@ -197,7 +201,7 @@ GET http://localhost:80/api/org/classes/{{class_id}}/students
 
 
 ### Set class id
-GET http://localhost/null
+GET http://localhost:18080/null
 
 
 > {%
@@ -206,7 +210,7 @@ client.assert(response.status === 404, "Just set 404")
 %}
 
 ### Grant roles to user
-PATCH http://localhost/api/org/users/{{user_test_ID}}/grant/roles
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/grant/roles
 Content-Type: application/json
 
 {
@@ -218,7 +222,7 @@ Content-Type: application/json
  %}
 
 ### Degrant roles to user
-PATCH http://localhost/api/org/users/{{user_test_ID}}/degrant/roles
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/degrant/roles
 Content-Type: application/json
 
 {
@@ -230,7 +234,7 @@ Content-Type: application/json
 %}
 
 ### Grant classes to user
-PATCH http://localhost/api/org/users/{{user_test_ID}}/grant/classes
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/grant/classes
 Content-Type: application/json
 
 {
@@ -238,11 +242,11 @@ Content-Type: application/json
 }
 
 > {%
-    client.assert(response.status === 200, "Expected 200 but dont");
+    client.assert(response.status === 201, "Expected 200 but dont");
 %}
 
 ### Degrant classes to user
-PATCH http://localhost/api/org/users/{{user_test_ID}}/degrant/classes
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/degrant/classes
 Content-Type: application/json
 
 {
@@ -250,40 +254,39 @@ Content-Type: application/json
 }
 
 > {%
-    client.assert(response.status === 200, "Expected 200 but dont");
+    client.assert(response.status === 201, "Expected 201 but dont");
 %}
 
 ### Get data for today
-GET  http://localhost:80/api/org/data
+GET  http://localhost:18080/api/org/data
 
 > {% client.test('Get data for today', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
 ### Get data for custom date
-GET  http://localhost:80/api/org/data/2024-07-26
+GET  http://localhost:18080/api/org/data/2024-07-26
 
 > {% client.test('Get data for custom date', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
-
 ### Get summarized data
-GET http://localhost:80/api/org/data-summary?startDate=2024-07-01&endDate=2024-07-28
+GET http://localhost:18080/api/org/data-summary?startDate=2024-07-01&endDate=2024-07-28
 
 > {% client.test('Get summarized data', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
 ### Get all invites
-GET http://localhost:80/api/org/invites
+GET http://localhost:18080/api/org/invites
 
 > {% client.test('Get invites', function () {
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
 ### Create new invite
-POST http://localhost:80/api/org/invites
+POST http://localhost:18080/api/org/invites
 Content-Type: application/json
 
 {

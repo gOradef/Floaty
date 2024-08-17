@@ -83,7 +83,16 @@
         private:
             std::string msg_;
         };
+        struct requirmentsDoesntMeeted : public std::exception {
+            requirmentsDoesntMeeted(const std::string &message) : msg_(message) {}
 
+            const char *what() const noexcept override {
+                return msg_.c_str();
+            }
+
+        private:
+            std::string msg_;
+        };
     }
 
 
@@ -152,6 +161,8 @@ private:
     void isLoginOccupied(const std::string& login);
     void isUserExists(const std::string& userID);
     void isClassExists(const std::string& classID);
+    void isInviteExists(const std::string& inviteID);
+
     bool isDataTodayExists();
 
 public:
@@ -164,7 +175,11 @@ public:
         bool isWithClasses;
         bool isWithOwner;
 
-        url_params() : isWithRoles(false), isWithClasses(false) {};
+        url_params() :
+            isWithDate(false),
+            isWithRoles(false),
+            isWithClasses(false),
+            isWithOwner(false) {};
 
     };
     url_params urlParams;
@@ -193,10 +208,16 @@ public:
     void userCreate(const crow::json::rvalue& creds);
 
     void userDrop(const std::string& userID);
+    void userResetPassword(const std::string& userID, const std::string& newPassword);
 
-    //User grants
+    //* User grant roles
+    void userGrantRoles(const std::string& userID, const std::vector<std::string>& roles);
+    void userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles);
+
+    //* User grant classes
     void userGrantClass(const std::string& userID, const std::vector<std::string>& classes);
     void userDegrantClass(const std::string& userID, const std::vector<std::string>& classes);
+
 
     //Region Invites
     void inviteCreate(const std::string& invite_body);
@@ -205,8 +226,6 @@ public:
 
     void inviteDrop(const std::string& reqID);
 
-    void userGrantRoles(const std::string& userID, const std::vector<std::string>& roles);
-    void userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles);
 
     void classStudentsEdit(); //update
 

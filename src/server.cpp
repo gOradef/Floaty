@@ -142,15 +142,25 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataSummary);
 
+    //Region invites
     //Get all invites
     CROW_ROUTE(app, "/api/org/invites")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getAllInvites);
 
+    //todo get props of one invite
+
+    //todo edit props of invite (set)
+
     //Create new invite
     CROW_ROUTE(app, "/api/org/invites")
     .methods(crow::HTTPMethod::POST)
     (routes_admin::createInvite);
+
+    //Delete invite
+    CROW_ROUTE(app, "/api/org/invites/<string>")
+    .methods(crow::HTTPMethod::DELETE)
+    (routes_admin::dropInvite);
 
     //Region grant roles
     CROW_ROUTE(app, "/api/org/users/<string>/grant/roles")
