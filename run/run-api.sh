@@ -5,4 +5,4 @@ cmake ..
 cmake --build .
 
 cd src/ || exit
-sudo ./Floaty
+sudo ./Floaty &
