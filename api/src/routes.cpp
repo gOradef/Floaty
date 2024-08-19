@@ -171,7 +171,7 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::PATCH)
     (routes_admin::degrantRolesToUser);
 
-    //Region grants classes
+    //Region grant classes
     CROW_ROUTE(app, "/api/org/users/<string>/grant/classes")
     .methods(crow::HTTPMethod::PATCH)
     (routes_admin::grantClassesToUser);
@@ -183,6 +183,11 @@ inline void Server::route_admin() {
 
 
 void Server::initRoutes() {
+    CROW_ROUTE(app, "/")([]() {
+       return crow::response(200, "Hi. I am developed by sofware engineews. So, UwU");
+    });
+
+
     route_auth();
     route_user();
     route_classHandler();
