@@ -5,4 +5,6 @@ cmake ..
 cmake --build .
 
 cd src/ || exit
+
+sudo systemctl start postgresql.service
 sudo ./Floaty &
