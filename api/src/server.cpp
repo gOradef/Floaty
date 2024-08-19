@@ -2,6 +2,8 @@
 // Created by goradef on 19.08.2024.
 //
 
+// ReSharper disable CppDeclarationHidesLocal
+// ReSharper disable CppDeclarationHidesUncapturedLocal
 #include "Floaty/server.h"
 
 Server::Server(const std::string& address, const int& port, ConnectionPool* cp) {
@@ -184,7 +186,7 @@ void Server::routes_auth::getInviteProps(const crow::request& req, crow::respons
         !invite_creds.has("secret")
     ) {
         res.code = 400;
-        res.write("No \"invite\" field or \"code\" or \"secret\"");
+        res.write(R"(No "invite" field or "code" or "secret")");
         return res.end();
     }
     const std::string& invite_code = invite_creds["code"].s();
@@ -211,7 +213,7 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
             !invite_creds.has("code") ||
             !invite_creds.has("secret")
         ) {
-            throw api::exceptions::wrongRequest("No \"invite\" field or \"code\" or \"secret\"");
+            throw api::exceptions::wrongRequest(R"(No "invite" field or "code" or "secret")");
         }
         if (!user_creds ||
             !user_creds.has("login") ||
@@ -384,6 +386,7 @@ void Server::routes_admin::createNewClass(const crow::request& req, crow::respon
             throw api::exceptions::parseErr("Is request body json?");
         }
 
+        // ReSharper disable once CppTooWideScope
         auto withOwnerParam = req.url_params.get("withOwner");
         //
         if (withOwnerParam) {
