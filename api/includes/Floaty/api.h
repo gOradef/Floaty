@@ -98,14 +98,22 @@
 
 class Request {
 protected:
-// connection to Postgres
+    // connection to Postgres
     ConnectionPool* _connectionPool;
     pqxx::connection* _connection;
 
-// attributes of any user
+    // attributes of any user
     std::string _org_id;
     std::string _user_id;
 
+    // Vectors with types
+    std::vector<std::string> _stud_types{"students", "fstudents"};
+    std::vector<std::string> _actions {"add", "remove"}; //? maybe 'set' as well?
+    std::vector<std::string> _cause_types {"global",
+                                           "ORVI",
+                                           "not_respectful",
+                                           "respectful",
+                                           "fstudents"};
     /**
      * @param date date value
      * @throw api::exceptions::wrongRequest("Input date is not valid format");
@@ -132,14 +140,6 @@ public:
 
 class classHandler : Request {
     std::string _class_id;
-
-    std::vector<std::string> _stud_types{"students", "fstudents"};
-    std::vector<std::string> _actions {"add", "remove"}; //? maybe 'set' as well?
-    std::vector<std::string> _cause_types {"global",
-                                           "ORVI",
-                                           "not_respectful",
-                                           "respectful",
-                                           "fstudents"};
 
 public:
     classHandler(ConnectionPool *connectionPool,

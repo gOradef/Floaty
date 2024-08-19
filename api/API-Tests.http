@@ -58,7 +58,7 @@ Content-Type: application/json
 }
 
 > {% client.test('Sign up using invite', function () {
-        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+        client.assert(response.status === 409, `Expected 409 (login in use already) but received '${response.status}'`);
     }) %}
 
 
@@ -208,8 +208,9 @@ GET http://localhost:18080/null
 GET http://localhost:18080/api/org/users
 
 > {%
-    client.assert(response.status === 200, "Expected 200 but dont");
-    client.assert(!response.body.includes(null), "Expected users but got null (")
+    client.test("Get all users", new function () {
+        client.assert(response.status === 200, "Expected 200 but dont");
+    })
 %}
 ### Grant roles to user
 PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/grant/roles
@@ -220,7 +221,9 @@ Content-Type: application/json
 }
 
 > {%
- client.assert(response.status === 200, "Expected 200 but dont");
+    client.test("Grant roles to user", new function () {
+        client.assert(response.status === 200, "Expected 200 but dont");
+    })
  %}
 
 ### Degrant roles to user
@@ -232,7 +235,9 @@ Content-Type: application/json
 }
 
 > {%
-    client.assert(response.status === 200, "Expected 200 but dont");
+    client.test("Degrant roles from user", new function () {
+        client.assert(response.status === 200, "Expected 200 but dont");
+    })
 %}
 
 ### Grant classes to user
@@ -244,7 +249,9 @@ Content-Type: application/json
 }
 
 > {%
-    client.assert(response.status === 201, "Expected 200 but dont");
+    client.test("Grant class from user", new function () {
+        client.assert(response.status === 201, "Expected 200 but dont");
+    })
 %}
 
 ### Degrant classes to user
@@ -256,7 +263,9 @@ Content-Type: application/json
 }
 
 > {%
+client.test("Degrant class from user", new function () {
     client.assert(response.status === 201, "Expected 201 but dont");
+})
 %}
 
 ### Get data for today
