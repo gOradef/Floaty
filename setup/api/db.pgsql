@@ -1403,16 +1403,15 @@ ALTER PROCEDURE public.school_user_password_reset(IN _schoolid uuid, IN _userid 
 
 CREATE FUNCTION public.school_users_get(_orgid uuid) RETURNS TABLE(user_id uuid, user_body jsonb)
     LANGUAGE plpgsql
-    AS $$
-BEGIN
+    AS $$BEGIN
     RETURN QUERY
     SELECT 
         _user_id::uuid,
-		jsonb_build_object(
-			'name', users.name::text,
-			'roles', members -> _user_id -> 'roles',
-			'classes',class_info.classes
-		)
+        jsonb_build_object(
+            'name', users.name::text,
+            'roles', members -> _user_id -> 'roles',
+            'classes', class_info.classes
+        )
     FROM 
         schools
     JOIN 
@@ -1422,22 +1421,21 @@ BEGIN
     LEFT JOIN (
         SELECT 
             class_data.user_id,
-            jsonb_agg(jsonb_build_object(class_id, class_name)) AS classes
+            jsonb_object_agg(class_data.class_id, class_data.class_name) AS classes  -- Aggregate classes into a JSON object
         FROM (
             SELECT 
-                schools_classes.user_id,
-                class_id,
-                class_body ->> 'name' AS class_name
+                view.user_id,
+                view.class_id,
+                view.class_body ->> 'name' AS class_name
             FROM 
-                schools_classes
+                schools_classes_ownership_view view
         ) AS class_data
         GROUP BY 
-            class_data.user_id
-    ) AS class_info ON class_info.user_id = users.id  -- Join based on users.id instead
+            class_data.user_id  -- Changed to group by user_id only
+    ) AS class_info ON class_info.user_id = users.id
     WHERE 
         schools.id = _orgID;  -- Filtering based on the organization ID
-END;
-$$;
+END;$$;
 
 
 ALTER FUNCTION public.school_users_get(_orgid uuid) OWNER TO postgres;

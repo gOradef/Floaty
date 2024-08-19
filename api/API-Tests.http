@@ -1,0 +1,305 @@
+
+### Login
+
+#
+#
+#//  "login": "test1010",
+#//  "password": "kakdela"
+#
+POST http://localhost:18080/api/login
+Content-Type: application/json
+
+{
+  "login": "Tester_#1",
+  "password": "I_am_the_best"
+}
+> {%
+    client.test("Login", function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+    })
+%}
+
+### Refresh token
+POST http://localhost:18080/api/auth/refresh
+Content-Type: application/json
+
+> {% client.test('Refresh token', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Get data of invite
+GET http://localhost:18080/api/signup/invite/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "invite": {
+    "code": "16",
+    "secret": "7208"
+  }
+}
+
+> {% client.test('Get props of invite by invite code', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Sign up using invite code
+POST http://localhost:18080/api/signup/invite/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "invite": {
+    "code": "16",
+    "secret": "7208"
+  },
+  "user": {
+    "login": "test1010",
+    "password": "kakdela"
+  }
+}
+
+> {% client.test('Sign up using invite', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+
+### Get user roles
+GET http://localhost:18080/api/user/roles
+Content-Type: application/json
+
+> {% client.test('Get roles', function () {
+    client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    client.assert(response.body.includes("roles"), `Expected roles but didnt get proper json: '${response.body}'`)
+    }) %}
+
+### Get user available classes
+GET http://localhost:18080/api/user/classes
+
+> {% client.test('Get classes', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+        client.assert(!response.body.includes("null"), `Expected roles but didnt get proper json. Body: '${response.body}'`)
+    })
+    client.global.set('class_id', 'f501a40b-acd6-4b6e-8428-cb52707f4f94') %}
+
+### Get students list of class_id
+GET http://localhost:18080/api/user/classes/{{class_id}}/students
+Content-Type: application/json
+
+> {% client.test('Get students of class', function () {
+    client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+        client.assert(response.body.includes('students'), `Expected students object but received body: '${response.body}' `)
+}) %}
+
+### Insert studs into class
+PUT http://localhost:18080/api/user/classes/{{class_id}}/students
+Content-Type: application/json
+
+{
+  "students": {
+    "add": ["Ivanov1", "Ivanov2", "Ivanov3","Ivanov4","Ivanov5","Ivanov0"],
+    "remove": ["Ivanovov"]
+  }
+}
+
+> {% client.test('PUT students to class', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Insert data
+PUT  http://localhost:18080/api/user/classes/{{class_id}}/data
+Content-Type: application/json
+
+{
+  "absent_lists": {
+    "ORVI": ["Ivanov"],
+    "global": ["Ivanov", "Setkov", "Adminov"],
+    "respectful": ["Adminov"],
+    "fstudents": ["Setkov"]
+  }
+}
+
+> {% client.test('Set students of class', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+
+### Get today's inserted data for class_id
+GET http://localhost:18080/api/user/classes/{{class_id}}/data
+Content-Type: application/json
+
+> {% client.test('Get inserted data for today', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+        client.assert(!response.body.includes("null"), `Expected students object but received body: '${response.body}' `)
+    }) %}
+
+### Get custom date inserted data for class_id. [Expecting null]
+GET http://localhost:18080/api/user/classes/{{class_id}}/data/2024-07-20
+Content-Type: application/json
+
+> {% client.test('Get inserted data for custom date', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+        client.assert(response.body.includes('null'), `Expected students object but received body: '${response.body}' `)
+    }) %}
+
+### Get custom date inserted data for class_id [Expecting value] (that class doesnt exists yet)
+GET http://localhost:18080/api/user/classes/{{class_id}}/data/2024-08-14
+Content-Type: application/json
+
+> {% client.test('Get inserted data for custom date', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`)
+        client.assert(!response.body.includes('null'), `Expected students object but received body: '${response.body}' `)
+    }) %}
+
+
+### Get all classes
+GET http://localhost:18080/api/org/classes
+
+> {% client.test('Get all classes', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+
+### Get students of class
+GET http://localhost:18080/api/org/classes/{{class_id}}/students
+
+> {% client.test('Get students of class', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Create class
+#POST http://localhost:18080/api/org/classes
+#token: {{auth_token}}
+#Content-Type: application/json
+#
+#{
+# "class_name": "Test class"
+#}
+#
+## Create class with owner
+#POST http://localhost:18080/api/org/classes?withOwner=true
+#token: {{auth_token}}
+#Content-Type: application/json
+#
+#{
+#  "class_name": "Test class",
+#  "class_owner": "some id"
+#}
+
+
+### Rename class
+#PATCH /api/org/classes/<id of class>
+#
+#{
+#
+#}
+
+
+### Delete class
+#DELETE /api/org/classes/<id of class>
+
+### Set env class id for testing
+GET http://localhost:18080/null
+
+> {%
+    client.assert(response.status === 404, "Just set 404")
+    client.global.set("user_test_ID", "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5");
+%}
+
+### Get all users
+GET http://localhost:18080/api/org/users
+
+> {%
+    client.assert(response.status === 200, "Expected 200 but dont");
+    client.assert(!response.body.includes(null), "Expected users but got null (")
+%}
+### Grant roles to user
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/grant/roles
+Content-Type: application/json
+
+{
+  "roles": ["apitest1", "apitest2"]
+}
+
+> {%
+ client.assert(response.status === 200, "Expected 200 but dont");
+ %}
+
+### Degrant roles to user
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/degrant/roles
+Content-Type: application/json
+
+{
+  "roles": ["apitest2"]
+}
+
+> {%
+    client.assert(response.status === 200, "Expected 200 but dont");
+%}
+
+### Grant classes to user
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/grant/classes
+Content-Type: application/json
+
+{
+  "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]
+}
+
+> {%
+    client.assert(response.status === 201, "Expected 200 but dont");
+%}
+
+### Degrant classes to user
+PATCH http://localhost:18080/api/org/users/{{user_test_ID}}/degrant/classes
+Content-Type: application/json
+
+{
+  "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]
+}
+
+> {%
+    client.assert(response.status === 201, "Expected 201 but dont");
+%}
+
+### Get data for today
+GET  http://localhost:18080/api/org/data
+
+> {% client.test('Get data for today', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Get data for custom date
+GET  http://localhost:18080/api/org/data/2024-07-26
+
+> {% client.test('Get data for custom date', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Get summarized data
+GET http://localhost:18080/api/org/data-summary?startDate=2024-07-01&endDate=2024-07-28
+
+> {% client.test('Get summarized data', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Get all invites
+GET http://localhost:18080/api/org/invites
+
+> {% client.test('Get invites', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Create new invite
+POST http://localhost:18080/api/org/invites
+Content-Type: application/json
+
+{
+  "name": "api-test",
+  "roles": ["teacher"],
+  "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]
+}
+
+
+> {% client.test('Get invites', function () {
+        client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
+    }) %}
+
+### Drop invite
