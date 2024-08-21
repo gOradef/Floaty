@@ -93,6 +93,9 @@ class Server {
                 res.body = e.what();
                 std::cerr << "[ERR]: " << e.what();
             }
+            catch (jwt::error::token_verification_error) {
+                res.code = 401;
+            }
         }
         else {
             res.code = 401;
