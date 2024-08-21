@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 
 // Import components
 import HelloWorld from '@/components/HelloWorld.vue'
+import NotFound from "@/views/NotFound.vue";
 
 // Lazy-loaded components
 const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
@@ -13,14 +14,18 @@ const routes = [
     {
         path: '/',
         name: 'home',
-        component: HelloWorld,
-        msg: "Darova"
+        component: HelloWorld
     },
     {
         path: '/about',
         name: 'about',
         component: AboutView
-    }
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: NotFound
+    },
 ]
 
 const router = new VueRouter({

@@ -18,5 +18,9 @@ module.exports = {
 				additionalData: [...bootstrapSassAbstractsImports, ''].join(';\n')
 			}
 		}
+	},
+	transpileDependencies: true,
+	devServer: {
+		port: 28080
 	}
 }

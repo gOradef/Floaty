@@ -1,10 +1,8 @@
 <template>
   <div id="app">
-    <navbar>
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </navbar>
+    <Navbar/>
     <router-view/>
+    <AppFooter/>
   </div>
 </template>
 
@@ -30,3 +28,7 @@ navbar {
   }
 }
 </style>
+<script setup lang="ts">
+import Navbar from "@/components/navbar.vue";
+import AppFooter from "@/components/footer.vue";
+</script>

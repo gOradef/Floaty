@@ -1,6 +1,12 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+    <div >
+      <b-jumbotron header="Floaty" lead="Сервис для заполнения отчётности удобоно, быстро, надежно">
+        <p>For more information visit website</p>
+        <b-button variant="primary" href="/about">More Info</b-button>
+      </b-jumbotron>
+    </div>
     <p>
       For a guide and recipes on how to configure / customize this project,<br>
       check out the
