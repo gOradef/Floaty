@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Navbar/>
+    <AppNavbar/>
     <router-view/>
     <AppFooter/>
   </div>
@@ -15,20 +15,11 @@
   color: #2c3e50;
 }
 
-navbar {
-  padding: 30px;
-
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-
-    &.router-link-exact-active {
-      color: #42b983;
-    }
-  }
+router-view {
+  min-height: 3000px;
 }
 </style>
 <script setup lang="ts">
-import Navbar from "@/components/navbar.vue";
+import AppNavbar from "@/components/navbar.vue";
 import AppFooter from "@/components/footer.vue";
 </script>

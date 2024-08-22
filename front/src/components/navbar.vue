@@ -5,9 +5,19 @@ export default {
 </script>
 
 <template>
-<navbar><a href="/api">Test link</a></navbar>
+  <b-navbar variant="faded" type="dark">
+    <b-navbar-brand href="/">Floaty</b-navbar-brand>
+    <b-nav-item>
+      <a href="/home">Home</a>
+    </b-nav-item>
+    <b-nav-item>
+      <a href="/org">Admin</a>
+    </b-nav-item>
+  </b-navbar>
 </template>
 
 <style scoped>
-
+  navbar {
+    background-color: #333333;
+  }
 </style>
