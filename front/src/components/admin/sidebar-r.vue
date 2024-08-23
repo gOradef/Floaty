@@ -1,21 +1,20 @@
-
 <template>
-  <b-col class="sidebar-right">
-    <b-calendar></b-calendar>
-  </b-col>
+  <div class="sidebar">
+    <b-calendar :start-weekday="1"></b-calendar>
+  </div>
 </template>
 
 <script>
-  export default {
-    name: 'AdminSideBarR'
-  }
+
+export default {
+  name: "Calendar"
+};
 </script>
 
 <style scoped>
-.sidebar-right {
-  min-width: 300px;
-  max-width: 300px;
-
-  border-left: #2c3e50 1px solid;
+.b-calendar {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: #2c3e50 1px solid;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <b-col class="sidebar">
+  <div class="sidebar">
     <h2>Разделы</h2>
     <b-list-group>
       <b-list-group-item
@@ -11,7 +11,7 @@
         {{ section.label }}
       </b-list-group-item>
     </b-list-group>
-  </b-col>
+  </div>
 </template>
 
 <script>
@@ -25,10 +25,10 @@ export default {
     return {
       activeSection: '/org/data',
       sections: [
-        { label: 'Данные', value: '/org/data' },
-        { label: 'Классы', value: '/org/classes' },
-        { label: 'Пользователи', value: '/org/users' },
-        { label: 'Приглашения', value: '/org/invites' }
+        { label: 'Данные', value: 'data' },
+        { label: 'Классы', value: 'classes' },
+        { label: 'Пользователи', value: 'users' },
+        { label: 'Приглашения', value: 'invites' }
       ]
     };
   },
@@ -44,13 +44,6 @@ export default {
 </script>
 
 <style scoped>
-.sidebar {
-  max-width: 300px;
-
-  min-height: inherit;
-  border-right: #2c3e50 1px solid;
-  resize: horizontal;
-}
 .list-group > div {
   cursor: pointer;
 }

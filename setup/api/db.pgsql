@@ -270,6 +270,13 @@ BEGIN
 							('{'::text || 'absent_amounts' || ','::text || key || '}'::text)::text[],
 							to_jsonb(jsonb_array_length(_input->object_name->key))
 						);
+						-- Setting isClassDataFilled to true
+						class_body := jsonb_set(
+							class_body, 
+							('{isClassDataFilled}')::text[],
+							'true'::jsonb,
+							true -- overwrite if exists
+						);
 					END IF;
 				else raise NOTICE 'Key doesnt exists in list-input: %', key;
 				END IF;
@@ -1061,6 +1068,17 @@ BEGIN
                     )
                 )
             );
+
+			-- Insert isActualData
+			root_new_data := jsonb_set(
+                root_new_data,
+                ('{' || rec.class_id || '}')::text[],
+                jsonb_set(
+					rec.class_body,
+                    '{isClassDataFilled}'::text[],
+                    'false'::jsonb
+                )
+            );
         END LOOP;
 
         -- Insert the new data into schools_data
@@ -1079,26 +1097,42 @@ ALTER PROCEDURE public.school_data_gen(IN _orgref uuid) OWNER TO postgres;
 
 CREATE FUNCTION public.school_data_get(_orgid uuid) RETURNS TABLE(class_id text, class_body jsonb)
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-if (select exists (select 1 from schools_data where school_id = _orgID and date = current_date)) THEN
-	return query (
-			SELECT key, 
-					jsonb_set(
-						value,
-						'{owner}'::text[],
-						jsonb_build_object(
-		'name',(select name from users where id = (select user_id from schools_classes where schools_classes.class_id = key::uuid) ),
-		'id', (select user_id from schools_classes where schools_classes.class_id = key::uuid)
-	)
-)
-			FROM schools_data, jsonb_each(data)
-			WHERE school_id = _orgID
-			AND DATE = CURRENT_DATE
-			);
-END IF;
-END;
-$$;
+    AS $$BEGIN
+    IF (SELECT EXISTS (SELECT 1 FROM schools_data WHERE school_id = _orgID AND date = CURRENT_DATE)) THEN
+        RETURN QUERY (
+            SELECT 
+                key, 
+                jsonb_set(
+                    value,
+                    '{owner}'::text[],
+                    jsonb_build_object(
+                        'id', (
+                            SELECT user_id 
+                            FROM schools_classes_ownership_view owners_view
+                                WHERE owners_view.school_id = _orgID
+                                  AND owners_view.class_id = key::uuid
+                        ),
+                        'name', (
+                            SELECT name 
+                            FROM users 
+                            WHERE id = (
+                                SELECT user_id 
+                                FROM schools_classes_ownership_view owners_view
+                                WHERE owners_view.school_id = _orgID
+                                  AND owners_view.class_id = key::uuid
+                            )
+                        )
+                    )
+                )
+            FROM 
+                schools_data, 
+                jsonb_each(data)
+            WHERE 
+                school_id = _orgID
+                AND DATE = CURRENT_DATE
+        );
+    END IF;
+END;$$;
 
 
 ALTER FUNCTION public.school_data_get(_orgid uuid) OWNER TO postgres;
@@ -1117,7 +1151,29 @@ IF (_date is null) THEN
 END IF;
 if (select true from schools_data where school_id = _orgID and date = _date) THEN
         return query (
-                        SELECT key, value
+                        SELECT key, 
+						jsonb_set(
+                    value,
+                    '{owner}'::text[],
+                    jsonb_build_object(
+                        'id', (
+                            SELECT user_id 
+                            FROM schools_classes_ownership_view owners_view
+                                WHERE owners_view.school_id = _orgID
+                                  AND owners_view.class_id = key::uuid
+                        ),
+                        'name', (
+                            SELECT name 
+                            FROM users 
+                            WHERE id = (
+                                SELECT user_id 
+                                FROM schools_classes_ownership_view owners_view
+                                WHERE owners_view.school_id = _orgID
+                                  AND owners_view.class_id = key::uuid
+                            )
+                        )
+                    )
+                )
                         FROM schools_data, jsonb_each(data)
                         WHERE school_id = _orgID
                         AND date = _date
@@ -1401,17 +1457,18 @@ ALTER PROCEDURE public.school_user_password_reset(IN _schoolid uuid, IN _userid 
 -- Name: school_users_get(uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.school_users_get(_orgid uuid) RETURNS TABLE(user_id uuid, user_body jsonb)
+CREATE FUNCTION public.school_users_get(_orgid uuid) RETURNS TABLE(id uuid, body jsonb)
     LANGUAGE plpgsql
-    AS $$BEGIN
+    AS $$
+BEGIN
     RETURN QUERY
     SELECT 
-        _user_id::uuid,
-        jsonb_build_object(
+        _user_id::uuid AS id, -- Extract the user ID
+        jsonb_build_object( 
             'name', users.name::text,
-            'roles', members -> _user_id -> 'roles',
-            'classes', class_info.classes
-        )
+            'roles', members -> _user_id -> 'roles', -- Include roles
+            'classes', COALESCE(class_info.classes, '[]'::jsonb) -- Include classes, default to empty array if null
+        ) AS user_info
     FROM 
         schools
     JOIN 
@@ -1421,7 +1478,10 @@ CREATE FUNCTION public.school_users_get(_orgid uuid) RETURNS TABLE(user_id uuid,
     LEFT JOIN (
         SELECT 
             class_data.user_id,
-            jsonb_object_agg(class_data.class_id, class_data.class_name) AS classes  -- Aggregate classes into a JSON object
+            jsonb_agg(jsonb_build_object( -- Create an array of JSON objects
+                'id', class_data.class_id, 
+                'name', class_data.class_name
+            )) AS classes  -- Aggregate classes into a JSON array
         FROM (
             SELECT 
                 view.user_id,
@@ -1431,11 +1491,12 @@ CREATE FUNCTION public.school_users_get(_orgid uuid) RETURNS TABLE(user_id uuid,
                 schools_classes_ownership_view view
         ) AS class_data
         GROUP BY 
-            class_data.user_id  -- Changed to group by user_id only
+            class_data.user_id  -- Group by user_id
     ) AS class_info ON class_info.user_id = users.id
     WHERE 
-        schools.id = _orgID;  -- Filtering based on the organization ID
-END;$$;
+        schools.id = _orgID;  -- Filter based on the organization ID
+END;
+$$;
 
 
 ALTER FUNCTION public.school_users_get(_orgid uuid) OWNER TO postgres;
@@ -2032,6 +2093,8 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 00000000-0000-0000-0000-000000000000	2024-08-10	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "list_students": ["Ivanov1"], "absent_amounts": {"ORVI": 1, "global": 3, "fstudents": 1, "respectful": 1, "not_respectful": 0}, "list_fstudents": []}}
 00000000-0000-0000-0000-000000000000	2024-08-14	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "absent_amounts": {"ORVI": 1, "global": 3, "fstudents": 1, "respectful": 1, "not_respectful": 0}, "list_fstudents": []}}
 00000000-0000-0000-0000-000000000000	2024-08-16	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}, {"id": "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5", "name": "api-test"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "absent_amounts": {"ORVI": 1, "global": 3, "fstudents": 1, "respectful": 1, "not_respectful": 0}, "list_fstudents": []}}
+00000000-0000-0000-0000-000000000000	2024-08-19	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "absent_lists": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "absent_amounts": {"ORVI": 1, "global": 3, "fstudents": 1, "respectful": 1, "not_respectful": 0}, "list_fstudents": []}}
+00000000-0000-0000-0000-000000000000	2024-08-23	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "amount": 0, "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": [], "isClassDataFilled": false}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "amount": 0, "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": [], "isClassDataFilled": false}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "amount": 0, "absent_lists": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "absent_amounts": {"ORVI": 1, "global": 3, "fstudents": 1, "respectful": 1, "not_respectful": 0}, "list_fstudents": [], "isClassDataFilled": true}}
 \.
 
 
@@ -2062,6 +2125,14 @@ COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin
 00000000-0000-0000-0000-000000000000	17	1713	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
 00000000-0000-0000-0000-000000000000	18	1690	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
 00000000-0000-0000-0000-000000000000	19	3942	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	20	106	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	21	8748	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	22	4767	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	23	3922	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	24	878	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	25	2176	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	26	7391	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
+00000000-0000-0000-0000-000000000000	27	3995	{"name": "api-test", "roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}
 \.
 
 
