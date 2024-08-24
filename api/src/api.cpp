@@ -146,7 +146,7 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
  * @example input:
  * @code
  * {
- *   "absent_lists": {
+ *   "absent": {
  *     "global": [],
  *     "ORVI": [],
  *     "fstudents": [],
@@ -155,8 +155,6 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
  *   }
  * }
  *@endcode
- *
- * @throws std::runtime_error
  */
 
 void classHandler::insertData(const std::string &changes) {
@@ -167,10 +165,10 @@ void classHandler::insertData(const std::string &changes) {
     if (!jsonRoot)
         throw api::exceptions::parseErr("Can not read body request. Is is json format?");
 
-    if (!jsonRoot.has("absent_lists") || jsonRoot["absent_lists"].t() != crow::json::type::Object)
-        throw api::exceptions::wrongRequest("Can not read body request. Is is has absent_list as object?");
+    if (!jsonRoot.has("absent") || jsonRoot["absent"].t() != crow::json::type::Object)
+        throw api::exceptions::wrongRequest("Can not read body request. Is is has absent as object?");
 
-    for (auto type : jsonRoot["absent_lists"]) {
+    for (auto type : jsonRoot["absent"]) {
         if (type.t() != crow::json::type::List)
             throw api::exceptions::wrongRequest("Can not parse lists. Is key:" + std::string(type.s()) + " list?");
     }

@@ -109,7 +109,7 @@ PUT  http://localhost:18080/api/user/classes/{{class_id}}/data
 Content-Type: application/json
 
 {
-  "absent_lists": {
+  "absent": {
     "ORVI": ["Ivanov"],
     "global": ["Ivanov", "Setkov", "Adminov"],
     "respectful": ["Adminov"],

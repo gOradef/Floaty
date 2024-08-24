@@ -1,60 +1,11 @@
-<template>
-  <div>
-    <!-- Modal for Tags -->
-    <b-modal v-model="modalVisible" :title="titleModal" @hide="resetModal">
-      <template v-slot:modal-footer>
-        <b-button variant="secondary" @click="modalVisible = false">Close</b-button>
-        <b-button variant="primary" @click="saveTags">Save</b-button>
-      </template>
-      <div>
-        <b-form-group label="Tags">
-          <b-form-input v-model="tagsInput" placeholder="Enter tags"></b-form-input>
-        </b-form-group>
-      </div>
-    </b-modal>
-
-    <h3 style="border-bottom: #2c3e50 1px dotted"> {{contextData.name}}</h3>
-  <b-button-group vertical v-if="showContextOptions">
-        <div v-for="(option, index) in contextOptions"
-             :key="index">
-      <b-button :variant="option._variant" @click="callAction(option.foo)">
-        {{option.label }} <!-- Assuming each option has a label to display -->
-      </b-button>
-        </div>
-  </b-button-group>
-  </div>
-</template>
-
 <script>
+import editAbsentAmount from "@/components/admin/context-forms/data/editAbsentAmount.vue";
+
 export default {
   name: "AdminContextMenu",
   data() {
     return {
-      modalContent: {
-        data: {
-          editAbsentAmount: false //set num,
-          editAbsentFios: false, //tags
-          setDataFilled: false //check
-        },
-        classes: {
-          create: false, //form (name, amount, <owner>)
-          editOwners: false, //tags + suggest users
-          rename: false, //set String
-          delete: false //confirm
-        },
-        users: {
-          create: false, //form (name, login, password, <roles>, <classes>)
-          editRoles: false, //tags
-          editClasses: false, //tags + suggest users
-          rename: false, //set String
-          delete: false, //confirm
-        },
-        invites: {
-          create: false, // form name, class
-          delete: false //confirm
-        }
-      },
-      currentModal: '',
+      currentForm: {},
       titleModal: '',
       showModal: false,
       showContextOptions: false,
@@ -66,7 +17,7 @@ export default {
         data: [
           {
             label: 'Редакт. кол-во отсутств.',
-            foo: 'setAbsentAmount'
+            foo: () => this.openModal(editAbsentAmount)
           },
           {
             label: 'Редакт. фамилии отсутств.',
@@ -137,36 +88,60 @@ export default {
       this.showContextOptions = false;
       this.contextOptions = []; // Clear options when hiding
     });
+    this.$root.$on('notification', (type, msg) => {
+      switch(type) {
+        case: "success"
+          break;
+        case: "alert"
+          break;
+
+      }
+    });
   },
   methods: {
-    setAbsentAmount() {
-      this.showModal = true;
-      // console.log("SETED");
-    },
-    setAbsentFios() {
-      this.showModal = true;
-
-    },
-    callAction(action) {
-      if (this[action]) {
-        this[action]();  // Call the method referenced
-      } else {
-        console.warn(`Method ${action} is not defined.`);
-      }
-    },
     openModal(type) {
-      this.currentModal = type;
-      this.modalVisible = true;
+      this.currentForm = type;
+      this.showModal = true;
+      this.titleModal = this.currentForm.data().modal.title;
     },
     resetModal() {
-      this.modalVisible = false;
-      this.tagsInput = '';
-      this.integerValue = null;
-      this.renameInput = '';
+      this.showModal = false;
+      this.currentForm = null;
     },
+    formConfirm() {
+      this.$root.$emit('form:confirm');
+    }
   }
 };
 </script>
+
+<template>
+  <div>
+    <b-modal v-model="showModal" :title="titleModal" @hide="resetModal">
+      <template v-slot:modal-footer>
+        <b-button variant="secondary" @click="showModal = false">Close</b-button>
+        <b-button variant="primary" @click="formConfirm">Save</b-button>
+      </template>
+      <div>
+        <component v-bind:content="contextData" :is="currentForm"></component>
+      </div>
+    </b-modal>
+
+
+    <h3 style="border-bottom: #2c3e50 1px dotted"> {{contextData.name}}</h3>
+
+<!--    Button group -->
+  <b-button-group vertical v-if="showContextOptions">
+        <div v-for="(option, index) in contextOptions"
+             :key="index">
+      <b-button :variant="option._variant" @click="option.foo">
+        {{option.label }} <!-- Assuming each option has a label to display -->
+      </b-button>
+        </div>
+  </b-button-group>
+
+  </div>
+</template>
 
 <style scoped lang="postcss">
 .btn-group-vertical {
