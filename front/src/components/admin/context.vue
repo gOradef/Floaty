@@ -89,12 +89,12 @@ export default {
       this.contextOptions = []; // Clear options when hiding
     });
     this.$root.$on('notification', (type, msg) => {
+      msg;
       switch(type) {
-        case: "success"
+        case "success":
           break;
-        case: "alert"
+        case "alert":
           break;
-
       }
     });
   },

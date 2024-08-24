@@ -5,9 +5,10 @@ import VueRouter from 'vue-router'
 import HelloWorld from '@/components/HelloWorld.vue'
 import NotFound from "@/views/NotFound.vue";
 import AdminView from "@/views/AdminView.vue";
-
+import loginPage from '@/views/login.vue'
 // Lazy-loaded components
 const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+
 
 Vue.use(VueRouter)
 
@@ -16,6 +17,11 @@ const routes = [
         path: '/',
         name: 'home',
         component: HelloWorld
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: loginPage
     },
     {
         path: '/about',
