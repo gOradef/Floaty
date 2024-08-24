@@ -17,7 +17,7 @@
             <button type="submit" class="btn btn-primary btn-block">Войти</button>
           </form>
           <div style="display: flex; justify-content: center;">
-            <router-link to="#foo" style="color: blue; text-decoration: underline;">
+            <router-link to="#foo" style="color: blue; text-decoration: underline; margin-top: 10px;">
               Есть приглашение?
             </router-link>
           </div>
