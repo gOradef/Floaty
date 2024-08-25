@@ -1,5 +1,5 @@
 <script>
-import editAbsentAmount from "@/components/admin/context-forms/data/editAbsentAmount.vue";
+import editAbsent from "@/components/admin/context-forms/data/editAbsentAmount.vue";
 
 export default {
   name: "AdminContextMenu",
@@ -11,13 +11,13 @@ export default {
       showContextOptions: false,
 
       contextOptions: [ ],
-      contextData: '',
+      contextData: {},
 
       template_contextOptions: {
         data: [
           {
             label: 'Редакт. кол-во отсутств.',
-            foo: () => this.openModal(editAbsentAmount)
+            foo: () => this.openModal(editAbsent)
           },
           {
             label: 'Редакт. фамилии отсутств.',
@@ -123,7 +123,8 @@ export default {
         <b-button variant="primary" @click="formConfirm">Save</b-button>
       </template>
       <div>
-        <component v-bind:content="contextData" :is="currentForm"></component>
+        <component :content="contextData"
+                   :is="currentForm"/>
       </div>
     </b-modal>
 
