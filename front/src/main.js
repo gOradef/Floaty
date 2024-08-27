@@ -3,6 +3,8 @@ import 'mutationobserver-shim'
 
 import Vue from 'vue'
 import './plugins/bootstrap-vue'
+//Import api
+import api from '@/plugins/api';
 
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 
@@ -18,6 +20,8 @@ import router from './router'  // Ensure you're importing the router
 Vue.use(BootstrapVue)
 // Optionally install the BootstrapVue icon components plugin
 Vue.use(IconsPlugin)
+// Set api plugin
+Vue.use(api)
 
 Vue.config.productionTip = false
 

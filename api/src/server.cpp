@@ -8,6 +8,7 @@
 
 Server::Server(const std::string& address, const int& port, ConnectionPool* cp) {
     Server::_connectionPool = cp;
+
     app.bindaddr(address)
        .port(port);
 
@@ -106,11 +107,13 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         auto userName = readTransaction.exec_prepared1("user_name_get", schoolUUID, userUUID).front().as<std::string>();
 
         // Option 1. User Set-Cookie
-        res.set_header("Set-Cookie", "Floaty_access_token=" + jwtAccess + "; path=/;"
-                       + "Max-Age=86400;" + "HttpOnly;"+ "Secure;" + "SameSite=Lax;");
+        res.set_header("Set-Cookie", "Floaty_access_token=" + jwtAccess +
+            "; path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax;");
+
         // Set the refresh token in the Set-Cookie header of the response
-        res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/;"
-                       + "Max-Age=432000;" + "HttpOnly;"+ "Secure;" + "SameSite=Lax;");
+        if (req_json.has("rememberMe")
+            && req_json["rememberMe"].t() == crow::json::type::True)
+                res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/; Max-Age=432000; HttpOnly; Secure; SameSite=Lax;");
 
         crow::json::wvalue root;
         root["user"]["name"] = userName;
@@ -119,14 +122,22 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
     }
     catch (api::exceptions::parseErr& e) {
         res.code = 400;
-        res.body = "Failed to parse request body. Is it json?";
+        crow::json::wvalue json;
+        json["type"] = "Parse error";
+        json["msg"] = "Failed to parse request body. Is it json?";
     }
     catch (api::exceptions::wrongRequest& e) {
         res.code = 400;
-        res.body = e.what();
+        crow::json::wvalue json;
+        json["type"] = "Wrong request";
+        json["msg"] = e.what();
+        res.body = json.dump();
     }
     catch (std::exception &e) {
-        std::string msg = e.what();
+        crow::json::wvalue json;
+        json["type"] = "Wrong request";
+        json["msg"] = e.what();
+        res.body = json.dump();
         std::cerr << "ERR: " <<  e.what() << '\n';
     }
 
@@ -171,9 +182,9 @@ void Server::routes_auth::refreshToken(const crow::request& req, crow::response&
 
     // Send the new access token in response
     res.code = 200; // Success
-    res.set_header("Set-Cookie", "Floaty_access_token=" + newAccessToken + "; path=/;"
-                   + "Max-Age=86400;" + "HttpOnly;" + "Secure;" + "SameSite=Lax;");
-    res.end(); // End the response
+    res.set_header("Set-Cookie", "Floaty_access_token=" + newAccessToken +
+        "; path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax;");
+    return res.end(); // End the response
 }
 
 void Server::routes_auth::getInviteProps(const crow::request& req, crow::response& res,
@@ -194,6 +205,7 @@ void Server::routes_auth::getInviteProps(const crow::request& req, crow::respons
 
     auto con = _connectionPool->getConnection();
     pqxx::read_transaction work(*con);
+
     auto props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret).front().front().as<std::string>();
     res.body = props;
     _connectionPool->releaseConnection(con);
@@ -255,7 +267,7 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
             roles.emplace_back(el.s());
         }
         for (const auto& el : json_props["classes"]) {
-            classes.emplace_back(el.s());
+            classes.emplace_back(el["id"].s());
         }
         const std::string& name = json_props["name"].s();
 
@@ -709,9 +721,9 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
     verify.allow_algorithm(jwt::algorithm::hs256(_jwtSecret));
     verify.with_issuer("Floaty");
 
-    jwt::decoded_jwt decoded_token = jwt::decode(userjwt);
     pqxx::connection* c = _connectionPool->getConnection();
     try {
+        jwt::decoded_jwt decoded_token = jwt::decode(userjwt);
         verify.verify(decoded_token);
 
         // * check exp time
@@ -775,6 +787,9 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
         return true;
     }
     catch (jwt::error::signature_verification_error& e) {
+        std::cerr << "Signature verif. err: " << e;
+    }
+    catch (jwt::error::token_verification_error& e) {
         std::cerr << "Signature verif. err: " << e;
     }
     catch (const std::runtime_error& e) {

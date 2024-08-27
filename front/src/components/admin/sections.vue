@@ -16,7 +16,7 @@
 
 <script>
 export default {
-  name: 'AdminSidebarL',
+  name: 'AdminSections',
 
   props: {
     contentSection: String

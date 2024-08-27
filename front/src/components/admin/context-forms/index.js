@@ -1,3 +1,3 @@
-import editAbsentAmount from './data/editAbsentAmount.vue'
+import editAbsentAmount from './data/editAbsent.vue'
 
 export {editAbsentAmount}

@@ -40,17 +40,11 @@ std::vector<std::string> Request::getRoles() {
  * @endcode
  */
 crow::json::wvalue Request::getAvailibleClasses() {
-    crow::json::wvalue classesMap;
     pqxx::read_transaction work(*_connection);
 
     auto result = work.exec_prepared(psqlMethods::userData::getClasses, _org_id, _user_id);
-    for (auto row : result) {
-        auto id = row["class_id"].as<std::string>();
-        auto name = row["class_name"].as<std::string>();
-
-        classesMap[id] = name;
-    }
-    return classesMap;
+    crow::json::wvalue classes = crow::json::load(result.front().front().as<std::string>());
+    return classes;
 }
 
 /**
@@ -88,8 +82,7 @@ crow::json::wvalue classHandler::getClassStudents() {
 crow::json::wvalue classHandler::getInsertedDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, nullptr);
-    crow::json::wvalue json;
-    json = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
     return json;
 }
 crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date) {
@@ -236,12 +229,7 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
 
     // Prepare JSON result
-    crow::json::wvalue root;
-    for (auto row : res) {
-        auto class_id = row["class_id"].as<std::string>();
-        auto class_body = row["class_body"].as<std::string>();
-        root[class_id] = crow::json::load(class_body);
-    }
+    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
 
     return root;
 }
@@ -265,23 +253,18 @@ crow::json::wvalue schoolManager::getDataForToday() {
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, nullptr);
 
     // Prepare JSON result
-    crow::json::wvalue root;
-    for (const auto& row : res) {
-        auto class_id = row["class_id"].as<std::string>();
-        auto class_body = row["class_body"].as<std::string>();
-        root[class_id] = crow::json::load(class_body);
-    }
+    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
 
     return root;
 }
 
 
 crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &startDate, const std::string& endDate) {
-    crow::json::wvalue json;
 
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getSummarized, _org_id, startDate, endDate);
 
+    crow::json::wvalue json;
     for (auto row : res) {
         auto class_id = row["class_id"].as<std::string>();
         auto class_body = row["class_body"].as<std::string>();
@@ -312,12 +295,7 @@ crow::json::wvalue schoolManager::getClasses() {
     pqxx::read_transaction readTransaction(*_connection);
 
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getAll, _org_id);
-    crow::json::wvalue json;
-    for (auto row : res) {
-        auto class_id = row["class_id"].as<std::string>();
-        auto class_body = row["class_body"].as<std::string>();
-        json[class_id] = crow::json::load(class_body);
-    }
+    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
     return json;
 }
 crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
@@ -410,12 +388,7 @@ void schoolManager::classRename(const crow::json::rvalue &json) {
 crow::json::wvalue schoolManager::getUsers() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::users::getAll, _org_id);
-    crow::json::wvalue json;
-    for (auto row : res) {
-        auto userID = row[0].as<std::string>();
-        auto userContext = row[1].as<std::string>();
-        json[userID] = crow::json::load(userContext);
-    }
+    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
     return json;
 }
 
@@ -541,14 +514,7 @@ void schoolManager::inviteCreate(const std::string& invite_body) {
 crow::json::wvalue schoolManager::getAllInvites() {
     pqxx::read_transaction rtx(*_connection);
     auto res = rtx.exec_prepared(psqlMethods::invites::getAll, _org_id);
-    crow::json::wvalue json;
-    for (auto invite : res) {
-        std::string req_id = invite["req_id"].c_str();
-        std::string req_secret = invite["req_secret"].c_str();
-        crow::json::rvalue props  = crow::json::load(invite["req_body"].c_str());
-        json[req_id]["secret"] = req_secret;
-        json[req_id]["body"] = props;
-    }
+    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
     return json;
 }
 void schoolManager::inviteDrop(const std::string& reqID) {

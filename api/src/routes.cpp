@@ -6,7 +6,7 @@
 
 using Session = crow::SessionMiddleware<crow::InMemoryStore>;
 
-crow::App<crow::CookieParser, Session> Server::app {
+crow::App<crow::CookieParser, Session, appMiddlewareJSON> Server::app {
     Session {
         crow::CookieParser::Cookie("session").max_age(/*one day*/ 24 * 60 * 60).path("/"),
         // set session id length (small value only for demonstration purposes)
@@ -21,7 +21,7 @@ inline void Server::route_auth() {
         .methods(crow::HTTPMethod::POST)
         (routes_auth::login);
 
-    CROW_ROUTE(Server::app, "/api/auth/refresh")
+    CROW_ROUTE(Server::app, "/api/refresh-token")
     .methods(crow::HTTPMethod::POST)
     (routes_auth::refreshToken);
 
@@ -34,7 +34,7 @@ inline void Server::route_auth() {
     (routes_auth::signupUsingInvite);
 }
 inline void Server::route_user() {
-    CROW_ROUTE(app, "/api/user/roles")
+    CROW_ROUTE(app, "/api/roles")
         .methods(crow::HTTPMethod::GET)
         (routes_user::getUserRoles);
 

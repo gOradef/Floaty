@@ -11,7 +11,8 @@ Content-Type: application/json
 
 {
   "login": "Tester_#1",
-  "password": "I_am_the_best"
+  "password": "I_am_the_best",
+  "rememberMe": false
 }
 > {%
     client.test("Login", function () {
@@ -20,7 +21,7 @@ Content-Type: application/json
 %}
 
 ### Refresh token
-POST http://localhost:18080/api/auth/refresh
+POST http://localhost:18080/api/refresh-token
 Content-Type: application/json
 
 > {% client.test('Refresh token', function () {
@@ -33,8 +34,8 @@ Content-Type: application/json
 
 {
   "invite": {
-    "code": "16",
-    "secret": "7208"
+    "code": "1",
+    "secret": "7296"
   }
 }
 
@@ -48,11 +49,11 @@ Content-Type: application/json
 
 {
   "invite": {
-    "code": "16",
-    "secret": "7208"
+    "code": "1",
+    "secret": "7296"
   },
   "user": {
-    "login": "test1010",
+    "login": "test101010",
     "password": "kakdela"
   }
 }
@@ -63,7 +64,7 @@ Content-Type: application/json
 
 
 ### Get user roles
-GET http://localhost:18080/api/user/roles
+GET http://localhost:18080/api/roles
 Content-Type: application/json
 
 > {% client.test('Get roles', function () {

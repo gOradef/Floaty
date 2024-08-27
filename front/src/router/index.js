@@ -3,9 +3,14 @@ import VueRouter from 'vue-router'
 
 // Import components
 import HelloWorld from '@/components/HelloWorld.vue'
+
+import loginPage from '@/views/LoginView.vue'
+
+import UserView from "@/views/Roles/UserView.vue";
+import AdminView from "@/views/Roles/AdminView.vue";
+
 import NotFound from "@/views/NotFound.vue";
-import AdminView from "@/views/AdminView.vue";
-import loginPage from '@/views/login.vue'
+import axios from "axios";
 // Lazy-loaded components
 const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
 
@@ -25,17 +30,22 @@ const routes = [
     },
     {
         path: '/about',
-        name: 'about',
+        name: 'О нас',
         component: AboutView
+    },
+    {
+        path: '/user',
+        name: 'Кл. рук.',
+        component: UserView
     },
     {
         path: '/org',
         name: 'Управление учреждением',
-        component: AdminView,
+        component: AdminView
     },
     {
       path: '/org/:section',
-      name: 'Управление учреждением',
+      name: 'Управление учреждением с разделом',
       component: AdminView
     },
     //! Should be latest
@@ -52,4 +62,7 @@ const router = new VueRouter({
     routes
 })
 
-export default router
+axios.defaults.headers.common['accept'] = 'application/json';
+axios.defaults.responseType = "json";
+
+export default router;

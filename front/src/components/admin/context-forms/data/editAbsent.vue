@@ -1,12 +1,12 @@
 <template>
   <b-form title="Редактировать кол-во отсутств. учащихся">
-    <h4>Класс: {{ updatedAbsent.name }}</h4>
+    <h4>Класс: {{ updatedClass.name }}</h4>
 
     <!--  ORVI  -->
 
     <b-container>
       <!-- Dropdown for selecting students -->
-      <b-dropdown size="sm" variant="outline-secondary" block menu-class="dropdown-scrollable w-100">
+      <b-dropdown class="mb-3"  size="sm" variant="outline-secondary" block menu-class="dropdown-scrollable w-100">
         <template #button-content>
           <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
         </template>
@@ -50,7 +50,7 @@
         <b-col>
           <h6>Список ОРВИ учеников:</h6>
           <b-list-group-item
-              v-for="(tag, index) in updatedAbsent.absent.ORVI"
+              v-for="(tag, index) in updatedClass.absent.ORVI"
               :key="index"
               class="d-flex justify-content-between align-items-center"
           >
@@ -67,7 +67,7 @@
         <b-col>
           <h6>Список уваж. прич. учеников:</h6>
           <b-list-group-item
-              v-for="(tag, index) in updatedAbsent.absent.respectful"
+              v-for="(tag, index) in updatedClass.absent.respectful"
               :key="index"
               class="d-flex justify-content-between align-items-center"
           >
@@ -83,7 +83,7 @@
         <b-col>
           <h6>Список неуваж. прич. учеников:</h6>
           <b-list-group-item
-              v-for="(tag, index) in updatedAbsent.absent.not_respectful"
+              v-for="(tag, index) in updatedClass.absent.not_respectful"
               :key="index"
               class="d-flex justify-content-between align-items-center"
           >
@@ -111,7 +111,8 @@ export default {
   },
   data() {
     return {
-      updatedAbsent: { ...this.content }, // Create a copy of the content
+      modalTitle: 'Редактировать список отсутствующих',
+      updatedClass: { ...this.content }, // Create a copy of the content
       students: this.content.list_students || [], // Ensure students is an array
       selectedStudent: '',
       searchQuery: '', // Search term for filtering students
@@ -120,10 +121,10 @@ export default {
   computed: {
     availableStudents() {
       const absentStudents = {
-        ORVI: new Set(this.updatedAbsent.absent.ORVI),
-        respectful: new Set(this.updatedAbsent.absent.respectful),
-        not_respectful: new Set(this.updatedAbsent.absent.not_respectful),
-        fstudents: new Set(this.updatedAbsent.absent.fstudents),
+        ORVI: new Set(this.updatedClass.absent.ORVI),
+        respectful: new Set(this.updatedClass.absent.respectful),
+        not_respectful: new Set(this.updatedClass.absent.not_respectful),
+        fstudents: new Set(this.updatedClass.absent.fstudents),
       };
 
       return this.students.map((student) => {
@@ -158,50 +159,50 @@ export default {
     },
     isStudentFree() {
      return (this.selectedStudent &&
-         !this.updatedAbsent.absent.ORVI.includes(this.selectedStudent) &&
-         !this.updatedAbsent.absent.respectful.includes(this.selectedStudent) &&
-         !this.updatedAbsent.absent.not_respectful.includes(this.selectedStudent))
+         !this.updatedClass.absent.ORVI.includes(this.selectedStudent) &&
+         !this.updatedClass.absent.respectful.includes(this.selectedStudent) &&
+         !this.updatedClass.absent.not_respectful.includes(this.selectedStudent))
     },
     addORVIStudent() {
       if (this.isStudentFree()) {
-        this.updatedAbsent.absent.ORVI.push(this.selectedStudent);
+        this.updatedClass.absent.ORVI.push(this.selectedStudent);
         this.selectedStudent = ''; // Reset selected student
         this.searchQuery = ''; // Clear the search query
       }
     },
     addRespStudent() {
       if (this.isStudentFree()) {
-        this.updatedAbsent.absent.respectful.push(this.selectedStudent);
+        this.updatedClass.absent.respectful.push(this.selectedStudent);
         this.selectedStudent = ''; // Reset selected student
         this.searchQuery = ''; // Clear the search query
       }
     },
     addNotRespStudent() {
       if (this.isStudentFree()) {
-        this.updatedAbsent.absent.not_respectful.push(this.selectedStudent);
+        this.updatedClass.absent.not_respectful.push(this.selectedStudent);
         this.selectedStudent = ''; // Reset selected student
         this.searchQuery = ''; // Clear the search query
       }
     },
     removeORVITag(index) {
-      this.updatedAbsent.absent.ORVI.splice(index, 1); // Remove student by index
+      this.updatedClass.absent.ORVI.splice(index, 1); // Remove student by index
     },
     removeRespTag(index) {
-      this.updatedAbsent.absent.respectful.splice(index, 1); // Remove student by index
+      this.updatedClass.absent.respectful.splice(index, 1); // Remove student by index
     },
     removeNotRespTag(index) {
-      this.updatedAbsent.absent.not_respectful.splice(index, 1); // Remove student by index
+      this.updatedClass.absent.not_respectful.splice(index, 1); // Remove student by index
     },
     syncAbsents() {
       // Handle any additional logic when absent lists are updated
-      console.log(this.updatedAbsent);
-    },
+      console.log(this.updatedClass);
+    }
   },
   mounted() {
     this.$root.$on("form:confirm", () => {
       // Inserting data (this would typically be an API call or similar)
       console.log("Inserted!");
-      console.log(this.updatedAbsent);
+      console.log(this.updatedClass);
     });
   },
 };

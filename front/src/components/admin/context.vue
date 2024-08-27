@@ -1,27 +1,29 @@
 <script>
-import editAbsent from "@/components/admin/context-forms/data/editAbsentAmount.vue";
+import editAbsent from "@/components/admin/context-forms/data/editAbsent.vue";
 
 export default {
   name: "AdminContextMenu",
   data() {
     return {
-      currentForm: {},
-      titleModal: '',
+      currentForm: Object,
+      modalTitle: '',
       showModal: false,
       showContextOptions: false,
 
-      contextOptions: [ ],
-      contextData: {},
+      contextOptions: [],
+      contextData: Object,
 
       template_contextOptions: {
         data: [
           {
-            label: 'Редакт. кол-во отсутств.',
-            foo: () => this.openModal(editAbsent)
+            label: 'Редакт. список отсутств.',
+            foo: () => this.openModal(editAbsent,
+                'Редактировать список отсутствующих')
           },
           {
-            label: 'Редакт. фамилии отсутств.',
-            foo: ''
+            label: 'Сбросить запись',
+            foo: '',
+            _variant: 'danger'
           }
 
         ],
@@ -99,10 +101,10 @@ export default {
     });
   },
   methods: {
-    openModal(type) {
+    openModal(type, title) {
       this.currentForm = type;
       this.showModal = true;
-      this.titleModal = this.currentForm.data().modal.title;
+      this.modalTitle = title;
     },
     resetModal() {
       this.showModal = false;
@@ -117,14 +119,14 @@ export default {
 
 <template>
   <div>
-    <b-modal v-model="showModal" :title="titleModal" @hide="resetModal">
+    <b-modal v-model="showModal" :title="modalTitle" @hide="resetModal">
       <template v-slot:modal-footer>
         <b-button variant="secondary" @click="showModal = false">Close</b-button>
         <b-button variant="primary" @click="formConfirm">Save</b-button>
       </template>
       <div>
-        <component :content="contextData"
-                   :is="currentForm"/>
+        <component :content="this.contextData"
+                   :is="this.currentForm"/>
       </div>
     </b-modal>
 

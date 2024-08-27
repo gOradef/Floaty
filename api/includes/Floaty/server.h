@@ -10,15 +10,27 @@
 #include "crow/middlewares/cookie_parser.h"
 #include "jwt-cpp/jwt.h"
 
+struct appMiddlewareJSON {
+    struct context
+    {};
+
+    void before_handle(crow::request& req, crow::response& res, context& ctx)
+    {}
+
+    void after_handle(crow::request& req, crow::response& res, context& ctx) {
+        res.add_header("Content-Type", "application/json");
+    }
+};
+
 class Server {
+    using Session = crow::SessionMiddleware<crow::InMemoryStore>;
+    static crow::App<crow::CookieParser, Session, appMiddlewareJSON> app;
     static ConnectionPool* _connectionPool;
 
     //Init secrets for JWT tokens
     static const std::string& _jwtAccessSecret;
     static const std::string& _jwtRefreshSecret;
 
-    using Session = crow::SessionMiddleware<crow::InMemoryStore>;
-    static crow::App<crow::CookieParser, Session> app;
 
     static bool isValidJWT(const std::string& userjwt, const std::string& _jwtSecret);
 
@@ -95,6 +107,7 @@ class Server {
             }
             catch (jwt::error::token_verification_error) {
                 res.code = 401;
+                res.body = {};
             }
         }
         else {

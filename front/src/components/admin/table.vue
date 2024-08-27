@@ -10,9 +10,10 @@
                :items="table.items"
                :fields="table.fields"
                :row-class="rowClass"
+               v-if="isDataLoaded"
       >
 
-<!--        Absent lists -->
+        <!--  Absent lists -->
         <template #cell(absent)="row">
           <div>
           <p @click.stop="toggleDetails(row.item.id)" style="margin-bottom: 8px" >Всего: ({{row.item.absent.global.join(", ")}})
@@ -93,15 +94,25 @@ export default {
   data() {
     return {
       showDetails: false,
+      isDataLoaded: false,
       // Actual data for table
       table: {
         items: [],
         fields: [],
-        formula: {
-          classes: {
-            global_amount: Number,
-            global_absentAmount: Number,
-
+        formulas: {
+          data: {
+            "1_4": {
+              global_amount: Number,
+              global_absentAmount: Number,
+            },
+            "5_11": {
+              global_amount: Number,
+              global_absentAmount: Number,
+            },
+            "global": {
+              global_amount: Number,
+              global_absentAmount: Number,
+            }
           }
         }
       },
@@ -180,7 +191,6 @@ export default {
         ],
       },
 
-
       //Data from request
       raw_data: Object,
 
@@ -198,264 +208,61 @@ export default {
   },
   mounted() {
     this.$root.$on('renderContentSection', async (section) => {
-
       this.activeSection = section;
+      this.isDataLoaded = false;
       this.updateTableFields(section);
 
-      switch (section) {
-        case "data":
-          this.raw_data = {
-            "f501a40b-acd6-4b6e-8428-cb52707f4f94": {
-              "isClassDataFilled": true,
-              "list_students": [
-                "Ivanov0",
-                "Ivanov1",
-                "Ivanov2",
-                "Ivanov3",
-                "Ivanov4",
-                "Ivanov5",
-                "Setkov",
-                "Ivanov0_",
-                "Ivanov1_",
-                "Ivanov2_",
-                "Ivanov3_",
-                "Ivanov4_",
-                "Ivanov5_",
-                "Setkov_",
-              ],
-              "amount": 0,
-              "list_fstudents": [],
-              "absent": {
-                "not_respectful": [],
-                "respectful": [
-                  "Adminov"
-                ],
-                "fstudents": [
-                  "Setkov"
-                ],
-                "global": [
-                  "Ivanov",
-                  "Setkov",
-                  "Adminov"
-                ],
-                "ORVI": [
-                  "Ivanov"
-                ]
-              },
-              "owner": {
-                "name": "Tester Floatyev Ivanich",
-                "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-              },
-              "name": "test3"
-            },
-            "e3ec4a16-365a-4b6d-ac3f-79182df83701": {
-              "isClassDataFilled": false,
-              "list_students": [],
-              "amount": 0,
-              "list_fstudents": [],
-              "absent": {
-                "not_respectful": [],
-                "respectful": [],
-                "fstudents": [],
-                "global": [],
-                "ORVI": []
-              },
-              "owner": {
-                "name": "Tester Floatyev Ivanich",
-                "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-              },
-              "name": "test2"
-            },
-            "6c42c322-d434-4639-ae0e-8eb29088dc33": {
-              "isClassDataFilled": false,
-              "list_students": [],
-              "amount": 0,
-              "list_fstudents": [],
-              "absent": {
-                "not_respectful": [],
-                "respectful": [],
-                "fstudents": [],
-                "global": [],
-                "ORVI": []
-              },
-              "owner": {
-                "name": "Tester Floatyev Ivanich",
-                "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-              },
-              "name": "test1"
-            }
-          };
-          break;
-        case "classes":
-          this.raw_data = {
-            "f501a40b-acd6-4b6e-8428-cb52707f4f94": {
-              "list_fstudents": [],
-              "list_students": [
-                "Ivanov0",
-                "Ivanov1",
-                "Ivanov2",
-                "Ivanov3",
-                "Ivanov4",
-                "Ivanov5"
-              ],
-              "owners": [
-                {
-                  "name": "Tester Floatyev Ivanich",
-                  "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-                }
-              ],
-              "amount": 0,
-              "name": "test3"
-            },
-            "e3ec4a16-365a-4b6d-ac3f-79182df83701": {
-              "list_fstudents": [],
-              "list_students": [],
-              "owners": [
-                {
-                  "name": "Tester Floatyev Ivanich",
-                  "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-                }
-              ],
-              "amount": 0,
-              "name": "test2"
-            },
-            "6c42c322-d434-4639-ae0e-8eb29088dc33": {
-              "list_fstudents": [],
-              "list_students": [],
-              "owners": [
-                {
-                  "name": "Tester Floatyev Ivanich",
-                  "id": "ac7d9df6-9141-461b-bd12-f59370fb9826"
-                }
-              ],
-              "amount": 0,
-              "name": "test1"
-            }
-          };
-          break;
-        case "users":
-          this.raw_data = {
-            "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5": {
-              "classes": [],
-              "roles": [
-                "apitest1",
-                "teacher"
-              ],
-              "name": "api-test"
-            },
-            "ff856428-37b2-4c21-a1d7-ed647b514e27": {
-              "classes": [],
-              "roles": [],
-              "name": "Victorovich"
-            },
-            "ac7d9df6-9141-461b-bd12-f59370fb9826": {
-              "classes": [
-                {
-                  "name": "test1",
-                  "id": "6c42c322-d434-4639-ae0e-8eb29088dc33"
-                },
-                {
-                  "name": "test2",
-                  "id": "e3ec4a16-365a-4b6d-ac3f-79182df83701"
-                },
-                {
-                  "name": "test3",
-                  "id": "f501a40b-acd6-4b6e-8428-cb52707f4f94"
-                }
-              ],
-              "roles": [
-                "tester",
-                "teacher",
-                "admin"
-              ],
-              "name": "Tester Floatyev Ivanich"
-            }
-          };
-          break;
-        case "invites":
-          this.raw_data = {
-            "14": {
-              "body": {
-                "classes": [],
-                "roles": [],
-                "name": "Victorovich"
-              },
-              "secret": "726"
-            },
-            "15": {
-              "body": {
-                "classes": [],
-                "roles": [],
-                "name": "Victorovich"
-              },
-              "secret": "2011"
-            },
-            "16": {
-              "body": {
-                "classes": [
-                  "e3ec4a16-365a-4b6d-ac3f-79182df83701"
-                ],
-                "roles": [
-                  "teacher"
-                ],
-                "name": "api-test"
-              },
-              "secret": "7208"
-            },
-            "17": {
-              "body": {
-                "classes": [
-                  "e3ec4a16-365a-4b6d-ac3f-79182df83701"
-                ],
-                "roles": [
-                  "teacher"
-                ],
-                "name": "api-test"
-              },
-              "secret": "1713"
-            },
-            "18": {
-              "body": {
-                "classes": [
-                  "e3ec4a16-365a-4b6d-ac3f-79182df83701"
-                ],
-                "roles": [
-                  "teacher"
-                ],
-                "name": "api-test"
-              },
-              "secret": "1690"
-            },
-            "19": {
-              "body": {
-                "classes": [
-                  "e3ec4a16-365a-4b6d-ac3f-79182df83701"
-                ],
-                "roles": [
-                  "teacher"
-                ],
-                "name": "api-test"
-              },
-              "secret": "3942"
-            }
-          };
-          break;
-        default:
-          console.warn(`Unknown section: ${section}`);
-          break;
-      }
+      const sectionDataMethods = {
+        data: this.getDataToday,
+        classes: this.getClasses,
+        users: this.getUsers,
+        invites: this.getInvites
+      };
 
+      if (sectionDataMethods[section]) {
+        this.raw_data = await sectionDataMethods[section]();
 
-      this.table.items = Object.keys(this.raw_data).map(key => ({
-        id: key,
+        // Only process the mapping for "data" section
+        if (section === "data") {
+          this.table.items = Object.keys(this.raw_data).map(key => ({
+            id: key,
             ...this.raw_data[key]
-      }));
-      // console.log(this.table.items);
-    })
+          }));
+        } else {
+          this.table.items = this.raw_data;
+        }
+
+        this.isDataLoaded = true;
+      } else {
+        console.warn(`Unknown section: ${section}`);
+      }
+    });
   },
   methods: {
 
     expectedError,
+    async getDataToday() {
+      return await this.$root.$makeApiRequest('/api/org/data');
+    },
+    async getDataForDate(date) {
+      return await this.$root.$makeApiRequest('/api/org/data/' + date);
+    },
+    async getDataSummary(date_start, date_end) {
+      return await this.$root.$makeApiRequest('/api/org/data-summary?' +
+          'startDate=' + date_start +
+          '&endDate=' + date_end
+      )
+    },
+    async getClasses() {
+      return await this.$root.$makeApiRequest('/api/org/classes');
+    },
+    async getUsers() {
+      return await this.$root.$makeApiRequest('/api/org/users');
+    },
+    async getInvites() {
+      return await this.$root.$makeApiRequest('/api/org/invites');
+    },
+
     //Updates fields for table
     updateTableFields(fieldType) {
       if (this.template_table_fields[fieldType]) {

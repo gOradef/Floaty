@@ -23,8 +23,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
 
         //* Invites
-        c->prepare(psqlMethods::invites::getAll, "select req_id, req_secret, req_body from schools_invites "//todo not sure about ->>'name'
-                                                        "where school_id = $1::uuid");
+        c->prepare(psqlMethods::invites::getAll, "select school_invite_get($1::uuid)");
         c->prepare(psqlMethods::invites::isValid, "select is_invite_valid($1::uuid, $2, $3)");
         c->prepare(psqlMethods::invites::isExists, "select is_invite_exists($1::uuid, $2);");
         c->prepare(psqlMethods::invites::create, "call school_invite_create($1::uuid, $2::jsonb)");
@@ -32,10 +31,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
                                                   "where school_id = $1::uuid "
                                                   "and req_id = $2 "
                                                   "and req_secret = $3");
-        c->prepare(psqlMethods::invites::getProperties, "select req_body from schools_invites "
-                                                        "where school_id = $1::uuid "
-                                                        "and req_id = $2 "
-                                                        "and req_secret = $3");
+        c->prepare(psqlMethods::invites::getProperties, "select school_invite_props_get($1::uuid, $2, $3)");
 
         c->prepare(psqlMethods::userData::getName, "select name from users where school_id = $1::uuid"
                                     " and id = $2::uuid");
