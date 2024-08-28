@@ -106,14 +106,16 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
 
         auto userName = readTransaction.exec_prepared1("user_name_get", schoolUUID, userUUID).front().as<std::string>();
 
-        // Option 1. User Set-Cookie
+
+        //! Set secure
+        // User Set-Cookie
         res.set_header("Set-Cookie", "Floaty_access_token=" + jwtAccess +
-            "; path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax;");
+            "; path=/; Max-Age=86400; HttpOnly; SameSite=Lax;");
 
         // Set the refresh token in the Set-Cookie header of the response
         if (req_json.has("rememberMe")
             && req_json["rememberMe"].t() == crow::json::type::True)
-                res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/; Max-Age=432000; HttpOnly; Secure; SameSite=Lax;");
+                res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/; Max-Age=432000; HttpOnly; SameSite=Lax;");
 
         crow::json::wvalue root;
         root["user"]["name"] = userName;
@@ -540,7 +542,9 @@ void Server::routes_admin::resetPasswordOfUser(const crow::request& req, crow::r
 void Server::routes_admin::getDataForToday(const crow::request& req, crow::response& res) {
     auto f = [](const crow::request& req, crow::response& res){
         schoolManager schoolManager(_connectionPool, req);
-        auto json = schoolManager.getDataForToday();
+        crow::json::wvalue json;
+        json["data"] = schoolManager.getDataForToday();
+
         res.body = json.dump();
     };
     return verifier(req, res, f);
@@ -584,6 +588,21 @@ void Server::routes_admin::getDataSummary(const crow::request& req, crow::respon
         json["end_date"] = endDate;
 
         res.body = json.dump();
+    };
+    return verifier(req, res, f);
+}
+void Server::routes_admin::updateDataAbsent(const crow::request& req, crow::response& res, const std::string& classID) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+
+        if (!crow::json::load(req.body))
+            throw api::exceptions::parseErr("Can not parse request body. Is it json?");
+        auto json = crow::json::load(req.body);
+        if (!json.has("absent"))
+            throw api::exceptions::wrongRequest("No 'absent' branch");
+
+        schoolManager.dataAbsentUpdate(classID, req.body);
+        res.code = 204;
     };
     return verifier(req, res, f);
 }

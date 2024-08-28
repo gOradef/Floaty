@@ -8,7 +8,7 @@
 
 ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_size) {
     for (int i = 0; i < pool_size; ++i) {
-        auto *c = new pqxx::connection(connection_string);
+        auto c = std::make_unique<pqxx::connection>(connection_string);
 
         //* Encoding methods
         c->prepare(psqlMethods::encoding::encode, "select encode($1, 'hex')");
@@ -115,24 +115,21 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::data::get, "select * from school_data_get($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
-        connections.push_back(c);
+        connections.push_back(std::move(c)); // Move ownership to the vector
     }
 }
 
-pqxx::connection *ConnectionPool::getConnection() {
+pqxx::connection* ConnectionPool::getConnection() {
     std::lock_guard<std::mutex> lock(mtx);
-    pqxx::connection* conn = connections.back();
+    if (connections.empty()) {
+        return nullptr; // Return nullptr if no connections available
+    }
+    pqxx::connection* conn = connections.back().release(); // Release ownership
     connections.pop_back();
     return conn;
 }
 
-void ConnectionPool::releaseConnection(pqxx::connection *conn) {
+void ConnectionPool::releaseConnection(pqxx::connection* conn) {
     std::lock_guard<std::mutex> lock(mtx);
-    connections.push_back(conn);
-
-}
-ConnectionPool::~ConnectionPool() {
-    for (auto conn : connections) {
-        delete conn;
-    }
+    connections.emplace_back(conn); // Wrap the raw pointer in a unique_ptr
 }

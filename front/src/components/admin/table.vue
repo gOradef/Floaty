@@ -1,26 +1,35 @@
 <template>
-      <b-table selectable
-               select-mode="single"
-               @row-selected="onRowSelected"
-
-
-               sticky-header="500px"
-               striped
-               hover
-               :items="table.items"
-               :fields="table.fields"
-               :row-class="rowClass"
-               v-if="isDataLoaded"
+  <div>
+    <div v-if="!isDataLoaded && isDataExists">
+      <h4>Данные отсутствуют.</h4>
+      <b> Журнал ещё никто не заполнил</b> <br>
+      <i> Сгененрировать данные самостоятельно?</i>
+    </div>
+    <div v-else>
+      <b-table
+        selectable
+        select-mode="single"
+        @row-selected="onRowSelected"
+        sticky-header="500px"
+        striped
+        hover
+        :items="table.items"
+        :fields="table.fields"
+        :row-class="rowClass"
+        v-if="isDataLoaded"
       >
-
         <!--  Absent lists -->
         <template #cell(absent)="row">
           <div>
-          <p @click.stop="toggleDetails(row.item.id)" style="margin-bottom: 8px" >Всего: ({{row.item.absent.global.join(", ")}})
-            <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
-            <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
-          </p>
-          <b-collapse
+            <p
+              @click.stop="toggleDetails(row.item.id)"
+              style="margin-bottom: 8px"
+            >
+              Всего: ({{ row.item.absent.global.join(", ") }})
+                <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
+                <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
+            </p>
+            <b-collapse
               visible
               v-if="isRowExpanded(row.item.id)"
               style="display: flex; justify-content: flex-start;"
@@ -38,30 +47,50 @@
                   <b-list-group-item >{{row.item.absent.fstudents.length}} </b-list-group-item>
                 </b-list-group>
                 <b-list-group class="b-list-group-lists">
-                  <b-list-group-item>({{row.item.absent.ORVI.join(", ")}}) </b-list-group-item>
-                  <b-list-group-item>({{row.item.absent.respectful.join(", ")}}) </b-list-group-item>
-                  <b-list-group-item>({{row.item.absent.not_respectful.join(", ")}}) </b-list-group-item>
-                  <b-list-group-item>({{row.item.absent.fstudents.join(", ")}}) </b-list-group-item>
-                </b-list-group>
+                  <b-list-group-item>({{ row.item.absent.ORVI.join(", ") }})</b-list-group-item>
+                  <b-list-group-item>({{ row.item.absent.respectful.join(", ") }})</b-list-group-item>
+                  <b-list-group-item>({{ row.item.absent.not_respectful.join(", ") }})</b-list-group-item>
+                  <b-list-group-item>
+                    ({{ row.item.absent.global.filter(student =>
+                          row.item.absent.fstudents.includes(student)
+                      ).join(', ')
+                    }})
+                  </b-list-group-item>                </b-list-group>
 
           </b-collapse>
           </div>
         </template>
 
-<!--        Check data filled by teachers -->
+        <!--        Check data filled by teachers -->
         <template #cell(isClassDataFilled)="row">
           <div>
-            <BIconCheckCircle scale="1.3" style="color: #28a745;" v-if="row.item.isClassDataFilled" />
-            <BIconDashCircle scale="1.3" style="color: #dc3545;" v-else />
+            <BIconCheckCircle
+              scale="1.3"
+              style="color: #28a745"
+              v-if="row.item.isClassDataFilled"
+            />
+            <BIconDashCircle scale="1.3" style="color: #dc3545" v-else />
           </div>
-
         </template>
 
-<!--        -->
+        <!--        -->
         <template #cell(owners)="row">
           <div v-for="(owner, index) in row.item.owners" :key="index">
             {{ owner.name }}
           </div>
+        </template>
+
+        <template #cell(classes)="row">
+          <div v-for="(owner, index) in row.item.classes" :key="index">
+            {{ owner.name }}
+          </div>
+        </template>
+
+        <template #cell(list_students)="row">
+          {{row.item.list_students.join(", ")}}
+        </template>
+        <template #cell(roles)="row">
+           {{row.item.roles.join(", ")}}
         </template>
         <!-- Footer for Global Calculations -->
         <template #custom-foot v-if="isActiveSectionData()">
@@ -75,13 +104,12 @@
           </tr>
           <tr>
             <td><strong>Всего</strong></td>
-            <td>
-
-            </td>
+            <td></td>
           </tr>
         </template>
       </b-table>
-
+    </div>
+  </div>
 </template>
 
 <script>
@@ -94,7 +122,9 @@ export default {
   data() {
     return {
       showDetails: false,
+      isDataExists: true,
       isDataLoaded: false,
+
       // Actual data for table
       table: {
         items: [],
@@ -134,7 +164,7 @@ export default {
             label: 'Фамилии отсутствовавших'
           },
           {
-            key: "owner.name",
+            key: "owners",
             label: "Кл. рук."
           },
           {
@@ -181,7 +211,7 @@ export default {
             key: 'body.name',
             label: 'Пользователь'
           },
-          {
+       {
             key: 'id',
             label: 'ID'
           },{
@@ -203,49 +233,66 @@ export default {
 
       },
       activeSection: String,
-      showFormulas: false
-    }
-  },
-  mounted() {
-    this.$root.$on('renderContentSection', async (section) => {
-      this.activeSection = section;
-      this.isDataLoaded = false;
-      this.updateTableFields(section);
+      showFormulas: false,
 
-      const sectionDataMethods = {
+      sectionDataMethods: {
         data: this.getDataToday,
         classes: this.getClasses,
         users: this.getUsers,
         invites: this.getInvites
-      };
+      }
+    }
+  },
+  async mounted() {
+    // Define the event handler
+    this.handleRenderContentSection = async (section) => {
+      this.activeSection = section;
+      this.isDataLoaded = false;
 
-      if (sectionDataMethods[section]) {
-        this.raw_data = await sectionDataMethods[section]();
+      this.updateTableFields(section);
 
-        // Only process the mapping for "data" section
+      if (this.sectionDataMethods[section]) {
+        this.raw_data = await this.sectionDataMethods[section]();
+
+        // Logic to handle responses based on section
         if (section === "data") {
-          this.table.items = Object.keys(this.raw_data).map(key => ({
-            id: key,
-            ...this.raw_data[key]
-          }));
-        } else {
+          if (this.raw_data !== null) {
+            this.table.items = Object.keys(this.raw_data).map(key => ({
+              id: key,
+              ...this.raw_data[key]
+            }));
+            this.isDataExists = true;
+          }
+          else {
+            this.isDataExists = false;
+          }
+        }
+        else {
           this.table.items = this.raw_data;
+          this.isDataExists = true;
         }
 
-        this.isDataLoaded = true;
+        this.isDataLoaded = true; // Mark data load as complete
       } else {
         console.warn(`Unknown section: ${section}`);
       }
-    });
+    };
+
+    // Clean up previous listeners in case of hot-reload
+    this.$root.$off('renderContentSection', this.handleRenderContentSection);
+
+    // Register the event listener
+    this.$root.$on('renderContentSection', this.handleRenderContentSection);
+
   },
   methods: {
 
     expectedError,
     async getDataToday() {
-      return await this.$root.$makeApiRequest('/api/org/data');
+      return (await this.$root.$makeApiRequest('/api/org/data')).data;
     },
     async getDataForDate(date) {
-      return await this.$root.$makeApiRequest('/api/org/data/' + date);
+      return (await this.$root.$makeApiRequest('/api/org/data/' + date)).data;
     },
     async getDataSummary(date_start, date_end) {
       return await this.$root.$makeApiRequest('/api/org/data-summary?' +
@@ -317,9 +364,9 @@ export default {
   align-self: center;
 }
 .b-list-group-causes > .list-group-item {
-  min-width: 140px;
+  min-width: 150px;
   .list-group-item {
-    min-width: 140px;
+    min-width: 150px;
   }
 }
 .b-list-group-nums {

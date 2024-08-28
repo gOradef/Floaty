@@ -156,6 +156,11 @@ export default {
           })
           .catch(error => {
             this.loginProcess();
+            if (error.response.status === 502) {
+              this.alertMessage = 'API-сервер не отвечает. Пожалуйста, попробуйте позже. ' +
+                  'Приносим извинения за доставленные неудобства';
+              this.alertVariant = 'warning'
+            }
             if (error.response.status === 400) {
               this.alertMessage = 'Неправильный логин или пароль';
               this.alertVariant = 'danger'; // Show as error

@@ -94,14 +94,15 @@ namespace psqlMethods {
 }
 
 class ConnectionPool {
-    std::vector<pqxx::connection*> connections;
-    std::mutex mtx;
-
 public:
     ConnectionPool(const std::string& connection_string, int pool_size);
     pqxx::connection* getConnection();
     void releaseConnection(pqxx::connection* conn);
-    ~ConnectionPool();
+    // ~ConnectionPool();
+
+private:
+    std::vector<std::unique_ptr<pqxx::connection>> connections; // Use smart pointers
+    std::mutex mtx;
 };
 
 #endif //FLOATYROOTSERVICE_CONNECTIONPOOL_H

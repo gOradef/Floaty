@@ -290,6 +290,9 @@ GET http://localhost:18080/api/org/data-summary?startDate=2024-07-01&endDate=202
         client.assert(response.status === 200, `Expected 200 but received '${response.status}'`);
     }) %}
 
+# Insert into class new data
+#PUT http://localhost:18080/api/org/data-summary?startDate=2024-07-01&endDate=2024-07-28
+
 ### Get all invites
 GET http://localhost:18080/api/org/invites
 

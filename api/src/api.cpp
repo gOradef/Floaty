@@ -215,25 +215,6 @@ void schoolManager::isInviteExists(const std::string& inviteID) {
 
 
 //Region Data
-
-crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
-
-//    Chech if date is date type
-    isInputIsDateType(date);
-
-    pqxx::read_transaction readTransaction(*_connection);
-    // Check if school data doesnt exists for the given date
-    if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
-        return crow::json::load(nullptr);
-
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
-
-    // Prepare JSON result
-    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
-
-    return root;
-}
-
 /**
      *
      * @param date format YYYY-MM-DD or "" for
@@ -253,10 +234,42 @@ crow::json::wvalue schoolManager::getDataForToday() {
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, nullptr);
 
     // Prepare JSON result
-    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue root;
+    if (res.front().front().is_null()) {
+        //! std::cout << "IS NULL \n";
+        root = nullptr;
+        return root;
+    }
+    root = crow::json::load(res.front().front().as<std::string>());
 
     return root;
 }
+
+crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
+
+//    Chech if date is date type
+    isInputIsDateType(date);
+
+    pqxx::read_transaction readTransaction(*_connection);
+    // Check if school data doesnt exists for the given date
+    if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
+        return crow::json::load(nullptr);
+
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
+
+    // Prepare JSON result
+    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
+
+    if (res.front().front().is_null()) {
+        //! std::cout << "IS NULL \n";
+        root = nullptr;
+        return root;
+    }
+    root = crow::json::load(res.front().front().as<std::string>());
+
+    return root;
+}
+
 
 
 crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &startDate, const std::string& endDate) {
@@ -533,3 +546,16 @@ void schoolManager::inviteDrop(const std::string& reqID) {
  * 5. route it
  *
  */
+
+/**
+ *
+ * @param changes - json with absent
+ */
+void schoolManager::dataAbsentUpdate(const std::string& classID,const std::string& changes) {
+    isClassExists(classID);
+
+    pqxx::work work(*_connection);
+
+    work.exec_prepared(psqlMethods::classes::data::insertData, _org_id, classID, changes);
+    work.commit();
+}

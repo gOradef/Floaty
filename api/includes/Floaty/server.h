@@ -165,6 +165,7 @@ class Server {
         static void getDataForToday(const crow::request& req, crow::response& res);
         static void getDataForDate(const crow::request& req, crow::response& res, const std::string& date);
         static void getDataSummary(const crow::request& req, crow::response& res);
+        static void updateDataAbsent(const crow::request& req, crow::response& res, const std::string& classID);
 
         //* Grant roles
         static void grantRolesToUser(const crow::request& req, crow::response& res, const std::string& userID);

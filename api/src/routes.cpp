@@ -142,6 +142,10 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataSummary);
 
+    CROW_ROUTE(app, "/api/org/classes/<string>/data")
+    .methods(crow::HTTPMethod::PUT)
+    (routes_admin::updateDataAbsent);
+
     //Region invites
     //Get all invites
     CROW_ROUTE(app, "/api/org/invites")

@@ -53,6 +53,7 @@ export default {
       this.isClassChosen = false;
     },
     async setBodyOfSelectedClass() {
+
       this.chosenClassBody = await this.$root.$makeApiRequest('/api/user/classes/' + this.chosenClass.id + '/data').data;
     }
   }
@@ -72,7 +73,7 @@ export default {
         <choseClass />
       </b-col>
       <b-col v-else-if="isClassChosen && hasAccess">
-        <userForm :class-data="chosenClassBody"/>
+        <userForm :classData="chosenClassBody"/>
       </b-col>
       <b-col v-if="showForbidden">
         <h1>У вас нет доступа к этой странице</h1>

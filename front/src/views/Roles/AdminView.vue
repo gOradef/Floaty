@@ -54,6 +54,11 @@ export default {
       this.firstLoading = false; // Set loading to false when done
     }
   },
+  methods: {
+    updateContentSection(newSection) {
+      this.contentSection = newSection; // Update content section based on emitted event
+    }
+  }
 };
 </script>
 

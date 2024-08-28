@@ -11,7 +11,7 @@ export default {
       showContextOptions: false,
 
       contextOptions: [],
-      contextData: Object,
+      contextData: '',
 
       template_contextOptions: {
         data: [
@@ -130,18 +130,20 @@ export default {
       </div>
     </b-modal>
 
+    <div v-if="showContextOptions">
+      <h3 style="border-bottom: #2c3e50 1px dotted"> {{contextData.name}}</h3>
 
-    <h3 style="border-bottom: #2c3e50 1px dotted"> {{contextData.name}}</h3>
-
-<!--    Button group -->
-  <b-button-group vertical v-if="showContextOptions">
+      <!--    Button group -->
+      <b-button-group vertical class="mt-2">
         <div v-for="(option, index) in contextOptions"
              :key="index">
-      <b-button :variant="option._variant" @click="option.foo">
-        {{option.label }} <!-- Assuming each option has a label to display -->
-      </b-button>
+          <b-button :variant="option._variant" @click="option.foo">
+            {{option.label }} <!-- Assuming each option has a label to display -->
+          </b-button>
         </div>
-  </b-button-group>
+      </b-button-group>
+
+    </div>
 
   </div>
 </template>

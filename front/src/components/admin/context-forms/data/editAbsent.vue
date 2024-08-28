@@ -199,10 +199,18 @@ export default {
     }
   },
   mounted() {
-    this.$root.$on("form:confirm", () => {
-      // Inserting data (this would typically be an API call or similar)
-      console.log("Inserted!");
-      console.log(this.updatedClass);
+    this.$root.$on("form:confirm", async () => {
+
+      if (confirm("Вы уверены?")) {
+        const res = await this.$root.$makeApiRequest('/api/org/classes/' + this.content.id + '/data',
+            'PUT',
+            {
+              absent: this.updatedClass.absent
+            }
+        );
+        console.log(res);
+      }
+
     });
   },
 };

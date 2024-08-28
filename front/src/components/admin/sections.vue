@@ -23,21 +23,22 @@ export default {
   },
   data() {
     return {
-      activeSection: '/org/data',
+      activeSection: this.contentSection || '/org/data', // Initialize with contentSection
       sections: [
-        { label: 'Данные', value: 'data' },
-        { label: 'Классы', value: 'classes' },
-        { label: 'Пользователи', value: 'users' },
-        { label: 'Приглашения', value: 'invites' }
+        {label: 'Данные', value: 'data'},
+        {label: 'Классы', value: 'classes'},
+        {label: 'Пользователи', value: 'users'},
+        {label: 'Приглашения', value: 'invites'}
       ]
     };
   },
 
   methods: {
     handleClick(sectionValue) {
-      this.activeSection = sectionValue;
-
-      this.$root.$emit('renderContentSection', this.activeSection);
+      if (this.activeSection !== sectionValue) { // Prevent emitting if the same section is clicked
+        this.activeSection = sectionValue;
+        this.$root.$emit('renderContentSection', this.activeSection);
+      }
     }
   }
 };

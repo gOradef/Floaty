@@ -12,8 +12,9 @@ inline void Server::useSSL() {
 
 inline void Server::run() {
     app
-        .multithreaded()
-        .run_async();
+        // .multithreaded()
+        // .run_async();
+        .run();
 }
 
 int main() {

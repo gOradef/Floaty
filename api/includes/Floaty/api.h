@@ -157,7 +157,6 @@ public:
 
 
 class schoolManager : Request {
-private:
     void isLoginOccupied(const std::string& login);
     void isUserExists(const std::string& userID);
     void isClassExists(const std::string& classID);
@@ -231,6 +230,6 @@ public:
 
     void classMoveToNextYear(); //update
 
-    //Data
-    void dataUpdate(const std::string& changes);
+    //Region Data
+    void dataAbsentUpdate(const std::string& classID, const std::string& changes);
 };
