@@ -65,6 +65,7 @@ namespace psqlMethods {
             inline str getStudents = "school_class_students_get"; //school_id, class_id
 
             inline str create = "class_create"; //school_id, user_id (can be null), class_name
+            inline str updateStudentList = "class_students_update";
             inline str rename = "class_rename"; //school_id, class_id, new_class_name
             inline str drop = "class_drop"; //school_id, class_id
         }

@@ -5,6 +5,11 @@ import axios from "axios";
 import router from "@/router";
 
 let isAPIInitialized = false;
+function isAPIResponding(response) {
+    if (response.status === 502) {
+        alert('API-сервер не отвечает. Пожалуйста, попробуйте позже. Приносим извинения за доставленные неудобства');
+    }
+}
 export default {
     install(Vue) {
         if (!isAPIInitialized) {
@@ -16,35 +21,44 @@ export default {
                     switch (method.toUpperCase()) {
                         case 'POST':
                             response = await axios.post(url, data); // For POST requests
-                            break;
+                            isAPIResponding(response);
+                            return response.status; // Return only status for POST
+                        case 'PATCH':
+                            response = await axios.patch(url, data); // For POST requests
+                            isAPIResponding(response);
+                            return response.status; // Return only status for POST
                         case 'PUT':
                             response = await axios.put(url, data); // For PUT requests
-                            break;
+                            isAPIResponding(response);
+                            return response.status; // Return only status for PUT
+
                         case 'DELETE':
                             response = await axios.delete(url); // For DELETE requests
-                            break;
+                            isAPIResponding(response);
+                            return response.status; // Return only status for DELETE
+
                         case 'GET': // Fallthrough for GET requests
                         default:
                             response = await axios.get(url); // For GET requests
-                            break;
-                    }
-                    if (response.status === 502) {
-                        alert('API-сервер не отвечает. Пожалуйста, попробуйте позже. Приносим извинения за доставленные неудобства');
+                            isAPIResponding(response);
+                            return response.data; // Return data for GET
                     }
 
-                    return response.data;
                 } catch (error) {
                     if (error.response && error.response.status === 401) {
                         // Handle token expiration
                         try {
-                            await this.$refreshAccessToken();
-                            // Retry the request after refreshing the token
-                            return this.$makeApiRequest(url, method, data);
+                            if (await this.$refreshAccessToken()) {
+                                // Retry the request after refreshing the token
+                                return this.$makeApiRequest(url, method, data);
+                            } else {
+                                alert('Ключ доступа истёк, пожалуйста, войдите снова');
+                                await router.push('/login');
+                            }
                         } catch (refreshError) {
                             await router.push('/login'); // Redirect if unable to refresh
                         }
-                    }
-                    else {
+                    } else {
                         console.log('API Error:', error);
                         throw error; // Rethrow error to let the caller handle it
                     }

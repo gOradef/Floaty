@@ -1,5 +1,5 @@
 <script>
-import editAbsent from "@/components/admin/context-forms/data/editAbsent.vue";
+
 export default {
   name: "userForm",
   props: {
@@ -9,7 +9,7 @@ export default {
     },
   },
   components: {
-    editAbsent,
+
   },
   data() {
     return {

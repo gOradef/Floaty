@@ -321,9 +321,8 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 
     crow::json::wvalue json;
     for (auto row : res) {
-        auto class_id = row["class_id"].as<std::string>();
         auto class_body = row["class_lists"].as<std::string>();
-        json[class_id] = crow::json::load(class_body);
+        json = crow::json::load(class_body);
     }
     return json;
 };
@@ -331,22 +330,41 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 /**
      * @param json
      * @code
+     *
      * {
-     *  "class_name": "1_А",
-     *  "class_owner": "uuid"
+     *  "name": "1_А",
+     *  "amount": 0, //optional
+     *  "owner": "uuid" //optional
      * }
      * @endcode
      */
 void schoolManager::classCreate(const crow::json::rvalue &json) {
-    pqxx::work work(*_connection);
-    std::string class_name = json["class_name"].s();
+    const std::string& class_name = json["name"].s();
 
     //If exists flag isWithOwner -> read value from json
     std::unique_ptr<std::string> owner_id;
-    this->urlParams.isWithOwner ? owner_id = std::make_unique<std::string>(json["class_owner"].s()) :
-            owner_id = nullptr;
+    if (json.has("owner") &&
+        json["owner"].t() == crow::json::type::String &&
+        json["owner"].s() != "")
+    {
+        owner_id = std::make_unique<std::string>(json["owner"].s());
+        isUserExists(*owner_id);
+    }
+    else
+        owner_id = nullptr;
 
-    work.exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name);
+    pqxx::work work(*_connection);
+
+    std::unique_ptr<int> class_amount;
+    if (json.has("amount")
+        && json["amount"].t() == crow::json::type::Number &&
+        json["amount"].i() >= 0) {
+        class_amount = std::make_unique<int>(json["amount"].i());
+    }
+    else
+        class_amount = nullptr;
+
+    work.exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name, class_amount);
     work.commit();
 }
 
@@ -362,20 +380,10 @@ void schoolManager::classDrop(const std::string& classID) {
 
 /**
      *
-     * @param json
-     * @code
-     *
-     * {
-     *  "class_id": 00000000-0000-0000-0000-000000000000
-     *  "class_newName": "1_А" //format: [num]_[letter]
-     * }
-     *
-     * @endcode
+     * @param classID - uuid of class
+     * @param className - new name of class
      */
-void schoolManager::classRename(const crow::json::rvalue &json) {
-    const std::string& classID = json["class_id"].s();
-    const std::string& className = json["class_name"].s();
-
+void schoolManager::classRename(const std::string& classID, const std::string& className) {
     isClassExists(classID);
 
     pqxx::work work(*_connection);
@@ -383,19 +391,40 @@ void schoolManager::classRename(const crow::json::rvalue &json) {
     work.exec_prepared(psqlMethods::schoolManager::classes::rename, _org_id, classID, className);
     work.commit();
 }
+
+/**
+ *
+ * @param classID uuid of class
+ * @param studentsBranch @code
+ * {
+ *  list_students: [],
+ *  list_fstudents: []
+ * }
+ * @endcode
+ */
+void schoolManager::updateClassStudents(const std::string& classID, const std::string& studentsBranch) {
+    isClassExists(classID);
+
+    pqxx::work work(*_connection);
+
+    work.exec_prepared(psqlMethods::schoolManager::classes::updateStudentList, _org_id, classID, studentsBranch);
+    work.commit();
+}
+
 //Region Users
 /**
     *
-    * @return json
+    * @returns json
     * @code
-    *  {
-    *    "user_id": {
+    *  [
+    *    {
     *      "name": "FI",
     *      "roles": ["roles"], // or null
     *      "classes": ["classes_id"], // or null
-    *
-    *    }
-    *  }
+    *      "id": [user_id]
+    *    },
+    *    {},
+    *  ]
     * @encdode
     */
 crow::json::wvalue schoolManager::getUsers() {

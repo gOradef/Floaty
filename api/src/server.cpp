@@ -51,7 +51,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         // * UUID in postgres
         const std::string& schoolUUID = readTransaction.exec_prepared1(psqlMethods::userData::getSchoolId, userUUID).front().as<std::string>();
 
-        //Get roles from postgres
+        // Get roles from postgres
         auto roles = readTransaction.exec_prepared(psqlMethods::userData::getRoles, schoolUUID, userUUID);
         picojson::array available_roles;
         for (auto role : roles) {
@@ -63,7 +63,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
                 "Contact with admin for granting privileges");
         }
 
-        //Get available classes from postgres
+        // Get available classes from postgres
         auto classes = readTransaction.exec_prepared(psqlMethods::userData::getClasses, schoolUUID, userUUID);
         picojson::array available_classes;
         for (auto class_v : classes) {
@@ -94,12 +94,14 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
 
         //Set time
         jwt_builder.set_issued_at(std::chrono::system_clock::now());
-        jwt_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(1));
+        jwt_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24));
 
         auto jwtAccess = jwt_builder
                          .set_type("AccessToken")
                          .sign(jwt::algorithm::hs256(_jwtAccessSecret));
 
+
+        jwt_builder.set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24*7));
         auto jwtRefresh = jwt_builder
                           .set_type("RefreshToken")
                           .sign(jwt::algorithm::hs256(_jwtRefreshSecret));
@@ -115,7 +117,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         // Set the refresh token in the Set-Cookie header of the response
         if (req_json.has("rememberMe")
             && req_json["rememberMe"].t() == crow::json::type::True)
-                res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/; Max-Age=432000; HttpOnly; SameSite=Lax;");
+                res.add_header("Set-Cookie", "Floaty_refresh_token=" + jwtRefresh + "; path=/; Max-Age=604800; HttpOnly; SameSite=Lax;");
 
         crow::json::wvalue root;
         root["user"]["name"] = userName;
@@ -392,6 +394,19 @@ void Server::routes_admin::getStudentsForClass(const crow::request& req, crow::r
     };
     return verifier(req, res, f);
 }
+void Server::routes_admin::updateStudetsForClass(const crow::request& req, crow::response& res, const std::string& classID) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+        if (!crow::json::load(req.body))
+            throw api::exceptions::parseErr("Is request body is json format?");
+
+
+        schoolManager.updateClassStudents(classID, req.body);
+        res.code = 204;
+    };
+    return verifier(req, res, f);
+}
+
 
 void Server::routes_admin::createNewClass(const crow::request& req, crow::response& res) {
     auto f = [](const crow::request& req, crow::response& res) {
@@ -400,13 +415,9 @@ void Server::routes_admin::createNewClass(const crow::request& req, crow::respon
             throw api::exceptions::parseErr("Is request body json?");
         }
 
-        // ReSharper disable once CppTooWideScope
-        auto withOwnerParam = req.url_params.get("withOwner");
-        //
-        if (withOwnerParam) {
-            std::string withOwnerStr = withOwnerParam;
-            schoolManager.urlParams.isWithOwner = (withOwnerStr == "true");
-        }
+        if (!crow::json::load(req.body).has("class") ||
+            !crow::json::load(req.body)["class"].has("name"))
+
         schoolManager.classCreate(crow::json::load(req.body));
         res.code = crow::status::CREATED;
     };
@@ -422,13 +433,14 @@ void Server::routes_admin::renameClass(const crow::request& req, crow::response&
         if (crow::json::load(req.body).error()) {
             throw api::exceptions::parseErr("Is request body json?");
         }
-
-        //Merging classID and new name from json req.body
-        crow::json::wvalue mergedJson(crow::json::load(req.body));
-        mergedJson["class_id"] = urlClassID;
+        const crow::json::rvalue& json = crow::json::load(req.body);
+        if (!json.has("name") ||
+            json["name"].t() != crow::json::type::String ||
+            json["name"].s() == "")
+            throw api::exceptions::wrongRequest("No name field");
 
         if (!urlClassID.empty()) {
-            schoolManager.classRename(crow::json::load(mergedJson.dump()));
+            schoolManager.classRename(urlClassID, json["name"].s());
             res.code = 200;
         }
         else
@@ -787,7 +799,7 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
             if (token_roles != available_roles)
                 throw jwt::token_verification_exception();
         }
-        // Check classes
+        // * Check classes
         {
             picojson::array token_classes = decoded_token.get_payload_claim("classes").as_array();
 

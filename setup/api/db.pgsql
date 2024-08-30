@@ -192,6 +192,57 @@ $$;
 ALTER PROCEDURE public.class_create(IN _orgref uuid, IN _teacherref uuid, IN _class_name text) OWNER TO postgres;
 
 --
+-- Name: class_create(uuid, uuid, text, integer); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.class_create(IN _orgref uuid, IN _teacherref uuid, IN _class_name text, IN _class_amount integer)
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+template_class_body jsonb;
+virt_class_id uuid;
+BEGIN
+
+		IF (_class_amount IS NULL) THEN
+			_class_amount := 0;
+		END IF;
+		
+		select template_body into template_class_body from schools_template_classes
+			WHERE school_id = _orgRef;
+		template_class_body := jsonb_set(
+			template_class_body,
+			'{name}'::text[],
+			to_jsonb(_class_name)
+		);
+		template_class_body := jsonb_set(
+			template_class_body,
+			'{amount}'::text[],
+			to_jsonb(_class_amount::int)
+		);
+
+		virt_class_id := uuid_generate_v4();
+		
+		insert into schools_classes(school_id, class_id, class_body) VALUES (
+			_orgRef,
+			virt_class_id,
+			template_class_body
+		);
+		
+		IF (_teacherref IS NOT NULL) THEN
+			insert into schools_classes_ownership(school_id, user_id, class_id) values (
+			_orgRef,
+			_teacherref,
+			virt_class_id
+			);
+		END IF;
+		
+END;
+$$;
+
+
+ALTER PROCEDURE public.class_create(IN _orgref uuid, IN _teacherref uuid, IN _class_name text, IN _class_amount integer) OWNER TO postgres;
+
+--
 -- Name: class_data_get(uuid, uuid, date); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -232,97 +283,102 @@ ALTER FUNCTION public.class_data_get(_schoolid uuid, _classid uuid, _date date) 
 
 CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
     LANGUAGE plpgsql
-    AS $$
-declare
-	class_body_keys text[];
-	key text;
-	class_body jsonb;
-	object_name text;
+    AS $$DECLARE
+    class_body_keys text[];
+    key text;
+    class_body jsonb;
+    object_name text;
+    absent_global jsonb;
 BEGIN
-	if (select 1 from schools_data 
-			where school_id = _schoolID
-			and date = CURRENT_DATE) THEN
-	ELSE
-		RAISE notice 'Data isnot exists for school: %. Generating', _schoolID;
-		CALL school_data_gen(_schoolid);
-	END IF;
-	class_body = (select data->_classID::text from schools_data where date = current_date);
-	
-	if not(class_body is null) then
+    IF (SELECT 1 FROM schools_data 
+        WHERE school_id = _schoolID
+        AND date = CURRENT_DATE) THEN
+        -- Данные существуют, ничего не делаем
+    ELSE
+        RAISE NOTICE 'Data does not exist for school: %. Generating', _schoolID;
+        CALL school_data_gen(_schoolID);
+    END IF;
 
-	object_name := (select 'absent');
-	
-	-- iterates with key (cause_type)
-		FOR key IN 
-        SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
-    LOOP
-        IF (_input->object_name ? key) THEN
-            IF (jsonb_array_length(_input->object_name->key) != 0) THEN
-                raise notice '[BODY0]: %', class_body;
-				-- Setting input into array
+    class_body := (SELECT data -> _classID::text FROM schools_data WHERE date = CURRENT_DATE);
+    
+    IF NOT (class_body IS NULL) THEN
+        object_name := 'absent';
+        absent_global := '[]'::jsonb;
+
+        -- Итерация по ключам (cause_type)
+        FOR key IN 
+            SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
+        LOOP
+            IF (_input -> object_name ? key) THEN
+                -- Установка значения из входных данных в массив
                 class_body := jsonb_set(
                     class_body, 
-                    ('{' || object_name || ',' || key || '}')::text[], -- Path to set the value
-                    _input->object_name->key -- Value from _input
-                );
-				raise notice '[BODY1]: %', class_body;
-
-                -- Merge existing global values with the current new values from _input
-				class_body := jsonb_set(
-                    class_body,
-                    ('{' || object_name || ', global}')::text[], -- Path to global
-                    (
-						WITH data AS (
-						    SELECT 
-						        (class_body->object_name->'global')::jsonb AS array1,
-						        (_input->object_name->key)::jsonb AS array2
-						),
-						merged AS (
-						    SELECT DISTINCT
-						        jsonb_array_elements(array1) AS elem
-						    FROM data
-						    UNION
-						    SELECT
-						        jsonb_array_elements(array2)
-						    FROM data
-						)
-						SELECT
-						    jsonb_agg(elem) AS unique_merged_array
-						FROM merged
-					)
+                    ('{' || object_name || ',' || key || '}')::text[], -- Путь для установки значения
+                    _input -> object_name -> key -- Значение из входных данных
                 );
 
-				raise notice '[BODY2]: %', class_body;
-
-                -- Setting isClassDataFilled to true
-                class_body := jsonb_set(
-                    class_body, 
-                    '{isClassDataFilled}'::text[], -- Path to set isClassDataFilled
-                    'true'::jsonb, -- New value
-                    true -- Overwrite if exists
+                -- Объединение существующих глобальных значений с текущими значениями из _input
+                absent_global := (
+                    WITH data AS (
+                        SELECT 
+                            (absent_global)::jsonb AS array1,
+                            (_input -> object_name -> key)::jsonb AS array2
+                    ),
+                    merged AS (
+                        SELECT DISTINCT
+                            jsonb_array_elements(array1) AS elem
+                        FROM data
+                        UNION
+                        SELECT
+                            jsonb_array_elements(array2)
+                        FROM data
+                    )
+                    SELECT
+                        jsonb_agg(elem) AS unique_merged_array
+                    FROM merged
                 );
-				raise notice '[BODY3]: %', class_body;
+            ELSE 
+                RAISE NOTICE 'Key doesn''t exist in list-input: %', key;
             END IF;
-        ELSE 
-            RAISE NOTICE 'Key doesn''t exist in list-input: %', key;
-        END IF;
-    END LOOP;
+        END LOOP;
 
-	-- SETING INTO TABLE
-		update schools_data set data = jsonb_set(
-					data,
-					('{'::text || _classID::text || '}'::text)::text[],
-					class_body
-		) 
-			where school_id = _schoolID 
-			and date = CURRENT_DATE;
-		raise notice '[BODY]: %', class_body;
-	ELSE
-		RAISE notice 'Can not read class_body for class: %. Is it exists?', _classID;
-	END IF;
-		
-END;
-$$;
+        -- Установка в объединенный финальный массив
+        IF jsonb_array_length(absent_global) > 0 THEN
+            class_body := jsonb_set(
+                class_body,
+                ('{' || object_name || ', global}')::text[], -- Путь к глобальному значению
+                absent_global
+            );
+        ELSE
+            class_body := jsonb_set(
+                class_body,
+                ('{' || object_name || ', global}')::text[],
+                '[]'::jsonb -- Установка в null, если массив пуст
+            );
+        END IF;
+        
+        -- Установка isClassDataFilled в true
+        class_body := jsonb_set(
+            class_body, 
+            '{isClassDataFilled}'::text[], -- Путь для установки isClassDataFilled
+            'true'::jsonb, -- Новое значение
+            true -- Перезаписать, если существует
+        );
+
+        -- УСТАНОВКА В ТАБЛИЦУ
+        UPDATE schools_data SET data = jsonb_set(
+            data,
+            ('{'::text || _classID::text || '}'::text)::text[],
+            class_body
+        ) 
+        WHERE school_id = _schoolID 
+        AND date = CURRENT_DATE;
+
+        RAISE NOTICE '[BODY]: %', class_body;
+    ELSE
+        RAISE NOTICE 'Cannot read class_body for class: %. Does it exist?', _classID;
+    END IF;
+END;$$;
 
 
 ALTER PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb) OWNER TO postgres;
@@ -336,6 +392,7 @@ CREATE PROCEDURE public.class_drop(IN _orgref uuid, IN _class_id uuid)
     AS $$
 BEGIN
 	IF (select 1 from schools_classes where school_id = _orgRef AND class_id = _class_id) THEN
+		DELETE from schools_classes_ownership where school_id = _orgRef AND class_id = _class_id;
 		DELETE from schools_classes where school_id = _orgRef AND class_id = _class_id;
 	END IF;
 END;
@@ -675,6 +732,43 @@ $$;
 
 
 ALTER PROCEDURE public.class_students_remove(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _students text[]) OWNER TO postgres;
+
+--
+-- Name: class_students_set(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.class_students_set(IN _orgref uuid, IN _classref uuid, IN _studentstree jsonb)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF (select 1 from schools_classes
+		where school_id = _orgRef
+		AND class_id = _classRef)
+	THEN
+		update schools_classes set class_body = jsonb_set(
+			jsonb_set(
+				class_body::jsonb,
+				'{list_students}'::text[],
+				_studentsTree->'list_students',
+				true
+			)::jsonb,
+			'{list_fstudents}'::text[],
+			_studentsTree->'list_fstudents',
+			true
+		) 
+		where school_id = _orgRef
+		AND class_id = _classRef;
+	ELSE
+		RAISE notice 'No such class for school: %, class: %',
+			_orgRef,
+			_classRef;
+	END IF;
+
+END;
+$$;
+
+
+ALTER PROCEDURE public.class_students_set(IN _orgref uuid, IN _classref uuid, IN _studentstree jsonb) OWNER TO postgres;
 
 --
 -- Name: class_students_set(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1072,11 +1166,15 @@ BEGIN
     ELSE
         -- Iterating through all classes
         FOR rec IN
-            SELECT class_id, class_body
-            FROM schools_classes_ownership_view
-            WHERE school_id = _orgref
-            GROUP BY class_id, class_body
+            SELECT classes.class_id, classes.class_body
+            FROM schools_classes classes
+            LEFT JOIN schools_classes_ownership_view view
+                ON classes.school_id = view.school_id AND classes.class_id = view.class_id
+            WHERE classes.school_id = _orgref
+            GROUP BY classes.class_id, classes.class_body
         LOOP
+            RAISE NOTICE 'class_name: %', rec.class_body->>'name';
+
             -- Build a JSONB array of owners for the current class
             WITH ownership_data AS (
                 SELECT jsonb_agg(
@@ -1088,10 +1186,11 @@ BEGIN
                 FROM schools_classes_ownership ownership
                 WHERE ownership.class_id = rec.class_id AND ownership.school_id = _orgref
             )
+            -- Check if owners exist before attempting to set them
             SELECT jsonb_insert(
                 root_new_data,
                 ('{' || rec.class_id || '}')::text[],  -- Path to insert new data
-                jsonb_set(rec.class_body, '{owners}', (SELECT owners FROM ownership_data))  -- Set owners into class body
+                jsonb_set(rec.class_body, '{owners}', COALESCE((SELECT owners FROM ownership_data), '[]'::jsonb))  -- Set owners into class body, default to empty array
             ) INTO root_new_data;  -- Insert the new root data into the variable
 
             -- Insert isActualData for the current class
@@ -1511,17 +1610,15 @@ BEGIN
     RETURN
 	jsonb_agg(
         jsonb_build_object(
-			'id', _user_id::text,
+			'id', schools_users.user_id::text,
             'name', users.name::text,
-            'roles', members -> _user_id -> 'roles', -- Include roles
+            'roles', schools_users.roles, -- Include roles
             'classes', COALESCE(class_info.classes, '[]'::jsonb) -- Include classes, default to empty array if null
         )) AS user_info
     FROM
-        schools
+        schools_users
     JOIN
-        LATERAL jsonb_object_keys(members) AS _user_id ON TRUE
-    JOIN
-        users ON users.id = _user_id::uuid
+        users ON users.id = schools_users.user_id::uuid
     LEFT JOIN (
         SELECT
             class_data.user_id,
@@ -1541,7 +1638,7 @@ BEGIN
             class_data.user_id  -- Group by user_id
     ) AS class_info ON class_info.user_id = users.id
     WHERE
-        schools.id = _orgID;  -- Filter based on the organization ID
+        schools_users.school_id = _orgID;  -- Filter based on the organization ID
 END;
 $$;
 
@@ -1729,26 +1826,13 @@ CREATE PROCEDURE public.user_create_with_roles(IN _orgref uuid, IN _login text, 
           INSERT INTO public.users(id, login, password, school_id, name)
           VALUES(v_user_id, _login, crypt(_password, v_salt), _orgRef, _name);
 
-     -- Insert the generated salt into user_salts table
+     	  -- Insert the generated salt into user_salts table
           INSERT INTO public.users_salts(user_id, salt)
           VALUES(v_user_id, v_salt);
 
-     -- Insert user's data in schools(members)
-     IF (select 1 from public.users where school_id = _orgRef and id = v_user_id) THEN
-                UPDATE public.schools
-                    SET members = jsonb_set(
-                        members,
-                        ( '{' || v_user_id::text || '}' )::text[],
-                        jsonb_build_object(
-                               'roles', _roles,
-                               'classes', ARRAY[]::text[]
-                        )::jsonb,
-                        true
-                	)
-				WHERE id = _orgRef;
-ELSE
-        RAISE notice 'no such user! %', _userID;
-END IF;
+		  INSERT INTO public.schools_users(school_id, user_id, roles)
+		  VALUES(_orgRef, v_user_id, _roles);
+		  
       END;
       $$;
 
@@ -1927,24 +2011,9 @@ CREATE PROCEDURE public.user_roles_set(IN _orgref uuid, IN _userid uuid, IN _rol
     LANGUAGE plpgsql
     AS $$
        BEGIN
-
-       -- Insert user's data in schools(members)
-       IF (select true from public.users where school_id = _orgRef and id = _userID)
-       	AND (select true from public.schools where members ? _userID::text) THEN
-       	UPDATE public.schools set members = jsonb_set(
-       		members,
-       		('{' || _userID || ', roles}')::text[],
-      			(
-      			select jsonb_agg(DISTINCT elem) FROM
-      				(
-      				select jsonb_array_elements(to_jsonb(_roles)) as elem
-      				)
-      			)
-      		)
-      	where id = _orgRef;
-      ELSE
-      	RAISE INFO 'No such user. Is it in schools AND users tables? ID: %', _userID;
-      END IF;
+		  UPDATE public.schools_users set roles = _roles
+		  	WHERE school_id = _orgRef
+			  AND user_id = _userID;
       END;
       $$;
 
@@ -2025,8 +2094,8 @@ CREATE VIEW public.schools_classes_ownership_view AS
     c.class_id,
     c.class_body
    FROM ((public.schools_classes c
-     JOIN public.schools_classes_ownership o ON (((c.school_id = o.school_id) AND (c.class_id = o.class_id))))
-     JOIN public.schools s ON ((c.school_id = s.id)));
+     JOIN public.schools s ON ((c.school_id = s.id)))
+     JOIN public.schools_classes_ownership o ON (((c.school_id = o.school_id) AND (c.class_id = o.class_id))));
 
 
 ALTER VIEW public.schools_classes_ownership_view OWNER TO postgres;
@@ -2069,6 +2138,19 @@ CREATE TABLE public.schools_template_classes (
 
 
 ALTER TABLE public.schools_template_classes OWNER TO postgres;
+
+--
+-- Name: schools_users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.schools_users (
+    school_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    roles text[] NOT NULL
+);
+
+
+ALTER TABLE public.schools_users OWNER TO postgres;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
@@ -2114,7 +2196,10 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
 00000000-0000-0000-0000-000000000000	6c42c322-d434-4639-ae0e-8eb29088dc33	{"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	e3ec4a16-365a-4b6d-ac3f-79182df83701	{"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
-00000000-0000-0000-0000-000000000000	f501a40b-acd6-4b6e-8428-cb52707f4f94	{"name": "test3", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	f501a40b-acd6-4b6e-8428-cb52707f4f94	{"name": "test3", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5", "Efimov"], "list_fstudents": ["Ivanov5", "Ivanov4", "Ivanov3"]}
+00000000-0000-0000-0000-000000000000	43746cdc-5be1-4b66-96fe-e5b630d4a865	{"name": "testClass#1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "list_students": ["123", "321"], "list_fstudents": ["123"]}
+00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc	{"name": "testClass#2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 10, "list_students": [], "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	eab74de0-001e-4e1e-93e0-c9ee922991b7	{"name": "finalTest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 100, "list_students": [], "list_fstudents": []}
 \.
 
 
@@ -2127,6 +2212,7 @@ COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	e3ec4a16-365a-4b6d-ac3f-79182df83701
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	f501a40b-acd6-4b6e-8428-cb52707f4f94
 00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	e3ec4a16-365a-4b6d-ac3f-79182df83701
+00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc
 \.
 
 
@@ -2159,6 +2245,7 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 00000000-0000-0000-0000-000000000000	2024-08-26	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "absent": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "list_fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-08-27	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "absent": {"ORVI": ["Ivanov"], "global": ["Ivanov", "Setkov", "Adminov"], "fstudents": ["Setkov"], "respectful": ["Adminov"], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "list_fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-08-28	{"6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "absent": {"ORVI": ["Ivanov0"], "global": ["Ivanov0", "Ivanov5"], "fstudents": [], "respectful": [], "not_respectful": ["Ivanov5"]}, "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": true}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "owners": [{"id": "934ced4e-ee81-4b21-96c7-fd6a67aaf19f", "name": "api-test"}, {"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "absent": {"ORVI": ["Ivanov4"], "global": ["Ivanov4", "Ivanov0", "Ivanov2", "Ivanov1"], "fstudents": [], "respectful": ["Ivanov0", "Ivanov1"], "not_respectful": []}, "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5"], "list_fstudents": [], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-08-30	{"43746cdc-5be1-4b66-96fe-e5b630d4a865": {"name": "testClass#1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "owners": [], "list_students": ["123", "321"], "list_fstudents": ["123"], "isClassDataFilled": false}, "6c42c322-d434-4639-ae0e-8eb29088dc33": {"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "8f0f242c-c29a-4c68-9e2e-c6b6b1875ed8": {"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 123, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "d4c94a63-f124-4c76-8382-fcff2c1a06cc": {"name": "testClass#2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 10, "owners": [{"id": "00000000-0000-0000-0000-000000000000", "name": "nil"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "e3ec4a16-365a-4b6d-ac3f-79182df83701": {"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}, {"id": "934ced4e-ee81-4b21-96c7-fd6a67aaf19f", "name": "api-test"}], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "eab74de0-001e-4e1e-93e0-c9ee922991b7": {"name": "finalTest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 100, "owners": [], "list_students": [], "list_fstudents": [], "isClassDataFilled": false}, "f501a40b-acd6-4b6e-8428-cb52707f4f94": {"name": "test3", "absent": {"ORVI": ["Ivanov0"], "global": ["Ivanov0", "Ivanov2", "Ivanov1"], "fstudents": [], "respectful": ["Ivanov1"], "not_respectful": ["Ivanov2"]}, "amount": 0, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5", "Efimov"], "list_fstudents": ["Ivanov5", "Ivanov4", "Ivanov3"], "isClassDataFilled": true}}
 \.
 
 
@@ -2180,8 +2267,20 @@ COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin
 --
 
 COPY public.schools_template_classes (school_id, template_body) FROM stdin;
-64e40f2f-2bba-484f-bf95-00ae047ca171	{"name": null, "amount": 0, "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}
-00000000-0000-0000-0000-000000000000	{"name": null, "amount": 0, "absent_lists": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "list_students": [], "absent_amounts": {"ORVI": 0, "global": 0, "fstudents": 0, "respectful": 0, "not_respectful": 0}, "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	{"name": null, "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
+64e40f2f-2bba-484f-bf95-00ae047ca171	{"name": null, "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
+\.
+
+
+--
+-- Data for Name: schools_users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.schools_users (school_id, user_id, roles) FROM stdin;
+00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	{1,teacher,admin,test}
+00000000-0000-0000-0000-000000000000	c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	{apitest1,teacher}
+00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{tester,teacher,admin}
+00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher}
 \.
 
 
@@ -2233,6 +2332,14 @@ ALTER TABLE ONLY public.schools
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT pk_user_id PRIMARY KEY (id);
+
+
+--
+-- Name: schools_users school_user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schools_users
+    ADD CONSTRAINT school_user_roles_pkey PRIMARY KEY (school_id, user_id);
 
 
 --
@@ -2323,6 +2430,22 @@ ALTER TABLE ONLY public.schools_invites
 
 
 --
+-- Name: schools_users school_user_roles_school_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schools_users
+    ADD CONSTRAINT school_user_roles_school_id_fkey FOREIGN KEY (school_id) REFERENCES public.schools(id) ON DELETE CASCADE;
+
+
+--
+-- Name: schools_users school_user_roles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schools_users
+    ADD CONSTRAINT school_user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: schools_classes_ownership schools_classes_ownership_school_id_class_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2409,6 +2532,13 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.schools_invites TO floatyapi W
 --
 
 GRANT ALL ON TABLE public.schools_template_classes TO floatyapi;
+
+
+--
+-- Name: TABLE schools_users; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.schools_users TO floatyapi WITH GRANT OPTION;
 
 
 --

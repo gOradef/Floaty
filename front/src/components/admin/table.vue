@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="!isDataLoaded && isDataExists">
+    <div v-if="!isDataExists">
       <h4>Данные отсутствуют.</h4>
       <b> Журнал ещё никто не заполнил</b> <br>
       <i> Сгененрировать данные самостоятельно?</i>
@@ -25,7 +25,7 @@
               @click.stop="toggleDetails(row.item.id)"
               style="margin-bottom: 8px"
             >
-              Всего: ({{ row.item.absent.global.join(", ") }})
+              Всего: {{ row.item.absent.global.join(", ") }}
                 <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
                 <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
             </p>
@@ -47,15 +47,16 @@
                   <b-list-group-item >{{row.item.absent.fstudents.length}} </b-list-group-item>
                 </b-list-group>
                 <b-list-group class="b-list-group-lists">
-                  <b-list-group-item>({{ row.item.absent.ORVI.join(", ") }})</b-list-group-item>
-                  <b-list-group-item>({{ row.item.absent.respectful.join(", ") }})</b-list-group-item>
-                  <b-list-group-item>({{ row.item.absent.not_respectful.join(", ") }})</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.ORVI.join(", ") }}</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.respectful.join(", ") }}</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") }}</b-list-group-item>
                   <b-list-group-item>
-                    ({{ row.item.absent.global.filter(student =>
+                    {{ row.item.absent.global.filter(student =>
                           row.item.absent.fstudents.includes(student)
                       ).join(', ')
-                    }})
-                  </b-list-group-item>                </b-list-group>
+                    }}
+                  </b-list-group-item>
+                </b-list-group>
 
           </b-collapse>
           </div>
@@ -243,6 +244,10 @@ export default {
       }
     }
   },
+  beforeMount() {
+
+    this.$root.$off('renderContentSection', this.handleRenderContentSection);
+  },
   async mounted() {
     // Define the event handler
     this.handleRenderContentSection = async (section) => {
@@ -277,10 +282,6 @@ export default {
         console.warn(`Unknown section: ${section}`);
       }
     };
-
-    // Clean up previous listeners in case of hot-reload
-    this.$root.$off('renderContentSection', this.handleRenderContentSection);
-
     // Register the event listener
     this.$root.$on('renderContentSection', this.handleRenderContentSection);
 

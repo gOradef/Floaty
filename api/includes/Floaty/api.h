@@ -196,18 +196,15 @@ public:
     crow::json::wvalue getSummaryFromDateToDate(const std::string& startDate, const std::string& endDate);
 
     //Region Events - Classes
-    void classRename(const crow::json::rvalue& json);
-
-
     void classCreate(const crow::json::rvalue& json);
-
+    void classRename(const std::string& classID, const std::string& className);
+    void updateClassStudents(const std::string& classID, const std::string& studentsBranch);
     void classDrop(const std::string& classID);
 
     //Region Users
     void userCreate(const crow::json::rvalue& creds);
-
-    void userDrop(const std::string& userID);
     void userResetPassword(const std::string& userID, const std::string& newPassword);
+    void userDrop(const std::string& userID);
 
     //* User grant roles
     void userGrantRoles(const std::string& userID, const std::vector<std::string>& roles);
@@ -225,8 +222,6 @@ public:
 
     void inviteDrop(const std::string& reqID);
 
-
-    void classStudentsEdit(); //update
 
     void classMoveToNextYear(); //update
 

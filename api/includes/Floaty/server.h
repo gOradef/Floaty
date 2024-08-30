@@ -152,6 +152,7 @@ class Server {
         static void getAllClasses(const crow::request& req, crow::response& res);
         static void createNewClass(const crow::request& req, crow::response& res);
         static void getStudentsForClass(const crow::request& req, crow::response& res, const std::string& classID);
+        static void updateStudetsForClass(const crow::request& req, crow::response& res, const std::string& classID);
         static void renameClass(const crow::request& req, crow::response& res, const std::string& urlClassID);
         static void deleteClass(const crow::request& req, crow::response& res, const std::string& classID);
 

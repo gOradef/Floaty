@@ -86,7 +86,8 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         //* Classes interface
         c->prepare(psqlMethods::schoolManager::classes::getAll,"select * from school_classes_get($1::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::getStudents, "select * from school_class_students_get($1::uuid, $2::uuid)");
-        c->prepare(psqlMethods::schoolManager::classes::create, "call class_create($1::uuid, $2::uuid, $3::text)");
+        c->prepare(psqlMethods::schoolManager::classes::create, "call class_create($1::uuid, $2::uuid, $3::text, $4::int)");
+        c->prepare(psqlMethods::schoolManager::classes::updateStudentList, "call class_students_set($1::uuid, $2::uuid, $3)");
         c->prepare(psqlMethods::schoolManager::classes::drop, "call class_drop($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::rename, "call class_rename($1::uuid, $2::uuid, $3::text)");
 

@@ -99,6 +99,11 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::POST)
     (routes_admin::createNewClass);
 
+    // Creates class with or without owner depending onto url_param
+    CROW_ROUTE(app, "/api/org/classes/<string>/students")
+    .methods(crow::HTTPMethod::PUT)
+    (routes_admin::updateStudetsForClass);
+
     // Rename class
     CROW_ROUTE(app, "/api/org/classes/<string>")
     .methods(crow::HTTPMethod::PATCH)

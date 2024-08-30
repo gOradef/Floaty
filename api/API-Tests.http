@@ -208,7 +208,7 @@ GET http://localhost:18080/null
 ### Get all users
 GET http://localhost:18080/api/org/users
 
-> {%
+>
     client.test("Get all users", new function () {
         client.assert(response.status === 200, "Expected 200 but dont");
     })
