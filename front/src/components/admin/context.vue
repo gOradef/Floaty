@@ -18,7 +18,7 @@
       </div>
       <template v-slot:modal-footer>
         <b-button variant="secondary" @click="closeModal">Закрыть</b-button>
-        <b-button variant="primary" type="submit" @click="submitForm">Сохранить</b-button>
+        <b-button variant="primary" type="submit" @click="submitForm">Подтвердить</b-button>
       </template>
     </b-modal>
 

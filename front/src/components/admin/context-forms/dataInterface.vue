@@ -14,7 +14,7 @@
               <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
             </template>
 
-            <b-dropdown-form @submit.stop.prevent="addNotRespStudent">
+            <b-dropdown-form>
               <b-form-group
                   label="Поиск ученика:"
                   label-for="student-search-input"

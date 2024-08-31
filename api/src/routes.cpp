@@ -119,11 +119,7 @@ inline void Server::route_admin() {
     CROW_ROUTE(app, "/api/org/users")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getAllUsers);
-
-    /**
-    * @param withRoles - if set to true, then reads "roles" under req.body else creates user without any roles
-    * @param withClasses - if set to true, then reads "classes"
-    */
+    
     // Create new user
     CROW_ROUTE(app, "/api/org/users")
     .methods(crow::HTTPMethod::POST)

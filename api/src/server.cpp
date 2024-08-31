@@ -38,6 +38,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         const std::string& hashedLogin = hashSHA256(req_json["login"].s());
         const std::string& hashedPassword = hashSHA256(req_json["password"].s());
 
+        // std::cout << hashedLogin << '\n' << hashedPassword << '\n';
         //Check if user's creds are valid
         auto result = readTransaction.exec_prepared(psqlMethods::userChecks::isValid, hashedLogin, hashedPassword).front();
 
@@ -185,7 +186,7 @@ void Server::routes_auth::refreshToken(const crow::request& req, crow::response&
                                  .sign(jwt::algorithm::hs256{_jwtAccessSecret});
 
     // Send the new access token in response
-    res.code = 200; // Success
+    res.code = 204; // Success
     res.set_header("Set-Cookie", "Floaty_access_token=" + newAccessToken +
         "; path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax;");
     return res.end(); // End the response
@@ -285,7 +286,7 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
                            classes
         );
         work.commit();
-        res.code = 201;
+        res.code = 204;
     }
     catch (api::exceptions::requirmentsDoesntMeeted& e) {
         res.code = 403;
@@ -441,7 +442,7 @@ void Server::routes_admin::renameClass(const crow::request& req, crow::response&
 
         if (!urlClassID.empty()) {
             schoolManager.classRename(urlClassID, json["name"].s());
-            res.code = 200;
+            res.code = 204;
         }
         else
             throw api::exceptions::wrongRequest("Request doesn't contain class id");
@@ -455,7 +456,7 @@ void Server::routes_admin::deleteClass(const crow::request& req, crow::response&
         schoolManager schoolManager(_connectionPool, req);
         if (!classID.empty()) {
             schoolManager.classDrop(classID);
-            res.code = 200;
+            res.code = 204;
         }
         else
             throw api::exceptions::wrongRequest("Request doesn't contain class id");
@@ -497,29 +498,13 @@ void Server::routes_admin::createNewUser(const crow::request& req, crow::respons
         hashedCreds["login"] = hashSHA256(body["login"].s());
         hashedCreds["password"] = hashSHA256(body["password"].s());
 
-        auto withRolesParam = req.url_params.get("withRoles");
-        auto withClassesParam = req.url_params.get("withClasses");
-
-        //check if withRoles is true
-        if (withRolesParam) {
-            std::string withRolesValue = withRolesParam;
-            schoolManager.urlParams.isWithRoles = (withRolesValue == "true");
-        }
-        //check if withClasses is true
-        if (withClassesParam) {
-            std::string withClassesValue = withClassesParam;
-            schoolManager.urlParams.isWithClasses = (withClassesValue == "true");
-        }
-
-        if (schoolManager.urlParams.isWithRoles &&
-            (!body.has("roles") || body["roles"].t() != crow::json::type::List))
+        if (!body.has("classes") || body["roles"].t() != crow::json::type::List)
             throw api::exceptions::wrongRequest("No roles field or roles field is not array");
-        if (schoolManager.urlParams.isWithClasses &&
-            (!body.has("classes") || body["classes"].t() != crow::json::type::List))
+        if (!body.has("classes") || body["classes"].t() != crow::json::type::List)
             throw api::exceptions::wrongRequest("No classes field or classes field is not array");
 
-        schoolManager.userCreate(crow::json::load(req.body));
-        res.code = 201;
+        schoolManager.userCreate(crow::json::load(hashedCreds.dump()));
+        res.code = 204;
 
     };
     return verifier(req, res, f);
@@ -682,7 +667,7 @@ void Server::routes_admin::grantClassesToUser(const crow::request& req, crow::re
             classes.emplace_back(el.s());
 
         user.userGrantClass(userID, classes);
-        res.code = 201;
+        res.code = 204;
     };
     return verifier(req, res, f);
 }
@@ -704,7 +689,7 @@ void Server::routes_admin::degrantClassesToUser(const crow::request& req, crow::
             classes.emplace_back(el.s());
 
         user.userDegrantClass(userID, classes);
-        res.code = 201;
+        res.code = 204;
     };
     return verifier(req, res, f);
 }

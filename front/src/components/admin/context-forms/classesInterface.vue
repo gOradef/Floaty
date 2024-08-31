@@ -339,7 +339,7 @@ export default {
       }
 
       const res = await this.$root.$makeApiRequest('/api/org/classes', 'POST', this.newClass)
-      if (res.status === 201)
+      if (res.status === 204)
         this.$root.$emit('notification', 'success', '');
       else
         this.$root.$emit('notification', 'error', '');
@@ -354,8 +354,11 @@ export default {
       };
 
       try {
-        const res = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students', 'PUT', dataToSend);
-        console.log('Обновлено успешно:', res);
+        const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students', 'PUT', dataToSend);
+        if (status === 204)
+          this.$root.$emit('notification', 'success');
+        else
+          this.$root.$emit('notification', 'error');
       }
       catch (error) {
         console.error('Ошибка при сохранении изменений:', error);

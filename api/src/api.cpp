@@ -462,12 +462,16 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
     std::unique_ptr<std::vector<std::string>> roles;
     std::unique_ptr<std::vector<std::string>> classes;
 
-    this->urlParams.isWithRoles ? roles =
-            std::make_unique<std::vector<std::string>>(creds["roles"].begin(), creds["roles"].end())
-            : roles = nullptr;
-    this->urlParams.isWithClasses ? classes =
-            std::make_unique<std::vector<std::string>> (creds["classes"].begin(), creds["classes"].end())
-            : classes = nullptr;
+
+    if (creds["roles"].size() != 0)
+        roles = std::make_unique<std::vector<std::string>>(creds["roles"].begin(), creds["roles"].end());
+    else
+        roles = nullptr;
+
+    if (creds["classes"].size() != 0)
+        classes = std::make_unique<std::vector<std::string>> (creds["classes"].begin(), creds["classes"].end());
+    else
+        classes = nullptr;
 
     // Execute the prepared query
     work.exec_prepared(psqlMethods::schoolManager::users::createWithContext, _org_id, login, pwd, name, roles, classes);

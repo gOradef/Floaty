@@ -10,12 +10,13 @@
         selectable
         select-mode="single"
         @row-selected="onRowSelected"
-        sticky-header="500px"
+        sticky-header="650px"
         striped
         hover
         :items="table.items"
         :fields="table.fields"
         :row-class="rowClass"
+        class="h-100"
         v-if="isDataLoaded"
       >
         <!--  Absent lists -->

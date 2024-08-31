@@ -970,7 +970,11 @@ CREATE FUNCTION public.is_user_has_role(_orgid uuid, _userid uuid, _role text) R
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	if (select 1 from schools where id = _orgID and members->_userID::text->'roles' ? _role) THEN
+	if (select 1 from schools_users 
+			where school_id = _orgID 
+			and user_id = _userID
+			and _role = ANY(roles)) 
+	THEN
 		RETURN TRUE;
 	END IF;
 	RETURN FALSE;
@@ -1610,15 +1614,17 @@ BEGIN
     RETURN
 	jsonb_agg(
         jsonb_build_object(
-			'id', schools_users.user_id::text,
+			'id', users.id::text,
             'name', users.name::text,
             'roles', schools_users.roles, -- Include roles
             'classes', COALESCE(class_info.classes, '[]'::jsonb) -- Include classes, default to empty array if null
         )) AS user_info
     FROM
-        schools_users
+        users
     JOIN
-        users ON users.id = schools_users.user_id::uuid
+        schools_users 
+		ON users.id = schools_users.user_id::uuid
+		AND users.school_id = schools_users.school_id
     LEFT JOIN (
         SELECT
             class_data.user_id,
@@ -1776,17 +1782,12 @@ CREATE PROCEDURE public.user_create_with_context(IN _orgref uuid, IN _login text
 	
      -- Insert user's data in schools(members)
      IF (select 1 from public.users where school_id = _orgRef and id = v_user_id) THEN
-                UPDATE public.schools
-                    SET members = jsonb_set(
-                        members,
-                        ( '{' || v_user_id::text || '}' )::text[],
-                        jsonb_build_object(
-                               'roles', _roles,
-                               'classes', _classes
-                        )::jsonb,
-                        true
-                        )
-                                WHERE id = _orgRef;
+	
+	-- Insert roles and user member into school
+	INSERT INTO schools_users(school_id, user_id, roles)
+		SELECT _orgRef, v_user_id, _roles;
+		
+	
 	WITH class_ids AS (
     	SELECT unnest(_classes) AS class_id
 	),
@@ -1948,14 +1949,13 @@ CREATE FUNCTION public.user_roles_get(_schoolref uuid, _userid uuid) RETURNS SET
 
 DECLARE
 	userRoles text[];
-	userRolesJSONB jsonb;
 BEGIN
-	userRolesJSONB := (SELECT members->(_userID::text)->>'roles'
-			FROM schools 
-			WHERE id = _schoolRef);
+	userRoles := (SELECT roles
+			FROM schools_users 
+				WHERE school_id = _schoolRef
+				AND user_id = _userID);
 
-	RETURN QUERY SELECT elem
-                 FROM jsonb_array_elements_text(userRolesJSONB) AS elem;
+	RETURN QUERY (select unnest(userRoles));
 
     -- Если после выполнения запроса не было возвращено ни одной строки, возвращаем пустой набор результатов
     IF NOT FOUND THEN
@@ -2185,7 +2185,7 @@ ALTER TABLE public.users_salts OWNER TO postgres;
 
 COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 64e40f2f-2bba-484f-bf95-00ae047ca171	МБОУ "Гимназия №125"	116	Казань	Советский район	test@gmail.com	{"6657cbe7-0d5c-4592-8cc7-997e26bb143b": {"roles": ["admin", "teacher", "dev"], "classes": []}, "a58e750a-63ca-47f5-837e-502c8d6c227c": {"roles": [], "classes": []}, "bd10f251-db64-4092-b0b1-2f2fbfc5f768": {"roles": ["dev", "teacher"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd"]}, "c419f7f6-ac38-432a-a4b0-54a315f835b2": {"roles": ["admin", "teacher", "dev"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd", "e7a2c4e3-525c-4433-b5d7-9e085d43d661"]}}
-00000000-0000-0000-0000-000000000000	nil	nil	nil	nil	nil	{"934ced4e-ee81-4b21-96c7-fd6a67aaf19f": {"roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ac7d9df6-9141-461b-bd12-f59370fb9826": {"roles": ["tester", "teacher", "admin"], "classes": []}, "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5": {"roles": ["apitest1", "teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ff856428-37b2-4c21-a1d7-ed647b514e27": {"roles": [], "classes": []}}
+00000000-0000-0000-0000-000000000000	nil	nil	nil	nil	nil	{"82b4b650-1f1d-4868-be93-0bc98b1c5190": {"roles": [], "classes": []}, "934ced4e-ee81-4b21-96c7-fd6a67aaf19f": {"roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ac7d9df6-9141-461b-bd12-f59370fb9826": {"roles": ["tester", "teacher", "admin"], "classes": []}, "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5": {"roles": ["apitest1", "teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ff856428-37b2-4c21-a1d7-ed647b514e27": {"roles": [], "classes": []}}
 \.
 
 
@@ -2194,12 +2194,12 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
+00000000-0000-0000-0000-000000000000	d910deba-6d6c-4b77-a97b-44bbb1ea634a	{"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 4, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	6c42c322-d434-4639-ae0e-8eb29088dc33	{"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	e3ec4a16-365a-4b6d-ac3f-79182df83701	{"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	f501a40b-acd6-4b6e-8428-cb52707f4f94	{"name": "test3", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5", "Efimov"], "list_fstudents": ["Ivanov5", "Ivanov4", "Ivanov3"]}
 00000000-0000-0000-0000-000000000000	43746cdc-5be1-4b66-96fe-e5b630d4a865	{"name": "testClass#1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "list_students": ["123", "321"], "list_fstudents": ["123"]}
 00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc	{"name": "testClass#2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 10, "list_students": [], "list_fstudents": []}
-00000000-0000-0000-0000-000000000000	eab74de0-001e-4e1e-93e0-c9ee922991b7	{"name": "finalTest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 100, "list_students": [], "list_fstudents": []}
 \.
 
 
@@ -2213,6 +2213,7 @@ COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	f501a40b-acd6-4b6e-8428-cb52707f4f94
 00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	e3ec4a16-365a-4b6d-ac3f-79182df83701
 00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc
+00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	d910deba-6d6c-4b77-a97b-44bbb1ea634a
 \.
 
 
@@ -2281,6 +2282,13 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	{apitest1,teacher}
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{tester,teacher,admin}
 00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher}
+00000000-0000-0000-0000-000000000000	be03e070-bea4-41ba-9d99-17182c7acd50	{}
+00000000-0000-0000-0000-000000000000	47205632-ec93-4bac-ae47-7e6ead32f297	{}
+00000000-0000-0000-0000-000000000000	ffc8ab92-b47a-4cd8-a304-75ac62994d49	{teacher,admin}
+00000000-0000-0000-0000-000000000000	26d98ee1-10e9-4234-acaa-76b0b0c7e172	{teacher}
+00000000-0000-0000-0000-000000000000	e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	{teacher}
+00000000-0000-0000-0000-000000000000	89bf8796-2093-408d-8f64-9c0d160bf22a	{teacher}
+00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	{teacher,admin}
 \.
 
 
@@ -2297,6 +2305,14 @@ ac7d9df6-9141-461b-bd12-f59370fb9826	00000000-0000-0000-0000-000000000000	2d8c62
 ff856428-37b2-4c21-a1d7-ed647b514e27	00000000-0000-0000-0000-000000000000	811f1895d782af1ef9bf4d42d1710878ff47b2ba6768e914ca7c8220c97f2572	$2a$06$F7QFfmA.70gde5jf/GlMQ.Fzq86CaZIZVyP7PosiuxdNrKNToFnfW	Victorovich
 c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	00000000-0000-0000-0000-000000000000	882bd30204a0a6db079682425ede48f1ac451aeda9cb7b429ca60afeac8065c5	$2a$06$hcS8tEn0Fav6tVnu5mLV6ONOxLkAXXayVZcCf3uQCB80k8PvoIL86	api-test
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	00000000-0000-0000-0000-000000000000	7117476ce4f850bfa18c365922a07b7e4347eef8057c3bbaf14442cc3b1e625d	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.6yYyOJf39PCwq.YeDs4ISmqKZjLTo2q	api-test
+82b4b650-1f1d-4868-be93-0bc98b1c5190	00000000-0000-0000-0000-000000000000	123	$2a$06$IqR5XqMqT9bu4n6wWNeR1.PwJnMnI/.1ECjCFR7oCaEny5/4O3M96	123
+be03e070-bea4-41ba-9d99-17182c7acd50	00000000-0000-0000-0000-000000000000	321	$2a$06$LC99bG2jLmKHMSYesKgwGuvB8XEJ/iFyhXX.yFfAc.jaNUubITnKG	321
+47205632-ec93-4bac-ae47-7e6ead32f297	00000000-0000-0000-0000-000000000000	231	$2a$06$3SAdpO6WStwOOovMpLf.MeQWwTGBNLoHfgEt4H8wyoZGstV3Epzm.	2321
+ffc8ab92-b47a-4cd8-a304-75ac62994d49	00000000-0000-0000-0000-000000000000	1234	$2a$06$t0TY.p5SJ3lVgZStZY6ge.IqB8vA9jY.EjFYi3b0/yO/TPrxpFVi6	4321
+26d98ee1-10e9-4234-acaa-76b0b0c7e172	00000000-0000-0000-0000-000000000000	нея	$2a$06$ShKJ3NDk4zzFEQLsq84BWuuXaWzdQeU1ftYQOafnJJSZnL8x/..NG	Я тест
+e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	00000000-0000-0000-0000-000000000000	2	$2a$06$vpZx.jutqK.nV0j6BLjQ1.38IhbWFqLYeDmWOiLbX.66.jha3YQOG	1
+89bf8796-2093-408d-8f64-9c0d160bf22a	00000000-0000-0000-0000-000000000000	125	$2a$06$etwriUhjjq459j52qSEXVOsiUz6jgDvATylqfFh/ITA28kHR85CRW	TESTES
+82ef00ca-96bc-48b2-8eac-d0768a4ece81	00000000-0000-0000-0000-000000000000	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$s8XqsVcGgez.ZRVAlMVtwuflaZZUyxQXQFjFI6i7Y.QRmqZJCrLQu	Юлия Александровна
 \.
 
 
@@ -2315,6 +2331,14 @@ ac7d9df6-9141-461b-bd12-f59370fb9826	$2a$06$L6lwzXIDBBUXTCmQC4a44e
 ff856428-37b2-4c21-a1d7-ed647b514e27	$2a$06$F7QFfmA.70gde5jf/GlMQ.
 c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	$2a$06$hcS8tEn0Fav6tVnu5mLV6O
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.
+82b4b650-1f1d-4868-be93-0bc98b1c5190	$2a$06$IqR5XqMqT9bu4n6wWNeR1.
+be03e070-bea4-41ba-9d99-17182c7acd50	$2a$06$LC99bG2jLmKHMSYesKgwGu
+47205632-ec93-4bac-ae47-7e6ead32f297	$2a$06$3SAdpO6WStwOOovMpLf.Me
+ffc8ab92-b47a-4cd8-a304-75ac62994d49	$2a$06$t0TY.p5SJ3lVgZStZY6ge.
+26d98ee1-10e9-4234-acaa-76b0b0c7e172	$2a$06$ShKJ3NDk4zzFEQLsq84BWu
+e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	$2a$06$vpZx.jutqK.nV0j6BLjQ1.
+89bf8796-2093-408d-8f64-9c0d160bf22a	$2a$06$etwriUhjjq459j52qSEXVO
+82ef00ca-96bc-48b2-8eac-d0768a4ece81	$2a$06$s8XqsVcGgez.ZRVAlMVtwu
 \.
 
 

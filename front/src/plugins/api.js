@@ -45,6 +45,8 @@ export default {
                     }
 
                 } catch (error) {
+                    if (error.response.status === 409)
+                        return 409;
                     if (error.response && error.response.status === 401) {
                         // Handle token expiration
                         try {

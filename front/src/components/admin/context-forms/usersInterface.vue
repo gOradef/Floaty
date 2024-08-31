@@ -1,77 +1,144 @@
 <template>
   <div>
-    <div>
+    <div v-if="action === 'create'">
+      <createUser/>
+    </div>
 
+    <div v-if="action === 'edit'">
+      <editUser :entity="entity_buff"/>
+    </div>
+
+    <div v-if="action === 'reset'">
+      <!-- Интерфейс сброса пароля -->
+    </div>
+
+    <div v-if="action === 'delete'">
+      <p>
+        При продолжении, пользователь <b>{{ this.entity_buff.name }}</b> будет <b>безвозвратно</b> удалён. <br>
+        <ul>
+          <li>Классы:
+            {{ this.entity_buff.classes ? this.entity_buff.classes.map(classt => classt.name || '').join(', ') : '-' }}</li>
+          <li>Роли: {{ this.entity_buff.roles ? this.entity_buff.roles.map(role => role).join(', ') : '-' }}</li>
+        </ul>
+      </p>
     </div>
   </div>
 </template>
 
 <script>
-  export default {
-    name: 'usersInterface',
-    props: {
-      action: {
-        type: String,
-        required: true
+import createUser from "@/components/admin/context-forms/users/createUser.vue";
+import editUser from "@/components/admin/context-forms/users/editUser.vue";
+
+export default {
+  name: 'usersInterface',
+  components: {
+    createUser,
+    editUser
+  },
+  props: {
+    action: {
+      type: String,
+      required: true
+    },
+    entity: {
+      type: Object,
+      required: true
+    }
+  },
+  data() {
+    return {
+      raw_data: {},
+      currentTabIndex: 0,
+      entity_buff: {...this.entity},
+
+      newClassName: '',
+      newRole: '',
+
+      editUser: {
+        newUserName: '',
+        newClasses: [],
+        newRoles: [],
       },
-      entity: {
-        type: Object,
-        required: true
+
+
+    };
+  },
+  beforeMount() {
+    this.$root.$off('form:confirm');
+  },
+  mounted() {
+    switch (this.action) {
+      case "create":
+        this.$root.$on('form:confirm', this.handleCreateUser);
+        break;
+      case "edit":
+        this.$root.$on('form:confirm',
+            this.handleEditUser);
+        break;
+      case "reset":
+        this.$root.$on('form:confirm', this.resetPassword);
+        break;
+      case "delete":
+        this.$root.$on('form:confirm', this.deleteUser);
+        break;
+    }
+  },
+  computed: {
+
+  },
+  methods: {
+    async getClasses() {
+      this.raw_data = await this.$root.$makeApiRequest('/api/org/classes');
+      this.availableClassesList = this.raw_data.map(classt => ({
+        name: classt.name,
+        id: classt.id,
+        owners: classt.owners,
+        disabled: classt.owners && classt.owners.length > 0, // Mark as disabled if classes exist
+      }))
+          // Sort the availableOwners: those without classes come first
+          .sort((a, b) => {
+            // Sort by 'disabled': false (no classes) should come before true (has classes)
+            return (a.disabled === b.disabled) ? 0 : a.disabled ? 1 : -1;
+          });
+      console.log(this.availableClassesList);
+    },
+
+
+    // Region Send data
+    handleEditUser() {
+      this.$root.$emit('interface:editUser')
+    },
+
+    async resetPassword() {
+      // Логика сброса пароля
+    },
+    async deleteUser() {
+      // Логика удаления пользователя
+    },
+    addClass() {
+      const newClass = { id: this.newClassId, name: this.newClassName };
+      this.entity_buff.classes.push(newClass);
+      this.newClassId = '';
+      this.newClassName = '';
+    },
+    removeClass(index) {
+      this.entity_buff.classes.splice(index, 1);
+    },
+    addRole() {
+      if (this.newRole) {
+        this.entity_buff.roles.push(this.newRole);
+        this.newRole = '';
       }
     },
-    data() {
-      return {
-      //   Region create
-
-      //   Region edit
-        /*
-        1. rename
-        2. [de]grantClass
-        3. [de]grantRole
-       */
-
-      //   Region grantClassInterface
-      //     1. add, remove,
-      //
-      //   Region resetPassword
-      //   Region delete
-      }
+    removeRole(index) {
+      this.entity_buff.roles.splice(index, 1);
     },
-    beforeMount() {
-      this.$root.$off('form:confirm');
-    },
-    mounted() {
-      switch(this.action) {
-        case "create":
-          this.getOwners();
-          this.$root.$on('form:confirm', async () => {
-            this.createUser();
-          });
-          break;
-        case "edit":
-          this.$root.$on('form:confirm', async () => {
-            await this.renameUser();
-          });
-          break;
-        case "reset":
-          this.$root.$on('form:confirm', async () => {
-            await this.resetPassowrd();
-          });
-          break;
-        case "delete":
-          this.$root.$on('form:confirm', async () => {
-            await this.deleteUser();
-          });
-          break;
-      }
-    },
-    methods: {
-
-    },
-
-  }
+    handleCreateUser() {
+      this.$root.$emit('interface:createUser');
+    }
+  },
+};
 </script>
 
 <style scoped>
-
 </style>
