@@ -18,4 +18,6 @@ fi
 
 sudo su postgres -c "psql --command 'drop database floatydb ' "
 
+sudo su postgres -c "psql --command 'create database floatydb ' "
+
 sudo su postgres -c "psql -U postgres floatydb < db.pgsql"
