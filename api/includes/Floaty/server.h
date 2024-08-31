@@ -159,22 +159,15 @@ class Server {
         //* Users section
         static void getAllUsers(const crow::request& req, crow::response& res);
         static void createNewUser(const crow::request& req, crow::response& res);
-        static void deleteUser(const crow::request& req, crow::response& res, const std::string& userID);
+        static void editUser(const crow::request& req, crow::response& res, const std::string& userID);
         static void resetPasswordOfUser(const crow::request& req, crow::response& res, const std::string& userID);
+        static void deleteUser(const crow::request& req, crow::response& res, const std::string& userID);
 
         //* Data section
         static void getDataForToday(const crow::request& req, crow::response& res);
         static void getDataForDate(const crow::request& req, crow::response& res, const std::string& date);
         static void getDataSummary(const crow::request& req, crow::response& res);
         static void updateDataAbsent(const crow::request& req, crow::response& res, const std::string& classID);
-
-        //* Grant roles
-        static void grantRolesToUser(const crow::request& req, crow::response& res, const std::string& userID);
-        static void degrantRolesToUser(const crow::request& req, crow::response& res, const std::string& userID);
-
-        //* Grant classes
-        static void grantClassesToUser(const crow::request& req, crow::response& res, const std::string& userID);
-        static void degrantClassesToUser(const crow::request& req, crow::response& res, const std::string& userID);
 
         //* Invites
         static void getAllInvites(const crow::request& req, crow::response& res);

@@ -478,6 +478,29 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
     work.commit();
 }
 
+void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue& userBody) {
+    isUserExists(userID);
+
+    pqxx::work work(*_connection);
+    if (userBody.has("roles") &&
+        userBody["roles"].t() == crow::json::type::List) {
+        std::vector<std::string> roles;
+        for (auto& role : userBody["roles"]) {
+            roles.emplace_back(role.s());
+        }
+        work.exec_prepared(psqlMethods::schoolManager::users::setRoles, _org_id, userID, roles);
+    }
+    if (userBody.has("classes") &&
+        userBody["classes"].t() == crow::json::type::List) {
+        std::vector<std::string> classes;
+        for (auto& classt : userBody["classes"]) {
+            classes.emplace_back(classt.s());
+        }
+        work.exec_prepared(psqlMethods::schoolManager::users::setClasses, _org_id, userID, classes);
+    }
+    work.commit();
+}
+
 void schoolManager::userDrop(const std::string &userID) {
 
     isUserExists(userID);
@@ -501,41 +524,6 @@ void schoolManager::userResetPassword(const std::string& userID, const std::stri
 }
 
 
-void schoolManager::userGrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
-    isUserExists(userID);
-
-    pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::grantRoles, _org_id, userID, roles);
-    work.commit();
-}
-void schoolManager::userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles) {
-    isUserExists(userID);
-
-    pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::degrantRoles, _org_id, userID, roles);
-    work.commit();
-}
-
-void schoolManager::userGrantClass(const std::string& userID, const std::vector<std::string>& classes) {
-    isUserExists(userID);
-    for (auto& classID : classes) {
-        isClassExists(classID);
-    }
-
-    pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::grantClasses, _org_id, userID, classes);
-    work.commit();
-}
-void schoolManager::userDegrantClass(const std::string& userID, const std::vector<std::string>& classes) {
-    isUserExists(userID);
-    for (auto& classID : classes) {
-        isClassExists(classID);
-    }
-
-    pqxx::work work(*_connection);
-    work.exec_prepared(psqlMethods::schoolManager::users::degrantClasses, _org_id, userID, classes);
-    work.commit();
-}
 
 // Region invites
 /**

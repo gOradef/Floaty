@@ -9,7 +9,11 @@
     </div>
 
     <div v-if="action === 'reset'">
-      <!-- Интерфейс сброса пароля -->
+      <b-form>
+        <b-form-group title="Новый пароль">
+          <b-form-input v-model="newUserPassword" placeholder="Введите новый пароль пользователя"/>
+        </b-form-group>
+      </b-form>
     </div>
 
     <div v-if="action === 'delete'">
@@ -51,16 +55,7 @@ export default {
       currentTabIndex: 0,
       entity_buff: {...this.entity},
 
-      newClassName: '',
-      newRole: '',
-
-      editUser: {
-        newUserName: '',
-        newClasses: [],
-        newRoles: [],
-      },
-
-
+      newUserPassword: '',
     };
   },
   beforeMount() {
@@ -87,33 +82,32 @@ export default {
 
   },
   methods: {
-    async getClasses() {
-      this.raw_data = await this.$root.$makeApiRequest('/api/org/classes');
-      this.availableClassesList = this.raw_data.map(classt => ({
-        name: classt.name,
-        id: classt.id,
-        owners: classt.owners,
-        disabled: classt.owners && classt.owners.length > 0, // Mark as disabled if classes exist
-      }))
-          // Sort the availableOwners: those without classes come first
-          .sort((a, b) => {
-            // Sort by 'disabled': false (no classes) should come before true (has classes)
-            return (a.disabled === b.disabled) ? 0 : a.disabled ? 1 : -1;
-          });
-      console.log(this.availableClassesList);
-    },
-
-
     // Region Send data
     handleEditUser() {
       this.$root.$emit('interface:editUser')
     },
 
     async resetPassword() {
-      // Логика сброса пароля
+      if (this.newUserPassword === "")
+        this.$root.$emit('notification', 'warning', 'Пароль не может быть пустым');
+      const status = await this.$root.$makeApiRequest(
+          '/api/org/users/' + this.entity_buff.id + '/password',
+          'PATCH',
+          {password: this.newUserPassword}
+      );
+      if (status === 204)
+        this.$root.$emit('notification', 'success');
+      else
+        this.$root.$emit('notification', 'error');
     },
     async deleteUser() {
-      // Логика удаления пользователя
+      const status = await this.$root.$makeApiRequest(
+          '/api/org/users/' + this.entity.id,
+      'DELETE');
+      if (status === 204)
+        this.$root.$emit('notification', 'success');
+      else
+        this.$root.$emit('notification', 'error');
     },
     addClass() {
       const newClass = { id: this.newClassId, name: this.newClassName };

@@ -203,18 +203,12 @@ public:
 
     //Region Users
     void userCreate(const crow::json::rvalue& creds);
+    void userEdit(const std::string& userID, const crow::json::rvalue& userBody);
     void userResetPassword(const std::string& userID, const std::string& newPassword);
     void userDrop(const std::string& userID);
 
-    //* User grant roles
-    void userGrantRoles(const std::string& userID, const std::vector<std::string>& roles);
-    void userDegrantRoles(const std::string& userID, const std::vector<std::string>& roles);
-
-    //* User grant classes
-    void userGrantClass(const std::string& userID, const std::vector<std::string>& classes);
-    void userDegrantClass(const std::string& userID, const std::vector<std::string>& classes);
-
-
+    // void userSetRoles();
+    // void userSetClasses();
     //Region Invites
     void inviteCreate(const std::string& invite_body);
 

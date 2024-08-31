@@ -103,13 +103,15 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::users::resetPassword, "call school_user_password_reset($1::uuid, $2::uuid, $3)");
 
         //Grant classes to user
-        c->prepare(psqlMethods::schoolManager::users::grantClasses, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
-        c->prepare(psqlMethods::schoolManager::users::degrantClasses, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
+        // c->prepare(psqlMethods::schoolManager::users::grantClasses, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
+        // c->prepare(psqlMethods::schoolManager::users::degrantClasses, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
+        c->prepare(psqlMethods::schoolManager::users::setClasses, "call school_user_classes_set($1::uuid, $2::uuid, $3::uuid[])");
+
 
         //Grant roles to user
-        c->prepare(psqlMethods::schoolManager::users::grantRoles, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
-        c->prepare(psqlMethods::schoolManager::users::degrantRoles, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
-
+        // c->prepare(psqlMethods::schoolManager::users::grantRoles, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
+        // c->prepare(psqlMethods::schoolManager::users::degrantRoles, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
+        c->prepare(psqlMethods::schoolManager::users::setRoles, "call user_roles_set($1::uuid, $2::uuid, $3::text[])");
         //Region data
 
         c->prepare(psqlMethods::schoolManager::data::isExists, "select is_school_data_exists($1::uuid, $2::date)");

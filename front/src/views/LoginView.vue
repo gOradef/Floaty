@@ -59,6 +59,10 @@
         </b-card-body>
 
         <b-card-body v-if="isShowRoles" class="mt-3">
+          <h5 class="mb-2"> Здравствуйте,
+            {{actualUserName}}
+             👋
+          </h5>
           <RoleSelect/>
         </b-card-body>
       </b-overlay>
@@ -88,7 +92,8 @@ export default {
       isLoading: false,
 
       isShowLogin: true,
-      isShowRoles: false
+      isShowRoles: false,
+      actualUserName: '',
     };
   },
   async mounted() {
@@ -117,6 +122,7 @@ export default {
 
       await this.loginProcess();
 
+      this.actualUserName = response.data.user.name;
       this.isShowRoles = true;
     },
     async checkForRefreshToken() {

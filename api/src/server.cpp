@@ -510,6 +510,18 @@ void Server::routes_admin::createNewUser(const crow::request& req, crow::respons
     return verifier(req, res, f);
 }
 
+void Server::routes_admin::editUser(const crow::request& req, crow::response& res, const std::string& userID) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+        if (!crow::json::load(req.body))
+            throw api::exceptions::parseErr("Request body is not parseble to json");
+        schoolManager.userEdit(userID, crow::json::load(req.body));
+        res.code = 204;
+    };
+    return verifier(req, res, f);
+}
+
+
 void Server::routes_admin::deleteUser(const crow::request& req, crow::response& res, const std::string& userID) {
     auto f = [&](const crow::request& req, crow::response& res){
         schoolManager schoolManager(_connectionPool, req);
@@ -518,6 +530,12 @@ void Server::routes_admin::deleteUser(const crow::request& req, crow::response& 
     };
     return verifier(req, res, f);
 }
+
+/**
+ *
+ * @param req - {"password": ""}
+ * @param userID - uuid of user
+ */
 void Server::routes_admin::resetPasswordOfUser(const crow::request& req, crow::response& res, const std::string& userID) {
     auto f = [&](const crow::request& req, crow::response& res) {
         schoolManager user(_connectionPool, req);
@@ -525,10 +543,10 @@ void Server::routes_admin::resetPasswordOfUser(const crow::request& req, crow::r
             throw api::exceptions::parseErr("Not parseble body. Is it json?");
 
         crow::json::rvalue json = crow::json::load(req.body);
-        if (!json.has("new_password") || json["new_password"].t() != crow::json::type::String)
+        if (!json.has("password") || json["password"].t() != crow::json::type::String)
             throw api::exceptions::wrongRequest("Request doesnt has new_password field "
                                                 "or it is in wrong type (expected string)");
-        const std::string& newPassword = json["new_password"].s();
+        const std::string& newPassword = hashSHA256(json["password"].s());
         user.userResetPassword(userID, newPassword);
         res.code = 204;
     };
@@ -599,96 +617,6 @@ void Server::routes_admin::updateDataAbsent(const crow::request& req, crow::resp
             throw api::exceptions::wrongRequest("No 'absent' branch");
 
         schoolManager.dataAbsentUpdate(classID, req.body);
-        res.code = 204;
-    };
-    return verifier(req, res, f);
-}
-
-void Server::routes_admin::grantRolesToUser(const crow::request& req, crow::response& res,
-    const std::string& userID) {
-    auto f = [&](const crow::request& req, crow::response& res) {
-        schoolManager user(_connectionPool, req);
-        std::vector<std::string> roles;
-
-        //Checking request body
-        if (!crow::json::load(req.body))
-            throw api::exceptions::parseErr("Not parseble request body. Is it json?");
-
-        crow::json::rvalue json = crow::json::load(req.body);
-        if (!json.has("roles") || json["roles"].t() != crow::json::type::List)
-            throw api::exceptions::wrongRequest("No roles field or it is not a array");
-
-        //Iterating through array
-        for (const auto& el : json["roles"])
-            roles.emplace_back(el.s());
-        user.userGrantRoles(userID, roles);
-    };
-    return verifier(req, res, f);
-}
-
-void Server::routes_admin::degrantRolesToUser(const crow::request& req, crow::response& res,
-    const std::string& userID) {
-    auto f = [&](const crow::request& req, crow::response& res) {
-        schoolManager user(_connectionPool, req);
-        std::vector<std::string> roles;
-
-        //Checking request body
-        if (!crow::json::load(req.body))
-            throw api::exceptions::parseErr("Not parseble request body. Is it json?");
-
-        crow::json::rvalue json = crow::json::load(req.body);
-        if (!json.has("roles") || json["roles"].t() != crow::json::type::List)
-            throw api::exceptions::wrongRequest("No roles field or it is not a array");
-
-        //Iterating through array
-        for (const auto& el : json["roles"])
-            roles.emplace_back(el.s());
-        user.userDegrantRoles(userID, roles);
-    };
-    return verifier(req, res, f);
-}
-
-void Server::routes_admin::grantClassesToUser(const crow::request& req, crow::response& res,
-    const std::string& userID) {
-    auto f = [&](const crow::request& req, crow::response& res) {
-        schoolManager user(_connectionPool, req);
-        std::vector<std::string> classes;
-
-        //Checking request body
-        if (!crow::json::load(req.body))
-            throw api::exceptions::parseErr("Not parseble request body. Is it json?");
-
-        crow::json::rvalue json = crow::json::load(req.body);
-        if (!json.has("classes") || json["classes"].t() != crow::json::type::List)
-            throw api::exceptions::wrongRequest("No classes field or it is not a array");
-
-        //Iterating through array
-        for (const auto& el : json["classes"])
-            classes.emplace_back(el.s());
-
-        user.userGrantClass(userID, classes);
-        res.code = 204;
-    };
-    return verifier(req, res, f);
-}
-
-void Server::routes_admin::degrantClassesToUser(const crow::request& req, crow::response& res,
-    const std::string& userID) {
-    auto f = [&](const crow::request& req, crow::response& res) {
-        schoolManager user(_connectionPool, req);
-        std::vector<std::string> classes;
-        if (!crow::json::load(req.body))
-            throw api::exceptions::parseErr("Not parseble request body. Is it json?");
-
-        crow::json::rvalue json = crow::json::load(req.body);
-        if (!json.has("classes") || json["classes"].t() != crow::json::type::List)
-            throw api::exceptions::wrongRequest("No classes field");
-
-        //Iterating through array
-        for (const auto& el : json["classes"])
-            classes.emplace_back(el.s());
-
-        user.userDegrantClass(userID, classes);
         res.code = 204;
     };
     return verifier(req, res, f);

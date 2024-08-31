@@ -119,11 +119,21 @@ inline void Server::route_admin() {
     CROW_ROUTE(app, "/api/org/users")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getAllUsers);
-    
+
     // Create new user
     CROW_ROUTE(app, "/api/org/users")
     .methods(crow::HTTPMethod::POST)
     (routes_admin::createNewUser);
+
+    // Global edit user (classes, roles)
+    CROW_ROUTE(app, "/api/org/users/<string>")
+    .methods(crow::HTTPMethod::PUT)
+    (routes_admin::editUser);
+
+    // Update password of user
+    CROW_ROUTE(app, "/api/org/users/<string>/password")
+    .methods(crow::HTTPMethod::PATCH)
+    (routes_admin::resetPasswordOfUser);
 
     // Delete user
     CROW_ROUTE(app, "/api/org/users/<string>")
@@ -167,23 +177,6 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::DELETE)
     (routes_admin::dropInvite);
 
-    //Region grant roles
-    CROW_ROUTE(app, "/api/org/users/<string>/grant/roles")
-    .methods(crow::HTTPMethod::PATCH)
-    (routes_admin::grantRolesToUser);
-
-    CROW_ROUTE(app, "/api/org/users/<string>/degrant/roles")
-    .methods(crow::HTTPMethod::PATCH)
-    (routes_admin::degrantRolesToUser);
-
-    //Region grant classes
-    CROW_ROUTE(app, "/api/org/users/<string>/grant/classes")
-    .methods(crow::HTTPMethod::PATCH)
-    (routes_admin::grantClassesToUser);
-
-    CROW_ROUTE(app, "/api/org/users/<string>/degrant/classes")
-    .methods(crow::HTTPMethod::PATCH)
-    (routes_admin::degrantClassesToUser);
 }
 
 

@@ -126,7 +126,7 @@
       </b-modal>
     </div>
     <div v-if="action === 'rename'">
-      <b-form>
+      <b-form @submit.prevent="">
         <b-input v-model="newClassName" placeholder="Введите новое имя класса">
 
         </b-input>
@@ -371,7 +371,7 @@ export default {
           {
             name: this.newClassName
           });
-      if (status === 200)
+      if (status === 204)
         this.$root.$emit('notification', 'success');
       else
         this.$root.$emit('notification', 'error');
@@ -380,7 +380,7 @@ export default {
       const status = await this.$root.$makeApiRequest(
           '/api/org/classes/' + this.entity.id,
           'DELETE')
-      if (status === 200)
+      if (status === 204)
         this.$root.$emit('notification', 'success');
       else
         this.$root.$emit('notification', 'error');

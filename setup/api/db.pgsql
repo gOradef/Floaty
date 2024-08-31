@@ -1498,55 +1498,37 @@ $$;
 ALTER FUNCTION public.school_title_get(_orgref uuid) OWNER TO postgres;
 
 --
--- Name: school_user_classes_degrant(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
+-- Name: school_user_classes_set(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
-CREATE PROCEDURE public.school_user_classes_degrant(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[])
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
- WITH class_ids AS (
-        SELECT unnest(_classrefs) AS class_id
-    )
-    DELETE FROM schools_classes_ownership
-WHERE school_id = _schoolref
-AND user_id = _userid
-AND class_id IN (SELECT class_id FROM class_ids);
-END;
-$$;
-
-
-ALTER PROCEDURE public.school_user_classes_degrant(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[]) OWNER TO postgres;
-
---
--- Name: school_user_classes_grant(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.school_user_classes_grant(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[])
+CREATE PROCEDURE public.school_user_classes_set(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[])
     LANGUAGE plpgsql
     AS $$BEGIN
- 
-	if (select exists (
-			WITH class_ids AS (
-     		   SELECT unnest(_classrefs) AS class_id
-    		)
-			select 1 from schools_classes_ownership as owns, class_ids
-				where owns.school_id = _schoolref
-				and owns.user_id = _userid
-				and owns.class_id = class_ids.class_id)) then
-	else
-		WITH class_ids AS (
-     	   SELECT unnest(_classrefs) AS class_id
-    	)
-		INSERT INTO schools_classes_ownership(school_id, user_id, class_id)
-		SELECT _schoolref, _userid, class_id
-			FROM class_ids;
-	end if;
-END;
-$$;
+    -- Remove classes that are not in the new class_ids
+    DELETE FROM schools_classes_ownership
+    WHERE school_id = _schoolref
+      AND user_id = _userid
+      AND class_id NOT IN (
+          SELECT unnest(_classrefs) AS class_id
+      );
+
+    -- Insert classes that are in the new class_ids
+    INSERT INTO schools_classes_ownership(school_id, user_id, class_id)
+    SELECT _schoolref, _userid, class_id
+    FROM (
+        SELECT unnest(_classrefs) AS class_id
+    ) AS class_ids
+    WHERE class_id NOT IN (
+        SELECT class_id
+        FROM schools_classes_ownership
+        WHERE school_id = _schoolref
+          AND user_id = _userid
+    );
+
+END;$$;
 
 
-ALTER PROCEDURE public.school_user_classes_grant(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[]) OWNER TO postgres;
+ALTER PROCEDURE public.school_user_classes_set(IN _schoolref uuid, IN _userid uuid, IN _classrefs uuid[]) OWNER TO postgres;
 
 --
 -- Name: school_user_drop(uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1557,23 +1539,15 @@ CREATE PROCEDURE public.school_user_drop(IN _orgid uuid, IN _userid uuid)
     AS $$
 BEGIN
 
-	if (_userref is null) then
+	if (_userid is null) then
 		return;
 	end if;
 
-   update schools set members =
-      (
-         SELECT members - _userID::text
-      )
-		WHERE id = _orgID;
-        
-update schools_classes set user_id = null
-                where school_id = _orgID
-                and user_id = _userID;
-
-        delete from users_salts where user_id = _userID;
+        delete from users_salts 
+			where user_id = _userID;
         delete from users where id = _userID;
-
+		delete from schools_users where user_id = _userID;
+		delete from schools_classes_ownership where user_id = _userID;
 END;
 $$;
 
@@ -1851,24 +1825,20 @@ DECLARE
         school_refs uuid[];
         school uuid;
 BEGIN
-	if (_userref is null) then
+	if (_userRef is null) then
 		return;
 	end if;
 
         school_refs := (select DISTINCT school_id from users where id = _userRef);
         FOREACH school in array school_refs LOOP
-                update schools set members =
-                (
-                        SELECT members - '_userRef'::text
-                )
-                WHERE id = school;
-        update schools_classes set user_id = uuid_nil()
+        update schools_classes_ownerhip set user_id = uuid_nil()
                 where school_id = school
                 and teacher_id = _userRef;
         END LOOP;
         delete from users_salts where user_id = _userRef;
         delete from users where id = _userRef;
-		update schools_classes_ownership set user_id = uuid_nil() where user_id = _userRef;
+		delete from schools_users where user_id = _userRef;
+		delete from schools_classes_ownership where user_id = _userRef;
 END;
 $$;
 
@@ -2194,12 +2164,13 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
-00000000-0000-0000-0000-000000000000	d910deba-6d6c-4b77-a97b-44bbb1ea634a	{"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 4, "list_students": [], "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	d910deba-6d6c-4b77-a97b-44bbb1ea634a	{"name": "testClass#3", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 4, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	6c42c322-d434-4639-ae0e-8eb29088dc33	{"name": "test1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	e3ec4a16-365a-4b6d-ac3f-79182df83701	{"name": "test2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": [], "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	08514837-d0ab-406e-8583-2c950e120287	{"name": "098", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "list_students": [], "list_fstudents": []}
 00000000-0000-0000-0000-000000000000	f501a40b-acd6-4b6e-8428-cb52707f4f94	{"name": "test3", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 0, "list_students": ["Ivanov0", "Ivanov1", "Ivanov2", "Ivanov3", "Ivanov4", "Ivanov5", "Efimov"], "list_fstudents": ["Ivanov5", "Ivanov4", "Ivanov3"]}
-00000000-0000-0000-0000-000000000000	43746cdc-5be1-4b66-96fe-e5b630d4a865	{"name": "testClass#1", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "list_students": ["123", "321"], "list_fstudents": ["123"]}
 00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc	{"name": "testClass#2", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 10, "list_students": [], "list_fstudents": []}
+00000000-0000-0000-0000-000000000000	c5cb143c-b3de-4d00-ae61-25ef75b082c6	{"name": "etstsetsetsetest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "amount": 22, "list_students": ["Efimov"], "list_fstudents": []}
 \.
 
 
@@ -2211,9 +2182,9 @@ COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	6c42c322-d434-4639-ae0e-8eb29088dc33
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	e3ec4a16-365a-4b6d-ac3f-79182df83701
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	f501a40b-acd6-4b6e-8428-cb52707f4f94
-00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	e3ec4a16-365a-4b6d-ac3f-79182df83701
 00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	d4c94a63-f124-4c76-8382-fcff2c1a06cc
 00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	d910deba-6d6c-4b77-a97b-44bbb1ea634a
+00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	d910deba-6d6c-4b77-a97b-44bbb1ea634a
 \.
 
 
@@ -2279,16 +2250,9 @@ COPY public.schools_template_classes (school_id, template_body) FROM stdin;
 
 COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	{1,teacher,admin,test}
-00000000-0000-0000-0000-000000000000	c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	{apitest1,teacher}
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{tester,teacher,admin}
-00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher}
-00000000-0000-0000-0000-000000000000	be03e070-bea4-41ba-9d99-17182c7acd50	{}
-00000000-0000-0000-0000-000000000000	47205632-ec93-4bac-ae47-7e6ead32f297	{}
-00000000-0000-0000-0000-000000000000	ffc8ab92-b47a-4cd8-a304-75ac62994d49	{teacher,admin}
-00000000-0000-0000-0000-000000000000	26d98ee1-10e9-4234-acaa-76b0b0c7e172	{teacher}
-00000000-0000-0000-0000-000000000000	e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	{teacher}
-00000000-0000-0000-0000-000000000000	89bf8796-2093-408d-8f64-9c0d160bf22a	{teacher}
 00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	{teacher,admin}
+00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher,admin}
 \.
 
 
@@ -2303,15 +2267,8 @@ c419f7f6-ac38-432a-a4b0-54a315f835b2	64e40f2f-2bba-484f-bf95-00ae047ca171	297581
 fd696e3f-fdac-48ad-922e-5164fa50c3a7	64e40f2f-2bba-484f-bf95-00ae047ca171	1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014	$2a$06$TCiKE7hFIVo5bbKdHgYShOn/5bd6P9T4tITmZ4Sy1/vgrR5nPSeUm	I am the test :)
 ac7d9df6-9141-461b-bd12-f59370fb9826	00000000-0000-0000-0000-000000000000	2d8c6239b1c794eb508bcee1ecce75eb8c32ff05d23e611c8fc67c35c6df5719	$2a$06$L6lwzXIDBBUXTCmQC4a44e50xg8mtjf9COw/i0ZfgIqbN9KVKSIuK	Tester Floatyev Ivanich
 ff856428-37b2-4c21-a1d7-ed647b514e27	00000000-0000-0000-0000-000000000000	811f1895d782af1ef9bf4d42d1710878ff47b2ba6768e914ca7c8220c97f2572	$2a$06$F7QFfmA.70gde5jf/GlMQ.Fzq86CaZIZVyP7PosiuxdNrKNToFnfW	Victorovich
-c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	00000000-0000-0000-0000-000000000000	882bd30204a0a6db079682425ede48f1ac451aeda9cb7b429ca60afeac8065c5	$2a$06$hcS8tEn0Fav6tVnu5mLV6ONOxLkAXXayVZcCf3uQCB80k8PvoIL86	api-test
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	00000000-0000-0000-0000-000000000000	7117476ce4f850bfa18c365922a07b7e4347eef8057c3bbaf14442cc3b1e625d	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.6yYyOJf39PCwq.YeDs4ISmqKZjLTo2q	api-test
 82b4b650-1f1d-4868-be93-0bc98b1c5190	00000000-0000-0000-0000-000000000000	123	$2a$06$IqR5XqMqT9bu4n6wWNeR1.PwJnMnI/.1ECjCFR7oCaEny5/4O3M96	123
-be03e070-bea4-41ba-9d99-17182c7acd50	00000000-0000-0000-0000-000000000000	321	$2a$06$LC99bG2jLmKHMSYesKgwGuvB8XEJ/iFyhXX.yFfAc.jaNUubITnKG	321
-47205632-ec93-4bac-ae47-7e6ead32f297	00000000-0000-0000-0000-000000000000	231	$2a$06$3SAdpO6WStwOOovMpLf.MeQWwTGBNLoHfgEt4H8wyoZGstV3Epzm.	2321
-ffc8ab92-b47a-4cd8-a304-75ac62994d49	00000000-0000-0000-0000-000000000000	1234	$2a$06$t0TY.p5SJ3lVgZStZY6ge.IqB8vA9jY.EjFYi3b0/yO/TPrxpFVi6	4321
-26d98ee1-10e9-4234-acaa-76b0b0c7e172	00000000-0000-0000-0000-000000000000	нея	$2a$06$ShKJ3NDk4zzFEQLsq84BWuuXaWzdQeU1ftYQOafnJJSZnL8x/..NG	Я тест
-e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	00000000-0000-0000-0000-000000000000	2	$2a$06$vpZx.jutqK.nV0j6BLjQ1.38IhbWFqLYeDmWOiLbX.66.jha3YQOG	1
-89bf8796-2093-408d-8f64-9c0d160bf22a	00000000-0000-0000-0000-000000000000	125	$2a$06$etwriUhjjq459j52qSEXVOsiUz6jgDvATylqfFh/ITA28kHR85CRW	TESTES
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	00000000-0000-0000-0000-000000000000	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$s8XqsVcGgez.ZRVAlMVtwuflaZZUyxQXQFjFI6i7Y.QRmqZJCrLQu	Юлия Александровна
 \.
 
@@ -2329,15 +2286,8 @@ a58e750a-63ca-47f5-837e-502c8d6c227c	$2a$06$fJ4D6iPjuQJBVXwYAwxgCO
 fd696e3f-fdac-48ad-922e-5164fa50c3a7	$2a$06$TCiKE7hFIVo5bbKdHgYShO
 ac7d9df6-9141-461b-bd12-f59370fb9826	$2a$06$L6lwzXIDBBUXTCmQC4a44e
 ff856428-37b2-4c21-a1d7-ed647b514e27	$2a$06$F7QFfmA.70gde5jf/GlMQ.
-c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5	$2a$06$hcS8tEn0Fav6tVnu5mLV6O
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.
 82b4b650-1f1d-4868-be93-0bc98b1c5190	$2a$06$IqR5XqMqT9bu4n6wWNeR1.
-be03e070-bea4-41ba-9d99-17182c7acd50	$2a$06$LC99bG2jLmKHMSYesKgwGu
-47205632-ec93-4bac-ae47-7e6ead32f297	$2a$06$3SAdpO6WStwOOovMpLf.Me
-ffc8ab92-b47a-4cd8-a304-75ac62994d49	$2a$06$t0TY.p5SJ3lVgZStZY6ge.
-26d98ee1-10e9-4234-acaa-76b0b0c7e172	$2a$06$ShKJ3NDk4zzFEQLsq84BWu
-e7ee1f02-789b-4625-aa7d-a2b4b0bd2925	$2a$06$vpZx.jutqK.nV0j6BLjQ1.
-89bf8796-2093-408d-8f64-9c0d160bf22a	$2a$06$etwriUhjjq459j52qSEXVO
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	$2a$06$s8XqsVcGgez.ZRVAlMVtwu
 \.
 
