@@ -29,8 +29,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::invites::create, "call school_invite_create($1::uuid, $2::jsonb)");
         c->prepare(psqlMethods::invites::drop, "delete from schools_invites "
                                                   "where school_id = $1::uuid "
-                                                  "and req_id = $2 "
-                                                  "and req_secret = $3");
+                                                  "and req_id = $2 ");
         c->prepare(psqlMethods::invites::getProperties, "select school_invite_props_get($1::uuid, $2, $3)");
 
         c->prepare(psqlMethods::userData::getName, "select name from users where school_id = $1::uuid"
@@ -102,13 +101,13 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::users::drop ,"call school_user_drop($1::uuid,uuid_or_null($2))");
         c->prepare(psqlMethods::schoolManager::users::resetPassword, "call school_user_password_reset($1::uuid, $2::uuid, $3)");
 
-        //Grant classes to user
+        //* Grant classes to user
         // c->prepare(psqlMethods::schoolManager::users::grantClasses, "call school_user_classes_grant($1::uuid, $2::uuid, $3::uuid[])");
         // c->prepare(psqlMethods::schoolManager::users::degrantClasses, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
         c->prepare(psqlMethods::schoolManager::users::setClasses, "call school_user_classes_set($1::uuid, $2::uuid, $3::uuid[])");
 
 
-        //Grant roles to user
+        //* Grant roles to user
         // c->prepare(psqlMethods::schoolManager::users::grantRoles, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
         // c->prepare(psqlMethods::schoolManager::users::degrantRoles, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
         c->prepare(psqlMethods::schoolManager::users::setRoles, "call user_roles_set($1::uuid, $2::uuid, $3::text[])");

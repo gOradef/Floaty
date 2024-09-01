@@ -37,7 +37,7 @@ export default {
   },
   computed: {
     availableClasses() {
-      console.log(this.entity_buff.classes)
+      // console.log(this.entity_buff.classes)
       return this.availableClassesList
           .map(classt => {
             // Check if the current class is in the selected classes

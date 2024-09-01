@@ -42,6 +42,7 @@
 import dataInterface from "@/components/admin/context-forms/dataInterface.vue";
 import classesInterface from "@/components/admin/context-forms/classesInterface.vue";
 import usersInterface from "@/components/admin/context-forms/usersInterface.vue";
+import invitesInterface from "@/components/admin/context-forms/invitesInterface.vue";
 
 import NotificationsForm from "@/components/admin/notifications.vue";
 
@@ -144,11 +145,18 @@ export default {
         invites: [ //Region Invites
           {
             label: "Создать приглашение",
-            foo: "",
+            foo: () =>
+                this.openModal(invitesInterface,
+                    "create",
+                    "Создать приглашение"),
           },
           {
             label: "Удалить",
-            foo: "",
+            foo: () =>
+                this.openModal(invitesInterface,
+                    "delete",
+                    "Удалить приглашения"),
+            _variant: "danger",
           },
         ],
       },

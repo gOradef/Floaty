@@ -644,7 +644,7 @@ void Server::routes_admin::createInvite(const crow::request& req, crow::response
             throw api::exceptions::wrongRequest("Body doesnt have roles, classes or name field");
 
         user.inviteCreate(req.body);
-        return res.end();
+        res.code = 204;
     };
     return verifier(req,res, f);
 }
@@ -653,7 +653,7 @@ void Server::routes_admin::dropInvite(const crow::request& req, crow::response& 
         schoolManager user(_connectionPool, req);
 
         user.inviteDrop(inviteID);
-        return res.end();
+        res.code = 204;
     };
     return verifier(req,res, f);
 }
