@@ -9,16 +9,13 @@ export default {
     <b-navbar-brand href="/home" style="font-family: Arial, Helvetica, sans-serif;">      
       Ⓕ Floaty
     </b-navbar-brand>
-
-    <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
-
-    <b-collapse id="nav-collapse" is-nav>
+    
       <b-navbar-nav class="ml-auto">
         <b-button variant="outline-primary" href="/login">Войти/Выйти</b-button>
         <!-- Чуть не успеваю доделать измения чтобы работало, собирался делать изменение в зависимости от url -->
         <!-- Лого уже не сильно подходит под деловую атмосферу сайта, не обходимо переработать, примерная идея лого видна на сайте, собираюсь ее сделать более красивой что-лт :/ -->
       </b-navbar-nav>
-    </b-collapse>
+    
   </b-navbar>
 </template>
 
