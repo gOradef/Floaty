@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar">
+  <div class="sidebar body">
     <h2>Разделы</h2>
     <b-list-group>
       <b-list-group-item
@@ -45,6 +45,9 @@ export default {
 </script>
 
 <style scoped>
+.body {
+  font-size: 1.5rem; /* Установка размера текста */
+}
 .list-group > div {
   cursor: pointer;
 }
