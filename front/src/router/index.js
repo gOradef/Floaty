@@ -7,6 +7,7 @@ import HelloWorld from '@/components/HelloWorld.vue'
 import loginPage from '@/views/LoginView.vue'
 
 import UserView from "@/views/Roles/UserView.vue";
+import userForm from '@/components/user/form.vue'
 import AdminView from "@/views/Roles/AdminView.vue";
 
 import NotFound from "@/views/NotFound.vue";
@@ -37,6 +38,11 @@ const routes = [
         path: '/user',
         name: 'Кл. рук.',
         component: UserView
+    },
+    {
+        path: '/form/:classID',
+        name: 'Заполнение данных кл. рук.',
+        component: userForm
     },
     {
         path: '/org',

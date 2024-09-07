@@ -1,28 +1,43 @@
 <template>
   <b-overlay :show="firstLoading">
-  <b-container class="bv-example-row" fluid>
-    <b-row class="text-center">
-      <b-col class="sidebar-l" v-if="hasAccess">
-        <AdminSections />
-      </b-col>
-      <b-col class="table" v-if="hasAccess">
-        <AdminContent :activeSection="contentSection" />
-      </b-col>
-      <b-col class="sidebar-r" v-if="hasAccess">
-        <CalendarComp />
-        <AdminContextMenu />
-      </b-col>
+    <b-container class="bv-example-row" fluid>
+      <b-row class="text-center">
+        <b-col class="sidebar-l" :class="{ 'compact': compactMode }" v-if="hasAccess">
 
-      <b-col v-else>
-        <h1>You do not have access to this page.</h1>
-      </b-col>
-    </b-row>
-  </b-container>
+          <b-container style="display: flex; align-items: center; padding: 0.5rem" >
+            <b-icon style="cursor: pointer;" @click="toggleCompactMode" icon="list" scale="1.8" />
+            <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
+          </b-container>
+
+          <b-list-group>
+            <b-list-group-item
+                v-for="section in sections"
+                :key="section.value"
+                :class="{ active: activeSection === section.value }"
+                @click="handleClick(section.value)"
+            >
+              <b-icon :icon="section.icon"/>
+              <span v-if="!compactMode"> {{section.label }}</span>
+            </b-list-group-item>
+          </b-list-group>
+        </b-col>
+        <b-col class="table" v-if="hasAccess">
+          <AdminContent :activeSection="contentSection" />
+        </b-col>
+        <b-col class="sidebar-r" v-if="hasAccess">
+          <CalendarComp />
+          <AdminContextMenu />
+        </b-col>
+
+        <b-col v-if="!hasAccess && !firstLoading">
+          <h1>У вас нет доступа к этой странице.</h1>
+        </b-col>
+      </b-row>
+    </b-container>
   </b-overlay>
 </template>
 
 <script>
-import AdminSections from "@/components/admin/sections.vue";
 import CalendarComp from "@/components/admin/calendar.vue";
 import AdminContent from "@/components/admin/table.vue";
 import AdminContextMenu from "@/components/admin/context.vue";
@@ -30,7 +45,6 @@ import AdminContextMenu from "@/components/admin/context.vue";
 export default {
   name: "AdminView",
   components: {
-    AdminSections,
     CalendarComp,
     AdminContent,
     AdminContextMenu,
@@ -39,35 +53,78 @@ export default {
     return {
       contentSection: null,
       hasAccess: false,
-      firstLoading: true, // Track loading state
+      firstLoading: true,
+      compactMode: false,
+      activeSection: this.contentSection || '/org/data',
+      sections: [
+        { label: 'Данные', value: 'data', icon: 'table' },
+        { label: 'Классы', value: 'classes', icon: 'layers' },
+        { label: 'Пользователи', value: 'users', icon: 'people' },
+        { label: 'Приглашения', value: 'invites', icon: 'envelope' }
+      ],
     };
   },
   async mounted() {
-    this.firstLoading = true; // Set loading to true
+    this.firstLoading = true;
     await new Promise(r => setTimeout(r, 600))
     try {
       this.hasAccess = await this.$root.$checkAccessRole('admin');
     } catch (error) {
       console.error("Error checking access:", error);
-      this.hasAccess = false; // Assume no access on error
+      this.hasAccess = false;
     } finally {
-      this.firstLoading = false; // Set loading to false when done
+      this.firstLoading = false;
     }
   },
   methods: {
     updateContentSection(newSection) {
-      this.contentSection = newSection; // Update content section based on emitted event
-    }
+      this.contentSection = newSection;
+    },
+    handleClick(sectionValue) {
+      if (this.activeSection !== sectionValue) {
+        this.activeSection = sectionValue;
+        this.$root.$emit('renderContentSection', this.activeSection);
+      }
+    },
+    toggleCompactMode() {
+      this.compactMode = !this.compactMode;
+    },
   }
 };
 </script>
 
 <style scoped>
+
+body {
+  font-size: 1.5rem; /* Установка размера текста */
+}
+
 .sidebar-l {
-  max-width: 300px;
+  max-width: 250px;
   min-height: inherit;
   border-right: #2c3e50 1px solid;
-  resize: horizontal;
+  transition: max-width 0.3s ease;
+}
+
+.sidebar-l.compact {
+  max-width: 50px;
+}
+
+.sidebar-l .list-group-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.sidebar-l .list-group-item .section-icon {
+  margin-right: 0.5rem;
+}
+
+.sidebar-l .list-group-item .section-label {
+  flex-grow: 1;
+}
+.sidebar-l.compact {
+  max-width: 65px; /* Измените максимальную ширину на 80 пикселей */
 }
 
 .sidebar-r {
@@ -79,5 +136,8 @@ export default {
 .container-fluid {
   width: 100%;
   min-height: 800px;
+}
+.list-group > div {
+  cursor: pointer;
 }
 </style>

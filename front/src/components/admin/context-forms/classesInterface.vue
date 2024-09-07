@@ -3,7 +3,7 @@
   <div>
 <!--    Region create class-->
     <div v-if="action === 'create'">
-      <b-form title="Создать новый класс">
+      <b-form title="Создать новый класс" @submit.prevent="createClass">
         <h5>
           Класс:
         </h5>
@@ -16,14 +16,6 @@
                 :state="isFormValid ? true : null"
             ></b-input>
           </b-form-group>
-        <b-input
-            type="number"
-            class="mb-3"
-            v-model.number="newClass.amount"
-            placeholder="Введите кол-во учеников в классе"
-            @input="validateAmount"
-        ></b-input>
-
         <!--    <b-container>-->
 
         <!-- Dropdown for selecting owner of class -->
@@ -138,8 +130,8 @@
       <p>
         При продолжении, класс <b>{{this.entity.name}}</b> будет <b> безвовратно</b> удалён. <br>
         <ul>
-          <li>Владелец: {{ this.entity.owners ? this.entity.owners.map(owner => owner.name || '').join(', ') : '-' }}</li>
-          <li>Кол-во учеников: {{this.entity.amount}}</li>
+          <li>Владелец: <i>{{ this.entity.owners ? this.entity.owners.map(owner => owner.name || '').join(', ') : 'отсутствует' }}</i></li>
+          <li>Кол-во учеников: {{this.entity.students.length}}</li>
         </ul>
       </p>
     </div>
@@ -168,7 +160,6 @@ export default {
 
       newClass: {
         name: '',
-        amount: 0,
         owner: '',
       },
       isFormValid: false,
@@ -231,16 +222,16 @@ export default {
       // Получаем данные студентов
       this.raw_data = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students');
 
-      const { list_fstudents, list_students } = this.raw_data;
+      const { fstudents, students } = this.raw_data;
 
       // Инициализируем локальные массивы
-      this.students = list_students.map(student => ({
+      this.students = students.map(student => ({
         name: student,
-        isFree: list_fstudents.includes(student), // Помечаем как бесплатник
+        isFree: fstudents.includes(student), // Помечаем как бесплатник
       }));
 
       // Локальный массив бесплатников для обновлений
-      this.localFreeStudents = new Set(list_fstudents); // Добавим в сет для удобства
+      this.localFreeStudents = new Set(fstudents); // Добавим в сет для удобства
     },
     async getOwners() {
       this.raw_data = await this.$root.$makeApiRequest('/api/org/users');
@@ -263,16 +254,6 @@ export default {
     selectOwner(owner) {
       this.selectedOwner = owner;
       this.newClass.owner = owner.id;
-    },
-
-    validateAmount() {
-      const amount = Number(this.newClass.amount);
-
-      if (isNaN(amount) || amount < 0) {
-        this.newClass.amount = 0;
-      } else {
-        this.newClass.amount = amount;
-      }
     },
     //Region edit students
     toggleFreeStudent(student) {
@@ -327,30 +308,20 @@ export default {
         this.$root.$emit('notification', 'warning', "Введите имя класса");
         return;
       }
-      if (this.newClass.amount <= 0) {
-        this.isFormValid = false;
-        this.$root.$emit('notification', 'warning', "Кол-во учеников в классе должно натуральным числом");
-        return;
-      }
-      if (this.newClass.amount % 1 !== 0) {
-        this.isFormValid = false;
-        this.$root.$emit('notification', 'warning', "Кол-во учеников в классе должно быть целым числом");
-        return;
-      }
 
-      const res = await this.$root.$makeApiRequest('/api/org/classes', 'POST', this.newClass)
-      if (res.status === 204)
+      const status = await this.$root.$makeApiRequest('/api/org/classes', 'POST', this.newClass)
+      if (status === 204)
         this.$root.$emit('notification', 'success', '');
       else
         this.$root.$emit('notification', 'error', '');
 
     },
     async saveNewStudents() {
-      const list_fstudents = Array.from(this.localFreeStudents);
+      const fstudents = Array.from(this.localFreeStudents);
 
       const dataToSend = {
-        list_students: this.students.map(student => student.name),
-        list_fstudents: list_fstudents,
+        students: this.students.map(student => student.name),
+        fstudents: fstudents,
       };
 
       try {

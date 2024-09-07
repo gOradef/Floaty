@@ -145,6 +145,7 @@ public:
     classHandler(ConnectionPool *connectionPool,
                  const crow::request &req, const std::string& classID);
 
+    crow::json::wvalue getClassProps();
     /**
      * @return Returns map[id] = name of classes where id is uuid in postgres
      */
@@ -162,7 +163,7 @@ class schoolManager : Request {
     void isClassExists(const std::string& classID);
     void isInviteExists(const std::string& inviteID);
 
-    bool isDataTodayExists();
+    // bool isDataTodayExists();
 
 public:
     schoolManager(ConnectionPool* cp,
@@ -190,6 +191,7 @@ public:
 
     crow::json::wvalue getUsers();
 
+    void genDataForToday();
     crow::json::wvalue getDataForToday();
     crow::json::wvalue getDataForDate(const std::string& date);
 

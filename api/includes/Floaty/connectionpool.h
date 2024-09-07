@@ -35,6 +35,7 @@ namespace psqlMethods {
         inline str getName = "user_name_get";
         inline str getRoles = "user_roles_get";
         inline str getClasses = "user_classes_get";
+        inline str getClassProps = "class_props_get";
         inline str getClassStudents = "class_students_get";
         inline str getSchoolId = "school_id_get";
     };
@@ -88,6 +89,7 @@ namespace psqlMethods {
         namespace data
         {
             inline str isExists = "is_school_data_exists";
+            inline str genNewForToday = "school_data_gen";
             inline str get = "school_data_get";
             inline str getSummarized = "school_data_summarized_get";
         }

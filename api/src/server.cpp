@@ -67,9 +67,11 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         // Get available classes from postgres
         auto classes = readTransaction.exec_prepared(psqlMethods::userData::getClasses, schoolUUID, userUUID);
         picojson::array available_classes;
-        for (auto class_v : classes) {
-            picojson::value classes_virtual(class_v.front().as<std::string>());
-            available_classes.push_back(classes_virtual);
+        if (!classes.front().front().is_null()) {
+            for (auto class_v : classes) {
+                picojson::value classes_virtual(class_v.front().as<std::string>());
+                available_classes.push_back(classes_virtual);
+            }
         }
 
 
@@ -326,6 +328,16 @@ void Server::routes_user::getUserClasses(const crow::request& req, crow::respons
     return verifier(req, res, f);
 }
 
+    void Server::routes_classHandler::getClassProps(const crow::request& req, crow::response& res, const std::string& classID) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        classHandler user(_connectionPool, req, classID);
+        const crow::json::wvalue& classData = user.getClassProps();
+        res.body = classData.dump();
+    };
+    return verifier(req, res, f);
+    }
+
+
 void Server::routes_classHandler::getStudents(const crow::request& req, crow::response& res,
     const std::string& classID) {
     auto f = [&](const crow::request& req, crow::response& res){
@@ -350,7 +362,7 @@ void Server::routes_classHandler::getDataForToday(const crow::request& req, crow
     auto f = [&](const crow::request& req, crow::response& res) {
         classHandler user(_connectionPool, req, classID);
         crow::json::wvalue json;
-        json["data"] = user.getInsertedDataForToday();
+        json["data"] = crow::json::load(user.getInsertedDataForToday().dump());
         res.body = json.dump();
     };
     return verifier(req, res, f);
@@ -420,7 +432,7 @@ void Server::routes_admin::createNewClass(const crow::request& req, crow::respon
             !crow::json::load(req.body)["class"].has("name"))
 
         schoolManager.classCreate(crow::json::load(req.body));
-        res.code = crow::status::CREATED;
+        res.code = 204;
     };
 
     return verifier(req, res, f);
@@ -553,6 +565,14 @@ void Server::routes_admin::resetPasswordOfUser(const crow::request& req, crow::r
     return verifier(req, res, f);
 }
 
+void Server::routes_admin::genDataForToday(const crow::request& req, crow::response& res) {
+    auto f = [](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+        schoolManager.genDataForToday();
+        res.code = 204;
+    };
+    return verifier(req, res, f);
+}
 
 void Server::routes_admin::getDataForToday(const crow::request& req, crow::response& res) {
     auto f = [](const crow::request& req, crow::response& res){
@@ -719,7 +739,7 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
             const std::string& user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
             picojson::array available_classes;
             auto classes = rtx.exec_prepared("user_classes_get", token_school_id_decoded, user_id_decoded);
-            if (!classes.empty()) {
+            if (!classes.front().front().is_null()) {
                 for (auto class_v : classes) {
                     available_classes.emplace_back(class_v.front().as<std::string>());
                 }

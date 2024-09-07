@@ -56,6 +56,11 @@ inline void Server::route_user() {
 
 }
 inline void Server::route_classHandler() {
+
+    CROW_ROUTE(app, "/api/user/classes/<string>")
+    .methods(crow::HTTPMethod::GET)
+    (routes_classHandler::getClassProps);
+
     CROW_ROUTE(app, "/api/user/classes/<string>/students")
     .methods(crow::HTTPMethod::GET)
     (routes_classHandler::getStudents);
@@ -140,7 +145,7 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::DELETE)
     (routes_admin::deleteUser);
 
-    //Region data
+    // Region data
     CROW_ROUTE(app, "/api/org/data")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataForToday);
@@ -152,6 +157,10 @@ inline void Server::route_admin() {
     CROW_ROUTE(app, "/api/org/data-summary")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataSummary);
+
+    CROW_ROUTE(app, "/api/org/data")
+    .methods(crow::HTTPMethod::POST)
+    (routes_admin::genDataForToday);
 
     CROW_ROUTE(app, "/api/org/classes/<string>/data")
     .methods(crow::HTTPMethod::PUT)

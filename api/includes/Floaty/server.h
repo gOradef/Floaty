@@ -136,6 +136,8 @@ class Server {
     };
     struct routes_classHandler
     {
+        static void getClassProps(const crow::request& req, crow::response& res, const std::string& classID);
+
         static void getStudents (const crow::request& req, crow::response& res, const std::string& classID);
 
         static void insertStudents(const crow::request &req, crow::response &res, const std::string& classID);
@@ -164,6 +166,7 @@ class Server {
         static void deleteUser(const crow::request& req, crow::response& res, const std::string& userID);
 
         //* Data section
+        static void genDataForToday(const crow::request& req, crow::response& res);
         static void getDataForToday(const crow::request& req, crow::response& res);
         static void getDataForDate(const crow::request& req, crow::response& res, const std::string& date);
         static void getDataSummary(const crow::request& req, crow::response& res);

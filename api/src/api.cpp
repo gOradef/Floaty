@@ -43,8 +43,12 @@ crow::json::wvalue Request::getAvailibleClasses() {
     pqxx::read_transaction work(*_connection);
 
     auto result = work.exec_prepared(psqlMethods::userData::getClasses, _org_id, _user_id);
-    crow::json::wvalue classes = crow::json::load(result.front().front().as<std::string>());
-    return classes;
+    crow::json::wvalue classes;
+    if (!result.front().front().is_null()) {
+        classes = crow::json::load(result.front().front().as<std::string>());
+        return classes;
+    }
+    return nullptr;
 }
 
 /**
@@ -60,6 +64,19 @@ classHandler::classHandler(ConnectionPool *connectionPool,
         throw api::exceptions::wrongRequest("Such class doesnt exists");
     }
     this->_class_id = classID;
+
+}
+
+crow::json::wvalue classHandler::getClassProps() {
+    pqxx::read_transaction rtx(*_connection);
+
+    auto classProps = rtx.exec_prepared(psqlMethods::userData::getClassProps,
+    _org_id,
+    _class_id);
+
+    crow::json::wvalue json = crow::json::load(classProps.front().front().as<std::string>());
+
+    return json;
 
 }
 
@@ -83,6 +100,7 @@ crow::json::wvalue classHandler::getInsertedDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, nullptr);
     crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
+    std::cout << json.dump();
     return json;
 }
 crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date) {
@@ -215,6 +233,16 @@ void schoolManager::isInviteExists(const std::string& inviteID) {
 
 
 //Region Data
+
+void schoolManager::genDataForToday() {
+    // if (!isDataTodayExists()) {
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::schoolManager::data::genNewForToday, _org_id);
+    work.commit();
+    // }
+}
+
+
 /**
      *
      * @param date format YYYY-MM-DD or "" for
@@ -321,7 +349,7 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 
     crow::json::wvalue json;
     for (auto row : res) {
-        auto class_body = row["class_lists"].as<std::string>();
+        auto class_body = row.front().as<std::string>();
         json = crow::json::load(class_body);
     }
     return json;
@@ -355,16 +383,7 @@ void schoolManager::classCreate(const crow::json::rvalue &json) {
 
     pqxx::work work(*_connection);
 
-    std::unique_ptr<int> class_amount;
-    if (json.has("amount")
-        && json["amount"].t() == crow::json::type::Number &&
-        json["amount"].i() >= 0) {
-        class_amount = std::make_unique<int>(json["amount"].i());
-    }
-    else
-        class_amount = nullptr;
-
-    work.exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name, class_amount);
+    work.exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name);
     work.commit();
 }
 

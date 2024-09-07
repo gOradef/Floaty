@@ -123,7 +123,7 @@ export default {
     return {
       modalTitle: 'Редактировать список отсутствующих',
       updatedClass: { ...this.entity }, // Create a copy of the content
-      students: this.entity.list_students || [], // Ensure students is an array
+      students: this.entity.students || [], // Ensure students is an array
       selectedStudent: '',
       searchQuery: '', // Search term for filtering students
     };

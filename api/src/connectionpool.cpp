@@ -37,6 +37,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::userData::getRoles, "SELECT * from user_roles_get($1::uuid, $2::uuid)"); //return many rows of roles
         c->prepare(psqlMethods::userData::getSchoolId, "select school_id_get($1::uuid)");
         c->prepare(psqlMethods::userData::getClasses, "select * from user_classes_get($1::uuid, $2::uuid)");
+        c->prepare(psqlMethods::userData::getClassProps, "select class_props_get($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::userData::getClassStudents, "select class_students_get($1::uuid, $2::uuid, $3::uuid)");
 
         // Global
@@ -85,7 +86,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         //* Classes interface
         c->prepare(psqlMethods::schoolManager::classes::getAll,"select * from school_classes_get($1::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::getStudents, "select * from school_class_students_get($1::uuid, $2::uuid)");
-        c->prepare(psqlMethods::schoolManager::classes::create, "call class_create($1::uuid, $2::uuid, $3::text, $4::int)");
+        c->prepare(psqlMethods::schoolManager::classes::create, "call class_create($1::uuid, $2::uuid, $3::text)");
         c->prepare(psqlMethods::schoolManager::classes::updateStudentList, "call class_students_set($1::uuid, $2::uuid, $3)");
         c->prepare(psqlMethods::schoolManager::classes::drop, "call class_drop($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::rename, "call class_rename($1::uuid, $2::uuid, $3::text)");
@@ -114,6 +115,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         //Region data
 
         c->prepare(psqlMethods::schoolManager::data::isExists, "select is_school_data_exists($1::uuid, $2::date)");
+        c->prepare(psqlMethods::schoolManager::data::genNewForToday, "call school_data_gen($1::uuid)");
         c->prepare(psqlMethods::schoolManager::data::get, "select * from school_data_get($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 

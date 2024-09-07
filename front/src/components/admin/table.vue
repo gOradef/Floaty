@@ -3,7 +3,7 @@
     <div v-if="!isDataExists">
       <h4>Данные отсутствуют.</h4>
       <b> Журнал ещё никто не заполнил</b> <br>
-      <i> Сгененрировать данные самостоятельно?</i>
+      <i><b-link @click.prevent="genDataForToday">Сгененрировать данные самостоятельно?</b-link></i>
     </div>
     <div v-else>
       <b-table
@@ -23,10 +23,10 @@
         <template #cell(absent)="row">
           <div>
             <p
-              @click.stop="toggleDetails(row.item.id)"
               style="margin-bottom: 8px"
             >
-              Всего: {{ row.item.absent.global.join(", ") }}
+              {{ row.item.absent.global.join(', ') || '-'}} <br>
+              {{ row.item.absent.global.length || '0'}}
                 <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
                 <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
             </p>
@@ -48,13 +48,13 @@
                   <b-list-group-item >{{row.item.absent.fstudents.length}} </b-list-group-item>
                 </b-list-group>
                 <b-list-group class="b-list-group-lists">
-                  <b-list-group-item>{{ row.item.absent.ORVI.join(", ") }}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.respectful.join(", ") }}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") }}</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.respectful.join(", ") || '-'}}</b-list-group-item>
+                  <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
                   <b-list-group-item>
                     {{ row.item.absent.global.filter(student =>
                           row.item.absent.fstudents.includes(student)
-                      ).join(', ')
+                      ).join(', ') || '-'
                     }}
                   </b-list-group-item>
                 </b-list-group>
@@ -88,8 +88,8 @@
           </div>
         </template>
 
-        <template #cell(list_students)="row">
-          {{row.item.list_students.join(", ")}}
+        <template #cell(students)="row">
+          {{row.item.students.join(", ")}}
         </template>
         <template #cell(roles)="row">
            {{row.item.roles.join(", ")}}
@@ -157,7 +157,7 @@ export default {
             sortable: true
           },
           {
-            key: 'amount',
+            key: 'students.length',
             label: 'Кол-во',
             sortable: true
           },
@@ -182,11 +182,11 @@ export default {
             sortable: true
           },
           {
-            key: 'amount',
+            key: 'students.length',
             label: 'Кол-во'
           },
           {
-            key: 'list_students',
+            key: 'students',
             label: 'Учащиеся'
           },
           {
@@ -302,6 +302,13 @@ export default {
           '&endDate=' + date_end
       )
     },
+    async genDataForToday() {
+      const status = await this.$root.$makeApiRequest('/api/org/data', 'POST');
+      if (status === 204)
+        this.$root.$emit('notification', 'success')
+      else
+        this.$root.$emit('notification', 'error')
+    },
     async getClasses() {
       return await this.$root.$makeApiRequest('/api/org/classes');
     },
@@ -321,6 +328,7 @@ export default {
       }
     },
     toggleDetails(id) {
+      this.expandedRowIds = [];
       const index = this.expandedRowIds.indexOf(id);
       if (index !== -1) {
 
@@ -339,11 +347,15 @@ export default {
     onRowSelected(item) {
       console.log(this.activeSection,' - ', item);
 
+
       if (item.length !== 0) {
+        this.toggleDetails(item[0].id);
         this.$root.$emit('context:show', this.activeSection, item);
       }
-      else
+      else {
         this.$root.$emit('context:hide');
+        this.expandedRowIds = [];
+      }
 
     },
     isActiveSectionData() {

@@ -1,6 +1,7 @@
 <script>
 import choseClass from "@/components/user/choseClass.vue";
 import userForm from '@/components/user/form.vue'
+import router from "@/router";
 
 export default {
   name: "UserView",
@@ -44,7 +45,8 @@ export default {
       this.chosenClass = classUUID;
       this.isClassChosen = true;
 
-      this.setBodyOfSelectedClass();
+      router.push('/form/' + classUUID.id);
+      // this.setBodyOfSelectedClass();
     })
   },
   methods: {
@@ -52,10 +54,9 @@ export default {
       this.chosenClass = {};
       this.isClassChosen = false;
     },
-    async setBodyOfSelectedClass() {
+    // async setBodyOfSelectedClass() {
 
-      this.chosenClassBody = await this.$root.$makeApiRequest('/api/user/classes/' + this.chosenClass.id + '/data').data;
-    }
+    // }
   }
 };
 </script>
@@ -73,7 +74,7 @@ export default {
         <choseClass />
       </b-col>
       <b-col v-else-if="isClassChosen && hasAccess">
-        <userForm :classData="chosenClassBody"/>
+        <userForm :classData="chosenClass"/>
       </b-col>
       <b-col v-if="showForbidden">
         <h1>У вас нет доступа к этой странице</h1>
