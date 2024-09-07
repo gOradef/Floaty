@@ -4,7 +4,7 @@
       <b-row class="text-center">
         <b-col class="sidebar-l" :class="{ 'compact': compactMode }" v-if="hasAccess">
 
-          <b-container style="display: flex; align-items: center; padding: 0.5rem" >
+          <b-container style="display: flex; align-items: center; padding: 0.5rem; height: 40px" >
             <b-icon style="cursor: pointer;" @click="toggleCompactMode" icon="list" scale="1.8" />
             <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
           </b-container>
@@ -17,7 +17,8 @@
                 @click="handleClick(section.value)"
             >
               <b-icon :icon="section.icon"/>
-              <span v-if="!compactMode"> {{section.label }}</span>
+<!--              <span v-if="!compactMode">   |   </span>-->
+              <span v-if="!compactMode">{{section.label }}</span>
             </b-list-group-item>
           </b-list-group>
         </b-col>
@@ -136,6 +137,9 @@ body {
 .container-fluid {
   width: 100%;
   min-height: 800px;
+}
+.sidebar-l .list-group-item {
+  height: 34px;
 }
 .list-group > div {
   cursor: pointer;
