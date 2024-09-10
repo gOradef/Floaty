@@ -65,6 +65,18 @@ export default {
 
       notifications: [],
 
+      template_contextOptionsGlobal: {
+        data: [
+          {
+            label: "",
+
+          },
+          {
+
+          }
+        ]
+      },
+
       template_contextOptions: {
         data: [ //Region Data
           {

@@ -4,8 +4,8 @@
       <b-row class="text-center">
         <b-col class="sidebar-l" :class="{ 'compact': compactMode }" v-if="hasAccess">
 
-          <b-container style="display: flex; align-items: center; padding: 0.5rem; height: 40px" >
-            <b-icon style="cursor: pointer;" @click="toggleCompactMode" icon="list" scale="1.8" />
+          <b-container style="display: flex; align-items: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click="toggleCompactMode">
+            <b-icon icon="list" scale="1.8" />
             <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
           </b-container>
 
@@ -17,8 +17,10 @@
                 @click="handleClick(section.value)"
             >
               <b-icon :icon="section.icon"/>
-<!--              <span v-if="!compactMode">   |   </span>-->
-              <span v-if="!compactMode">{{section.label }}</span>
+              <span v-if="!compactMode" class="p-1"> | </span>
+              <span v-if="!compactMode">
+                {{section.label }}
+              </span>
             </b-list-group-item>
           </b-list-group>
         </b-col>
@@ -26,7 +28,7 @@
           <AdminContent :activeSection="contentSection" />
         </b-col>
         <b-col class="sidebar-r" v-if="hasAccess">
-          <CalendarComp />
+          <b-calendar v-model="calendarDate" :start-weekday="1"></b-calendar>
           <AdminContextMenu />
         </b-col>
 
@@ -39,14 +41,12 @@
 </template>
 
 <script>
-import CalendarComp from "@/components/admin/calendar.vue";
 import AdminContent from "@/components/admin/table.vue";
 import AdminContextMenu from "@/components/admin/context.vue";
 
 export default {
   name: "AdminView",
   components: {
-    CalendarComp,
     AdminContent,
     AdminContextMenu,
   },
@@ -56,13 +56,18 @@ export default {
       hasAccess: false,
       firstLoading: true,
       compactMode: false,
-      activeSection: this.contentSection || '/org/data',
+
+      // Sections
+      activeSection: this.contentSection || 'dashboard',
       sections: [
         { label: 'Данные', value: 'data', icon: 'table' },
         { label: 'Классы', value: 'classes', icon: 'layers' },
         { label: 'Пользователи', value: 'users', icon: 'people' },
         { label: 'Приглашения', value: 'invites', icon: 'envelope' }
       ],
+
+      // Calendar data
+      calendarDate: '',
     };
   },
   async mounted() {
@@ -75,6 +80,11 @@ export default {
       this.hasAccess = false;
     } finally {
       this.firstLoading = false;
+    }
+  },
+  computed: {
+    isDateChosen() {
+      return (this.calendarDate.length !== 0);
     }
   },
   methods: {
@@ -143,5 +153,11 @@ body {
 }
 .list-group > div {
   cursor: pointer;
+}
+
+.b-calendar {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: #2c3e50 1px solid;
 }
 </style>

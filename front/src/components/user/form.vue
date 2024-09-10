@@ -1,135 +1,141 @@
 <template>
-  <b-container class="h-100">
-    <b-row class="justify-content-center">
-      <b-col>
-        <notificationsForm/>
+  <b-container class="vh-100 p-5">
+    <b-card class="">
+      <b-card-body>
 
-        <b-form title="Редактировать отсутств." @submit.prevent="selectStudent">
-          <h4>
-            Класс: <b>{{ chosenClass.name }}</b>
-          </h4>
+        <b-row class="justify-content-center">
+          <b-col>
+            <notificationsForm/>
 
-          <b-container fluid>
+            <b-form title="Редактировать отсутствие" @submit.prevent="selectStudent">
+              <h4>
+                Класс: <b>{{ chosenClass.name }}</b>
+              </h4>
 
-            <!-- Dropdown for selecting students -->
-            <b-dropdown
-                class="mb-3"
-                size="sm"
-                variant="outline-secondary"
-                block
-                menu-class="dropdown-scrollable w-100"
-            >
-              <template #button-content>
-                <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
-              </template>
+              <b-container fluid>
 
-              <b-dropdown-form>
-                <b-form-group
-                    label="Поиск ученика:"
-                    label-for="student-search-input"
-                    label-cols-md="auto"
-                    class="mb-0"
-                    label-size="sm"
+                <!-- Dropdown for selecting students -->
+                <b-dropdown
+                    class="mb-3"
+                    size="sm"
+                    variant="outline-secondary"
+                    block
+                    menu-class="dropdown-scrollable w-100"
                 >
-                  <b-form-input
-                      v-model="searchQuery"
-                      id="student-search-input"
-                      type="search"
-                      size="sm"
-                      autocomplete="off"
-                  ></b-form-input>
-                </b-form-group>
-              </b-dropdown-form>
+                  <template #button-content>
+                    <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
+                  </template>
 
-              <b-dropdown-item
-                  v-for="student in availableStudents"
-                  :key="student.value"
-                  :disabled="student.disabled"
-                  @click="!student.disabled && selectStudent(student.value)"
-                  :class="{
-                  'text-danger': student.fstudent,
-                  'text-muted': student.disabled,
-                }"
-              >
-                {{ student.text }}
-                <span v-if="student.disabled" class="text-muted">
-                  (Уже в списке {{ student.list }})
-                </span>
-                <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
-              </b-dropdown-item>
-            </b-dropdown>
+                  <b-dropdown-form>
+                    <b-form-group
+                        label="Поиск ученика:"
+                        label-for="student-search-input"
+                        label-cols-md="auto"
+                        class="mb-0"
+                        label-size="sm"
+                    >
+                      <b-form-input
+                          v-model="searchQuery"
+                          id="student-search-input"
+                          type="search"
+                          size="sm"
+                          autocomplete="off"
+                          placeholder="Введите имя или фамилию ученика"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-dropdown-form>
 
-            <b-row class="g-3">
-
-              <!-- ORVI -->
-              <b-col xs="12" md="4">
-                <h6>Список ОРВИ учеников:</h6>
-                <b-list-group>
-                  <b-list-group-item
-                      v-for="(tag, index) in chosenClass.absent.ORVI"
-                      :key="index"
-                      class="d-flex justify-content-between align-items-center"
+                  <b-dropdown-item
+                      v-for="student in availableStudents"
+                      :key="student.value"
+                      :disabled="student.disabled"
+                      @click="!student.disabled && selectStudent(student.value)"
+                      :class="{
+                      'text-danger': student.fstudent,
+                      'text-muted': student.disabled,
+                    }"
                   >
-                    {{ tag }}
-                    <b-button variant="link" @click="removeORVITag(index)" class="p-0">
-                      <b-icon icon="trash"></b-icon>
-                    </b-button>
-                  </b-list-group-item>
-                <b-button @click="addORVIStudent" variant="primary" block>
-                  Добавить ученика
-                </b-button>
-                </b-list-group>
-              </b-col>
+                    {{ student.text }}
+                    <span v-if="student.disabled" class="text-muted">
+                      (Уже в списке {{ student.list }})
+                    </span>
+                    <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
+                  </b-dropdown-item>
+                </b-dropdown>
 
-              <b-col xs="12" md="4" class="mt-2">
-                <h6>Список уваж. прич. учеников:</h6>
-                <b-list-group>
-                  <b-list-group-item
-                      v-for="(tag, index) in chosenClass.absent.respectful"
-                      :key="index"
-                      class="d-flex justify-content-between align-items-center"
-                  >
-                    {{ tag }}
-                    <b-button variant="link" @click="removeRespTag(index)" class="p-0">
-                      <b-icon icon="trash"></b-icon>
-                    </b-button>
-                  </b-list-group-item>
-                <b-button @click="addRespStudent" variant="primary" block>
-                  Добавить ученика
-                </b-button>
-                </b-list-group>
-              </b-col>
+                <b-row class="g-3">
 
-              <b-col xs="12" md="4" class="mt-2">
-                <h6>Список неуваж. прич. учеников:</h6>
-                <b-list-group>
-                  <b-list-group-item
-                      v-for="(tag, index) in chosenClass.absent.not_respectful"
-                      :key="index"
-                      class="d-flex justify-content-between align-items-center"
-                  >
-                    {{ tag }}
-                    <b-button variant="link" @click="removeNotRespTag(index)" class="p-0">
-                      <b-icon icon="trash"></b-icon>
-                    </b-button>
-                  </b-list-group-item>
-                  <b-button @click="addNotRespStudent" variant="primary" block>
-                    Добавить ученика
-                  </b-button>
-                </b-list-group>
-              </b-col>
-            </b-row>
+                  <!-- ORVI -->
+                  <b-col xs="12" md="4">
+                    <h6>Список ОРВИ учеников:</h6>
+                    <b-list-group>
+                      <b-list-group-item
+                          v-for="(tag, index) in chosenClass.absent.ORVI"
+                          :key="index"
+                          class="d-flex justify-content-between align-items-center"
+                      >
+                        {{ tag }}
+                        <b-button variant="link" @click="removeORVITag(index)" class="p-0">
+                          <b-icon icon="trash"></b-icon>
+                        </b-button>
+                      </b-list-group-item>
+                      <b-button @click="addORVIStudent" variant="primary" block>
+                        Добавить ученика
+                      </b-button>
+                    </b-list-group>
+                  </b-col>
 
-          </b-container>
+                  <b-col xs="12" md="4" class="mt-2">
+                    <h6>Список уваж. прич. учеников:</h6>
+                    <b-list-group>
+                      <b-list-group-item
+                          v-for="(tag, index) in chosenClass.absent.respectful"
+                          :key="index"
+                          class="d-flex justify-content-between align-items-center"
+                      >
+                        {{ tag }}
+                        <b-button variant="link" @click="removeRespTag(index)" class="p-0">
+                          <b-icon icon="trash"></b-icon>
+                        </b-button>
+                      </b-list-group-item>
+                      <b-button @click="addRespStudent" variant="primary" block>
+                        Добавить ученика
+                      </b-button>
+                    </b-list-group>
+                  </b-col>
 
-          <div class="mt-4 border-top">
-            <b-button block variant="primary" @click="submitForm">
-              Отправить
-            </b-button>
-          </div>
-        </b-form>
-      </b-col>
-    </b-row>
+                  <b-col xs="12" md="4" class="mt-2">
+                    <h6>Список неуваж. прич. учеников:</h6>
+                    <b-list-group>
+                      <b-list-group-item
+                          v-for="(tag, index) in chosenClass.absent.not_respectful"
+                          :key="index"
+                          class="d-flex justify-content-between align-items-center"
+                      >
+                        {{ tag }}
+                        <b-button variant="link" @click="removeNotRespTag(index)" class="p-0">
+                          <b-icon icon="trash"></b-icon>
+                        </b-button>
+                      </b-list-group-item>
+                      <b-button @click="addNotRespStudent" variant="primary" block>
+                        Добавить ученика
+                      </b-button>
+                    </b-list-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                    <div class="mt-4 border-top" style="justify-content: end">
+                      <b-button block variant="primary" @click="submitForm">
+                        Отправить
+                      </b-button>
+                    </div>
+                </b-row>
+              </b-container>
+            </b-form>
+          </b-col>
+        </b-row>
+      </b-card-body>
+    </b-card>
   </b-container>
 </template>
 

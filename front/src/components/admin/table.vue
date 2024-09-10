@@ -25,8 +25,8 @@
             <p
               style="margin-bottom: 8px"
             >
-              {{ row.item.absent.global.join(', ') || '-'}} <br>
-              {{ row.item.absent.global.length || '0'}}
+              {{ row.item.absent.global.join(', ') || '-'}}
+              ({{ row.item.absent.global.length || '0'}})
                 <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
                 <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
             </p>
