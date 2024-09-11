@@ -9,26 +9,44 @@
             <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
           </b-container>
 
-          <b-list-group>
-            <b-list-group-item
-                v-for="section in sections"
-                :key="section.value"
-                :class="{ active: activeSection === section.value }"
-                @click="handleClick(section.value)"
-            >
-              <b-icon :icon="section.icon"/>
-              <span v-if="!compactMode" class="p-1"> | </span>
-              <span v-if="!compactMode">
-                {{section.label }}
-              </span>
-            </b-list-group-item>
-          </b-list-group>
+          <b-list-group-item
+              v-for="section in sections"
+              :key="section.value"
+              :class="{ active: activeSection === section.value, 'd-flex justify-content-between': true }"
+              class="pr-0"
+              @click.stop="handleSectionClick(section.value)"
+          >
+            <div class="d-flex align-items-center w-100">
+              <b-icon scale="1.0625" :icon="section.icon" />
+              <div v-if="!compactMode" class="d-flex">
+                <span class="pr-1 pl-1"> | </span>
+                <span>{{section.label}}</span>
+              </div>
+            </div>
+            <!-- Add dropdown menu for "Data" tab -->
+            <template v-if="section.value === 'data'" >
+              <b-dropdown v-if="!compactMode"
+                  class="m-0"
+                  style="width: inherit; height: inherit;"
+              >
+                <b-dropdown-item @click.stop="handleSectionClick('data', 'date')">За дату</b-dropdown-item>
+                <b-dropdown-item @click.stop="handleSectionClick('data', 'period')">За период</b-dropdown-item>
+              </b-dropdown>
+            </template>
+          </b-list-group-item>
         </b-col>
         <b-col class="table" v-if="hasAccess">
           <AdminContent :activeSection="contentSection" />
         </b-col>
         <b-col class="sidebar-r" v-if="hasAccess">
-          <b-calendar v-model="calendarDate" :start-weekday="1"></b-calendar>
+          <b-container style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click="toggleShowCalendar">
+            <b style="margin-right: 5px;">Календарь</b>
+            <b-icon v-if="showCalendar" icon="chevron-double-down" scale="1.15" />
+            <b-icon v-else icon="chevron-double-up" scale="1.15" />
+          </b-container>
+
+            <b-calendar v-if="showCalendar" v-model="calendarDate" :start-weekday="1"></b-calendar>
+
           <AdminContextMenu />
         </b-col>
 
@@ -56,6 +74,7 @@ export default {
       hasAccess: false,
       firstLoading: true,
       compactMode: false,
+      showCalendar: true,
 
       // Sections
       activeSection: this.contentSection || 'dashboard',
@@ -91,14 +110,29 @@ export default {
     updateContentSection(newSection) {
       this.contentSection = newSection;
     },
-    handleClick(sectionValue) {
-      if (this.activeSection !== sectionValue) {
+    handleSectionClick(sectionValue, dataType) {
+      // if (this.activeSection !== sectionValue) {
         this.activeSection = sectionValue;
-        this.$root.$emit('renderContentSection', this.activeSection);
+        if (dataType === 'date') {
+          if (!this.isDateChosen) {
+            alert('Выберите дату');
+            return;
+          }
+          else
+            this.$root.$emit('renderContentSection', this.activeSection, this.calendarDate);
+        }
+        else if (dataType === 'period')
+          this.$root.$emit('renderContentSection', this.activeSection, this.calendarDate);
+        else {
+          this.$root.$emit('renderContentSection', this.activeSection);
       }
+      // }
     },
     toggleCompactMode() {
       this.compactMode = !this.compactMode;
+    },
+    toggleShowCalendar() {
+      this.showCalendar = !this.showCalendar;
     },
   }
 };
@@ -117,10 +151,6 @@ body {
   transition: max-width 0.3s ease;
 }
 
-.sidebar-l.compact {
-  max-width: 50px;
-}
-
 .sidebar-l .list-group-item {
   display: flex;
   align-items: center;
@@ -135,13 +165,16 @@ body {
   flex-grow: 1;
 }
 .sidebar-l.compact {
-  max-width: 65px; /* Измените максимальную ширину на 80 пикселей */
+  max-width: 65px;
 }
 
 .sidebar-r {
-  min-width: 300px;
   max-width: 300px;
   border-left: #2c3e50 1px solid;
+  transition: max-height 0.3s ease;
+}
+.sidebar-r.compact {
+  max-height: 0;
 }
 
 .container-fluid {
@@ -151,7 +184,7 @@ body {
 .sidebar-l .list-group-item {
   height: 34px;
 }
-.list-group > div {
+.list-group-item {
   cursor: pointer;
 }
 

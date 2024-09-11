@@ -590,7 +590,7 @@ void Server::routes_admin::getDataForDate(const crow::request& req, crow::respon
         schoolManager schoolManager(_connectionPool, req);
         crow::json::wvalue data;
 
-        data["data"] = schoolManager.getDataForDate(date);
+        data["data"] = crow::json::load(schoolManager.getDataForDate(date).dump());
         data["date"] = date;
 
         res.body = data.dump();

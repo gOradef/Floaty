@@ -6,6 +6,13 @@
       <i><b-link @click.prevent="genDataForToday">Сгененрировать данные самостоятельно?</b-link></i>
     </div>
     <div v-else>
+      <div v-if="isDataLoaded && activeSection === 'data'" class="mt-2">
+        <h5>
+          Данные за <b>
+          {{this.tableDataDates}}
+        </b>
+        </h5>
+      </div>
       <b-table
         selectable
         select-mode="single"
@@ -126,6 +133,8 @@ export default {
       showDetails: false,
       isDataExists: true,
       isDataLoaded: false,
+      showFormulas: false,
+
 
       // Actual data for table
       table: {
@@ -235,10 +244,9 @@ export default {
 
       },
       activeSection: String,
-      showFormulas: false,
-
+      tableDataDates: '', //data or period for dates
       sectionDataMethods: {
-        data: this.getDataToday,
+        data: this.getData,
         classes: this.getClasses,
         users: this.getUsers,
         invites: this.getInvites
@@ -246,19 +254,21 @@ export default {
     }
   },
   beforeMount() {
-
     this.$root.$off('renderContentSection', this.handleRenderContentSection);
   },
   async mounted() {
     // Define the event handler
-    this.handleRenderContentSection = async (section) => {
+    this.handleRenderContentSection = async (section, ...dates) => {
       this.activeSection = section;
       this.isDataLoaded = false;
+      this.tableDataDates = '';
 
+
+      console.log(section, '-', dates)
       this.updateTableFields(section);
 
       if (this.sectionDataMethods[section]) {
-        this.raw_data = await this.sectionDataMethods[section]();
+        this.raw_data = await this.sectionDataMethods[section](...dates);
 
         // Logic to handle responses based on section
         if (section === "data") {
@@ -290,24 +300,22 @@ export default {
   methods: {
 
     expectedError,
-    async getDataToday() {
-      return (await this.$root.$makeApiRequest('/api/org/data')).data;
-    },
-    async getDataForDate(date) {
-      return (await this.$root.$makeApiRequest('/api/org/data/' + date)).data;
-    },
-    async getDataSummary(date_start, date_end) {
-      return await this.$root.$makeApiRequest('/api/org/data-summary?' +
-          'startDate=' + date_start +
-          '&endDate=' + date_end
-      )
+    async getData(date = null, date_start = null, date_end = null) {
+      let url = '/api/org/data';
+      if (date) {
+        url += '/' + date;
+        this.tableDataDates = date;
+      } else if (date_start && date_end) {
+        url = '/api/org/data-summary?startDate=' + date_start + '&endDate=' + date_end;
+      }
+      return (await this.$root.$makeApiRequest(url)).data;
     },
     async genDataForToday() {
       const status = await this.$root.$makeApiRequest('/api/org/data', 'POST');
       if (status === 204)
-        this.$root.$emit('notification', 'success')
+        await this.getDataToday();
       else
-        this.$root.$emit('notification', 'error')
+        alert('Что-то пошло не так. Обратитесь к разработчикам, если это повторится')
     },
     async getClasses() {
       return await this.$root.$makeApiRequest('/api/org/classes');

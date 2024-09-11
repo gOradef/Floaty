@@ -133,14 +133,14 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
 
         pqxx::work work(*_connection);
 
-        for (auto& stud_type : _stud_types) {
-            for (auto& action : _actions) {
+        for (const auto& stud_type : _stud_types) {
+            for (const auto& action : _actions) {
                 if (root.has(stud_type) && root[stud_type].has(action)) {
                     std::vector<std::string> vec;
-                    for (auto fio : root[stud_type][action]) {
+                    for (const auto& fio : root[stud_type][action]) {
                         vec.emplace_back(fio);
                     }
-                    work.exec_prepared("class_" + stud_type + "_" + action, this->_org_id,
+                    work.exec_prepared("class_" + stud_type + "_" += action, this->_org_id,
                                        this->_user_id,
                                        this->_class_id,
                                        vec);
@@ -281,7 +281,7 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
     pqxx::read_transaction readTransaction(*_connection);
     // Check if school data doesnt exists for the given date
     if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
-        return crow::json::load(nullptr);
+        return nullptr;
 
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
 

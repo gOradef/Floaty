@@ -68,12 +68,20 @@ export default {
       template_contextOptionsGlobal: {
         data: [
           {
-            label: "",
+            label: "Получить данные за сегодня",
 
           },
           {
+            label: 'Получить данные за дату',
 
-          }
+          },
+          {
+            label: 'Получить сводку за период',
+
+          },
+        ],
+        classes: [
+
         ]
       },
 
