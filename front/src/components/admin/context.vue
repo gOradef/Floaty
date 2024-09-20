@@ -14,7 +14,6 @@
             :is="this.Interface.type"
             :action="this.Interface.action"
             :entity="this.contextData"
-            :type="dataInterfaceType"
         />
       </div>
       <template v-slot:modal-footer>
@@ -75,6 +74,11 @@ export default {
               this.openModal(dataInterface, "edit", "Редактировать данные"),
           },
           {
+            label: "Напомнить клас. рук.",
+            foo: () => this.openModal(dataInterface, "remind"),
+            _variant: "info",
+          },
+          {
             label: "Сбросить запись - В разработке",
             foo: () => this.openModal(dataInterface, "delete"),
             _variant: "danger",
@@ -116,7 +120,7 @@ export default {
         ],
         users: [ //Region User
           {
-            label: "Создать",
+            label: "Создать пользователя",
             isActiveWithoutEntity: true,
             foo: () =>
                 this.openModal(usersInterface,

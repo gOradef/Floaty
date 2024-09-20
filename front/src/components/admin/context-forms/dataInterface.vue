@@ -126,6 +126,9 @@ export default {
       students: this.entity.students || [], // Ensure students is an array
       selectedStudent: '',
       searchQuery: '', // Search term for filtering students
+
+      calendarDate: null,
+      isCustomDate: false,
     };
   },
   computed: {
@@ -206,12 +209,35 @@ export default {
   },
   beforeMount() {
     this.$root.$off('form:confirm');
+    this.$root.$off('calendar:response');
   },
   mounted() {
+    this.$root.$emit('calendar:call');
+    this.$root.$on('calendar:response', (date) => {
+      if (date) {
+        this.calendarDate = date;
+        this.isCustomDate = true;
+      }
+      else {
+        this.isCustomDate = false;
+        this.calendarDate = '';
+      }
+    });
     this.$root.$on("form:confirm", async () => {
+      let msg;
+      let url;
+      await this.$root.$emit('calendar:call');
+      if (this.isCustomDate) {
+        msg = 'Вы уверены? Данные будут изменены для ' + this.calendarDate;
+        url = '/api/org/classes/' + this.entity.id + '/data/' + this.calendarDate;
+      }
+      else {
+        msg = 'Вы уверены? Данные будут изменены для акутальной даты';
+        url = '/api/org/classes/' + this.entity.id + '/data';
+      }
 
-      if (confirm("Вы уверены?")) {
-        const res = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/data',
+      if (confirm(msg)) {
+        const res = await this.$root.$makeApiRequest(url,
             'PUT',
             {
               absent: this.updatedClass.absent

@@ -105,15 +105,18 @@
         <template #custom-foot v-if="isActiveSectionData()">
           <tr>
             <td><strong>1-4 классы</strong></td>
-            <td></td>
+            <td> {{table.formulas.data["1_4"].global_amount()}}</td>
+            <td> {{table.formulas.data["1_4"].global_absentAmount()}}</td>
           </tr>
           <tr>
             <td><strong>5-11 классы</strong></td>
-            <td></td>
+            <td> {{table.formulas.data["5_11"].global_amount()}}</td>
+            <td> {{table.formulas.data["5_11"].global_absentAmount()}}</td>
           </tr>
           <tr>
             <td><strong>Всего</strong></td>
-            <td></td>
+            <td> {{table.formulas.data["global"].global_amount()}}</td>
+            <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
           </tr>
         </template>
       </b-table>
@@ -143,21 +146,48 @@ export default {
         formulas: {
           data: {
             "1_4": {
-              global_amount: Number,
-              global_absentAmount: Number,
+              global_amount: () => {
+                return this.table.items.filter(item => {
+                  const match = item.name.match(/\d+/);
+                  const number = match && parseInt(match[0]);
+                  return number!== null && number < 5;
+                }).reduce((acc, item) => acc + item.students.length, 0);
+              },
+              global_absentAmount: () => {
+                return this.table.items.filter(item => {
+                  const match = item.name.match(/\d+/);
+                  const number = match && parseInt(match[0]);
+                  return number!== null && number < 5;
+                }).reduce((acc, item) => acc + item.absent.global.length, 0);
+              },
             },
             "5_11": {
-              global_amount: Number,
-              global_absentAmount: Number,
+              global_amount: () => {
+                return this.table.items.filter(item => {
+                  const match = item.name.match(/\d+/);
+                  const number = match && parseInt(match[0]);
+                  return number!== null && number >= 5;
+                }).reduce((acc, item) => acc + item.students.length, 0);
+              },
+              global_absentAmount: () => {
+                return this.table.items.filter(item => {
+                  const match = item.name.match(/\d+/);
+                  const number = match && parseInt(match[0]);
+                  return number!== null && number >= 5;
+                }).reduce((acc, item) => acc + item.absent.global.length, 0);
+              },
             },
             "global": {
-              global_amount: Number,
-              global_absentAmount: Number,
+              global_amount: () => {
+                return this.table.items.reduce((acc, item) => acc + item.students.length, 0);
+              },
+              global_absentAmount: () => {
+                return this.table.items.reduce((acc, item) => acc + item.absent.global.length, 0);
+              },
             }
           }
-        }
-      },
-      //Template fields
+      }
+      },      //Template fields
       template_table_fields: {
         data: [ //class, amount, abs_amount, owner.name
           {
@@ -244,17 +274,20 @@ export default {
 
       },
       activeSection: String,
-      tableDataDates: '', //data or period for dates
       sectionDataMethods: {
         data: this.getData,
         classes: this.getClasses,
         users: this.getUsers,
         invites: this.getInvites
-      }
+      },
+      tableDataDates: '', //data or period for dates
+      calendarDate: '',
     }
   },
   beforeMount() {
     this.$root.$off('renderContentSection', this.handleRenderContentSection);
+    this.$root.$off('calendar:call');
+
   },
   async mounted() {
     // Define the event handler
@@ -297,6 +330,10 @@ export default {
     // Register the event listener
     this.$root.$on('renderContentSection', this.handleRenderContentSection);
 
+    this.$root.$on('calendar:call', () => {
+      this.$root.$emit('calendar:response', this.calendarDate);
+    });
+
   },
   methods: {
 
@@ -311,8 +348,10 @@ export default {
           url += '/' + date;
           this.tableDataDates = date;
         }
+        this.calendarDate = date;
       } else {
         this.tableDataDates = 'сегодня';
+        this.calendarDate = null;
       }
       return (await this.$root.$makeApiRequest(url)).data;
     },

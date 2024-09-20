@@ -2,67 +2,126 @@
   <b-overlay :show="firstLoading">
     <b-container class="bv-example-row" fluid>
       <b-row class="text-center">
-        <b-col class="sidebar-l" :class="{ 'compact': compactMode }" v-if="hasAccess">
-          <b-container style="display: flex; align-items: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click="toggleCompactMode">
+        <b-col
+          class="sidebar-l"
+          :class="{ compact: compactMode }"
+          v-if="hasAccess"
+        >
+          <b-container
+            style="
+              display: flex;
+              align-items: center;
+              padding: 0.5rem;
+              height: 40px;
+              cursor: pointer;
+            "
+            @click="toggleCompactMode"
+          >
             <b-icon icon="list" scale="1.8" />
-            <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
+            <b v-if="!compactMode" style="margin-left: 10px">Разделы</b>
           </b-container>
 
           <b-list-group>
-            <div
-                v-for="section in sections"
-                :key="section.value"
-                class="pr-0"
-              >
+            <div v-for="section in sections" :key="section.value" class="pr-0">
               <b-list-group-item
-                  @click.stop="handleSectionClick(section.value)"
-                  :class="{ active: activeSection === section.value, 'd-flex justify-content-between': true }"
+                @click.stop="handleSectionClick(section.value)"
+                :class="{
+                  active: activeSection === section.value,
+                  'd-flex justify-content-between': true,
+                }"
               >
                 <div class="d-flex align-items-center w-100">
                   <b-icon scale="1" :icon="section.icon" />
                   <div v-if="!compactMode" class="d-flex">
                     <span class="pr-1 pl-1"> | </span>
-                    <span>{{section.label}}</span>
+                    <span>{{ section.label }}</span>
                   </div>
                 </div>
                 <div v-if="section.value === 'data'">
-                  <b-container style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click.stop="showMoreData = !showMoreData" v-b-toggle.additionalDataCollapse>
-                    <b-icon v-if="showMoreData" icon="chevron-double-down" scale="1.15" />
+                  <b-container
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 0.5rem;
+                      height: 40px;
+                      cursor: pointer;
+                    "
+                    @click.stop="showMoreData = !showMoreData"
+                    v-b-toggle.additionalDataCollapse
+                  >
+                    <b-icon
+                      v-if="showMoreData"
+                      icon="chevron-double-down"
+                      scale="1.15"
+                    />
                     <b-icon v-else icon="chevron-double-up" scale="1.15" />
                   </b-container>
                 </div>
               </b-list-group-item>
-              <b-collapse v-if="section.value === 'data' && !compactMode"
-              id="additionalDataCollapse">
+              <b-collapse
+                v-if="section.value === 'data' && !compactMode"
+                id="additionalDataCollapse"
+              >
                 <b-card-body class="pl-0 pr-0">
-                  <b-calendar v-if="showCalendar" v-model="calendarDate" :start-weekday="1"
+                  <b-calendar
+                    v-if="showCalendar"
+                    v-model="calendarDate"
+                    :start-weekday="1"
                     style="
                       max-width: 218px;
                       border: none;
                       padding-bottom: 0;
-                      margin-bottom: 5px"
+                      margin-bottom: 5px;
+                    "
                   />
                   <b-button-group vertical class="w-100">
-                    <b-button variant="primary" @click.stop="handleSectionClick('data', 'date')">За выбранную дату</b-button>
-                    <b-button variant="info" @click.stop="handleSectionClick('data', 'period')">За период времени</b-button>
+                    <b-button
+                      variant="primary"
+                      @click.stop="handleSectionClick('data', 'date')"
+                      >За выбранную дату</b-button
+                    >
+                    <b-button
+                      variant="info"
+                      @click.stop="handleSectionClick('data', 'period')"
+                      >За период времени</b-button
+                    >
                     <b-button variant="success">Экспорт</b-button>
                   </b-button-group>
                 </b-card-body>
               </b-collapse>
-          </div>
+            </div>
           </b-list-group>
         </b-col>
         <b-col class="table" v-if="hasAccess">
           <AdminContent :activeSection="contentSection" />
         </b-col>
         <b-col class="sidebar-r" v-if="hasAccess">
-          <b-container style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click="toggleShowCalendar">
-            <b style="margin-right: 5px;">Календарь</b>
-            <b-icon v-if="showCalendar" icon="chevron-double-down" scale="1.15" />
+          <b-container
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 0.5rem;
+              height: 40px;
+              cursor: pointer;
+            "
+            @click="toggleShowCalendar"
+          >
+            <b style="margin-right: 5px">Календарь</b>
+            <b-icon
+              v-if="showCalendar"
+              icon="chevron-double-down"
+              scale="1.15"
+            />
             <b-icon v-else icon="chevron-double-up" scale="1.15" />
           </b-container>
 
-            <b-calendar v-if="showCalendar" v-model="calendarDate" :start-weekday="1"></b-calendar>
+          <b-calendar
+            v-if="showCalendar"
+            v-model="calendarDate"
+            :start-weekday="1"
+          ></b-calendar>
 
           <AdminContextMenu />
         </b-col>
@@ -126,9 +185,6 @@ export default {
     }
   },
   methods: {
-    updateContentSection(newSection) {
-      this.contentSection = newSection;
-    },
     handleSectionClick(sectionValue, dataType) {
       // if (this.activeSection !== sectionValue) {
         this.activeSection = sectionValue;
@@ -157,7 +213,6 @@ export default {
 </script>
 
 <style scoped>
-
 body {
   font-size: 1.5rem; /* Установка размера текста */
 }
