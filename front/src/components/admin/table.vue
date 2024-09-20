@@ -292,6 +292,7 @@ export default {
       } else {
         console.warn(`Unknown section: ${section}`);
       }
+      this.$root.$emit('context:show', section);
     };
     // Register the event listener
     this.$root.$on('renderContentSection', this.handleRenderContentSection);
@@ -300,13 +301,18 @@ export default {
   methods: {
 
     expectedError,
-    async getData(date = null, date_start = null, date_end = null) {
+    async getData(date = null, date_2 = null) {
       let url = '/api/org/data';
       if (date) {
-        url += '/' + date;
-        this.tableDataDates = date;
-      } else if (date_start && date_end) {
-        url = '/api/org/data-summary?startDate=' + date_start + '&endDate=' + date_end;
+        if (date_2) {
+          url = '/api/org/data-summary?startDate=' + date + '&endDate=' + date_2;
+          this.tableDataDates = date + '-' + date_2;
+        } else {
+          url += '/' + date;
+          this.tableDataDates = date;
+        }
+      } else {
+        this.tableDataDates = 'сегодня';
       }
       return (await this.$root.$makeApiRequest(url)).data;
     },

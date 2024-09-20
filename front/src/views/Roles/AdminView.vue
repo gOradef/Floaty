@@ -3,37 +3,54 @@
     <b-container class="bv-example-row" fluid>
       <b-row class="text-center">
         <b-col class="sidebar-l" :class="{ 'compact': compactMode }" v-if="hasAccess">
-
           <b-container style="display: flex; align-items: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click="toggleCompactMode">
             <b-icon icon="list" scale="1.8" />
             <b v-if="!compactMode" style="margin-left: 10px;">Разделы</b>
           </b-container>
 
-          <b-list-group-item
-              v-for="section in sections"
-              :key="section.value"
-              :class="{ active: activeSection === section.value, 'd-flex justify-content-between': true }"
-              class="pr-0"
-              @click.stop="handleSectionClick(section.value)"
-          >
-            <div class="d-flex align-items-center w-100">
-              <b-icon scale="1.0625" :icon="section.icon" />
-              <div v-if="!compactMode" class="d-flex">
-                <span class="pr-1 pl-1"> | </span>
-                <span>{{section.label}}</span>
-              </div>
-            </div>
-            <!-- Add dropdown menu for "Data" tab -->
-            <template v-if="section.value === 'data'" >
-              <b-dropdown v-if="!compactMode"
-                  class="m-0"
-                  style="width: inherit; height: inherit;"
+          <b-list-group>
+            <div
+                v-for="section in sections"
+                :key="section.value"
+                class="pr-0"
               >
-                <b-dropdown-item @click.stop="handleSectionClick('data', 'date')">За дату</b-dropdown-item>
-                <b-dropdown-item @click.stop="handleSectionClick('data', 'period')">За период</b-dropdown-item>
-              </b-dropdown>
-            </template>
-          </b-list-group-item>
+              <b-list-group-item
+                  @click.stop="handleSectionClick(section.value)"
+                  :class="{ active: activeSection === section.value, 'd-flex justify-content-between': true }"
+              >
+                <div class="d-flex align-items-center w-100">
+                  <b-icon scale="1" :icon="section.icon" />
+                  <div v-if="!compactMode" class="d-flex">
+                    <span class="pr-1 pl-1"> | </span>
+                    <span>{{section.label}}</span>
+                  </div>
+                </div>
+                <div v-if="section.value === 'data'">
+                  <b-container style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; height: 40px; cursor: pointer; " @click.stop="showMoreData = !showMoreData" v-b-toggle.additionalDataCollapse>
+                    <b-icon v-if="showMoreData" icon="chevron-double-down" scale="1.15" />
+                    <b-icon v-else icon="chevron-double-up" scale="1.15" />
+                  </b-container>
+                </div>
+              </b-list-group-item>
+              <b-collapse v-if="section.value === 'data' && !compactMode"
+              id="additionalDataCollapse">
+                <b-card-body class="pl-0 pr-0">
+                  <b-calendar v-if="showCalendar" v-model="calendarDate" :start-weekday="1"
+                    style="
+                      max-width: 218px;
+                      border: none;
+                      padding-bottom: 0;
+                      margin-bottom: 5px"
+                  />
+                  <b-button-group vertical class="w-100">
+                    <b-button variant="primary" @click.stop="handleSectionClick('data', 'date')">За выбранную дату</b-button>
+                    <b-button variant="info" @click.stop="handleSectionClick('data', 'period')">За период времени</b-button>
+                    <b-button variant="success">Экспорт</b-button>
+                  </b-button-group>
+                </b-card-body>
+              </b-collapse>
+          </div>
+          </b-list-group>
         </b-col>
         <b-col class="table" v-if="hasAccess">
           <AdminContent :activeSection="contentSection" />
@@ -70,11 +87,13 @@ export default {
   },
   data() {
     return {
-      contentSection: null,
       hasAccess: false,
+
       firstLoading: true,
       compactMode: false,
+      showMoreData: false,
       showCalendar: true,
+      contentSection: null,
 
       // Sections
       activeSection: this.contentSection || 'dashboard',
@@ -126,7 +145,6 @@ export default {
         else {
           this.$root.$emit('renderContentSection', this.activeSection);
       }
-      // }
     },
     toggleCompactMode() {
       this.compactMode = !this.compactMode;
@@ -188,9 +206,7 @@ body {
   cursor: pointer;
 }
 
-.b-calendar {
-  padding-bottom: 20px;
-  margin-bottom: 20px;
-  border-bottom: #2c3e50 1px solid;
+::v-deep.b-calendar.b-calendar-inner {
+  min-width: 100%;
 }
 </style>

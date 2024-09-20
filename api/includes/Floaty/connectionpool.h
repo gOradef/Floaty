@@ -57,6 +57,7 @@ namespace psqlMethods {
             namespace data {
             inline str getInsertedData = "class_data_get";
             inline str insertData = "class_data_insert";
+            inline str insertDataForDate = "class_data_insert_for_date";
         }
     }
 

@@ -66,7 +66,7 @@ inline void Server::route_classHandler() {
     (routes_classHandler::getStudents);
 
     /**
-    * @brief Edit list of students
+    * @brief Edit (set) list of students
     * @example [f]students: []
     */
     CROW_ROUTE(app, "/api/user/classes/<string>/students")
@@ -99,15 +99,15 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getStudentsForClass);
 
+    // Update list of students to class
+    CROW_ROUTE(app, "/api/org/classes/<string>/students")
+    .methods(crow::HTTPMethod::PUT)
+    (routes_admin::updateStudetsForClass);
+
     // Creates class with or without owner depending onto url_param
     CROW_ROUTE(app, "/api/org/classes")
     .methods(crow::HTTPMethod::POST)
     (routes_admin::createNewClass);
-
-    // Creates class with or without owner depending onto url_param
-    CROW_ROUTE(app, "/api/org/classes/<string>/students")
-    .methods(crow::HTTPMethod::PUT)
-    (routes_admin::updateStudetsForClass);
 
     // Rename class
     CROW_ROUTE(app, "/api/org/classes/<string>")
@@ -145,26 +145,36 @@ inline void Server::route_admin() {
     .methods(crow::HTTPMethod::DELETE)
     (routes_admin::deleteUser);
 
-    // Region data
+    //Region Data
+    // Get today data
     CROW_ROUTE(app, "/api/org/data")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataForToday);
 
+    // Get custom data
     CROW_ROUTE(app, "/api/org/data/<string>")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataForDate);
 
+    // Get summary of data
     CROW_ROUTE(app, "/api/org/data-summary")
     .methods(crow::HTTPMethod::GET)
     (routes_admin::getDataSummary);
 
+    // Create data for today
     CROW_ROUTE(app, "/api/org/data")
     .methods(crow::HTTPMethod::POST)
     (routes_admin::genDataForToday);
 
+    // Set absent_data for class for today
     CROW_ROUTE(app, "/api/org/classes/<string>/data")
     .methods(crow::HTTPMethod::PUT)
     (routes_admin::updateDataAbsent);
+
+    // Set absent_data for class for custom date
+    CROW_ROUTE(app, "/api/org/classes/<string>/data/<string>")
+    .methods(crow::HTTPMethod::PUT)
+    (routes_admin::updateDataAbsentForDate);
 
     //Region invites
     //Get all invites

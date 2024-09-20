@@ -14,6 +14,7 @@
             :is="this.Interface.type"
             :action="this.Interface.action"
             :entity="this.contextData"
+            :type="dataInterfaceType"
         />
       </div>
       <template v-slot:modal-footer>
@@ -28,7 +29,7 @@
       <!--    Button group -->
       <b-button-group vertical class="mt-2">
         <div v-for="(option, index) in contextOptions" :key="index">
-          <b-button class="w-100" :variant="option._variant" @click="option.foo">
+          <b-button class="w-100" :variant="option._variant" :disabled="!option.isActiveWithoutEntity && !isEntitySelected" @click="option.foo">
             {{ option.label }}
           </b-button>
         </div>
@@ -61,29 +62,10 @@ export default {
       showContextOptions: false,
 
       contextOptions: [], // Buttons with actions
-      contextData: "",
+      contextData: {},
+      isEntitySelected: false,
 
       notifications: [],
-
-      template_contextOptionsGlobal: {
-        data: [
-          {
-            label: "Получить данные за сегодня",
-
-          },
-          {
-            label: 'Получить данные за дату',
-
-          },
-          {
-            label: 'Получить сводку за период',
-
-          },
-        ],
-        classes: [
-
-        ]
-      },
 
       template_contextOptions: {
         data: [ //Region Data
@@ -101,6 +83,7 @@ export default {
         classes: [ //Region Class
           {
             label: "Создать новый класс",
+            isActiveWithoutEntity: true,
             foo: () =>
               this.openModal(
                   classesInterface,
@@ -134,6 +117,7 @@ export default {
         users: [ //Region User
           {
             label: "Создать",
+            isActiveWithoutEntity: true,
             foo: () =>
                 this.openModal(usersInterface,
                     "create",
@@ -165,6 +149,7 @@ export default {
         invites: [ //Region Invites
           {
             label: "Создать приглашение",
+            isActiveWithoutEntity: true,
             foo: () =>
                 this.openModal(invitesInterface,
                     "create",
@@ -195,11 +180,19 @@ export default {
         // Check if section exists and use it
         this.contextOptions = this.template_contextOptions[section];
       }
-      this.contextData = row[0]; // Assuming row has data you want to store
+      if (!row) {
+        this.isEntitySelected = false;
+      }
+      else {
+        this.contextData = row[0]; // Assuming row has data you want to store
+        this.isEntitySelected = true;
+      }
     });
     this.$root.$on("context:hide", () => {
-      this.showContextOptions = false;
-      this.contextOptions = []; // Clear options when hiding
+      // this.showContextOptions = false;
+      // this.contextOptions = []; // Clear options when hiding
+      this.isEntitySelected = false;
+      this.contextData = {};
       this.notifications = [];
     });
     this.$root.$on("modal:hide", () => {

@@ -77,8 +77,9 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         }
 
         //Includes check on existing data. If data in null -> generates by self
-        c->prepare(psqlMethods::classes::data::insertData, "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
         c->prepare(psqlMethods::classes::data::getInsertedData, "select class_data_get($1::uuid,$2::uuid,$3::date)");
+        c->prepare(psqlMethods::classes::data::insertData, "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
+        c->prepare(psqlMethods::classes::data::insertDataForDate, "call class_data_insert($1::uuid, $2::uuid, $3::jsonb, $4::date)");
 
 
         // Region schoolManager - admin

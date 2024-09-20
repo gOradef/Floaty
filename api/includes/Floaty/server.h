@@ -171,6 +171,7 @@ class Server {
         static void getDataForDate(const crow::request& req, crow::response& res, const std::string& date);
         static void getDataSummary(const crow::request& req, crow::response& res);
         static void updateDataAbsent(const crow::request& req, crow::response& res, const std::string& classID);
+        static void updateDataAbsentForDate(const crow::request& req, crow::response& res, const std::string& classID, const std::string& date);
 
         //* Invites
         static void getAllInvites(const crow::request& req, crow::response& res);

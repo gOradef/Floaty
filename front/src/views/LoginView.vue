@@ -102,13 +102,6 @@ export default {
   methods: {
     async loginProcess() {
 
-      // this.isLoading = true;
-      // await new Promise(r => setTimeout(r, 1300));
-      // this.showAlert = true;
-      //
-      // this.isLoading = false;
-      // await new Promise(r => setTimeout(r, 400));
-
       await new Promise(r => setTimeout(r, 1500));
       this.showAlert = true;
       this.isLoading = false;
@@ -126,27 +119,7 @@ export default {
       this.isShowRoles = true;
     },
     async checkForRefreshToken() {
-      // Check for the presence of the Floaty_refresh_token cookie
-      const cookieName = 'Floaty_refresh_token=';
-      const cookies = document.cookie.split(';');
-      this.hasRefreshCookie = false; // Default to false
 
-      for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.startsWith(cookieName)) {
-          try {
-            // Only call refreshAccessToken once and assign the result
-            this.hasRefreshCookie = await this.$root.$refreshAccessToken();
-            console.log("Successfully refreshed access token.", this.hasRefreshCookie);
-            return; // Exit once the refresh token is found and processed
-          } catch (err) {
-            console.error('Failed to refresh access token:', err);
-            this.hasRefreshCookie = false; // Set to false if refreshing the token fails
-            return; // Exit early on error
-          }
-        }
-      }
-      // If we exit the loop without finding the cookie, hasRefreshCookie remains false
     },
     onSubmit() {
       this.isLoading = true;

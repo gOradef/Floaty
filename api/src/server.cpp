@@ -641,6 +641,23 @@ void Server::routes_admin::updateDataAbsent(const crow::request& req, crow::resp
     };
     return verifier(req, res, f);
 }
+void Server::routes_admin::updateDataAbsentForDate(const crow::request& req, crow::response& res, const std::string& classID, const std::string& date) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+
+        if (!crow::json::load(req.body))
+            throw api::exceptions::parseErr("Can not parse request body. Is it json?");
+        auto json = crow::json::load(req.body);
+        if (!json.has("absent"))
+            throw api::exceptions::wrongRequest("No 'absent' branch");
+
+        schoolManager.dataAbsentUpdateForDate(classID, req.body, date);
+        res.code = 204;
+    };
+    return verifier(req, res, f);
+}
+
+
 
 void Server::routes_admin::getAllInvites(const crow::request& req, crow::response& res) {
     auto f = [](const crow::request& req, crow::response& res) {

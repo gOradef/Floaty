@@ -231,6 +231,14 @@ void schoolManager::isInviteExists(const std::string& inviteID) {
         throw api::exceptions::wrongRequest("No such invite: " + inviteID);
 }
 
+void schoolManager::isDataExists(const std::string& date) {
+    pqxx::read_transaction readTransaction(*_connection);
+    bool isDataExists = readTransaction.exec_prepared(psqlMethods::schoolManager::data::isExists, _org_id, date).front().front().as<bool>();
+
+    if (!isDataExists)
+        throw api::exceptions::wrongRequest("No such data for date: " + date);
+}
+
 
 //Region Data
 
@@ -588,7 +596,7 @@ void schoolManager::inviteDrop(const std::string& reqID) {
  */
 
 /**
- *
+ * @param classID - id of class
  * @param changes - json with absent
  */
 void schoolManager::dataAbsentUpdate(const std::string& classID,const std::string& changes) {
@@ -597,5 +605,18 @@ void schoolManager::dataAbsentUpdate(const std::string& classID,const std::strin
     pqxx::work work(*_connection);
 
     work.exec_prepared(psqlMethods::classes::data::insertData, _org_id, classID, changes);
+    work.commit();
+}
+/**
+ * @param classID - id of class
+ * @param changes - json with absent
+ * @param date - YYYY-MM-DD
+*/
+void schoolManager::dataAbsentUpdateForDate(const std::string& classID, const std::string& changes, const std::string& date) {
+    isClassExists(classID);
+    isDataExists(date);
+
+    pqxx::work work(*_connection);
+    work.exec_prepared(psqlMethods::classes::data::insertDataForDate, _org_id, classID, changes, date);
     work.commit();
 }

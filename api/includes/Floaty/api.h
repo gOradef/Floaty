@@ -162,6 +162,7 @@ class schoolManager : Request {
     void isUserExists(const std::string& userID);
     void isClassExists(const std::string& classID);
     void isInviteExists(const std::string& inviteID);
+    void isDataExists(const std::string& date);
 
     // bool isDataTodayExists();
 
@@ -223,4 +224,5 @@ public:
 
     //Region Data
     void dataAbsentUpdate(const std::string& classID, const std::string& changes);
+    void dataAbsentUpdateForDate(const std::string& classID, const std::string& changes, const std::string& date);
 };
