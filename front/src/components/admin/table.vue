@@ -14,17 +14,25 @@
         </h5>
       </div>
       <b-table
+        :items="table.items"
+        :fields="table.fields"
+        @export="exportExcel"
+
+        :busy="!isDataLoaded"
+
         selectable
         select-mode="single"
         @row-selected="onRowSelected"
-        sticky-header="650px"
-        striped
+
         hover
-        :items="table.items"
-        :fields="table.fields"
-        :row-class="rowClass"
+        striped
+        sticky-header="80vh"
+        head-variant="dark"
+        bordered
+        no-border-collapse
+
         class="h-100"
-        v-if="isDataLoaded"
+        :row-class="rowClass"
       >
         <!--  Absent lists -->
         <template #cell(absent)="row">
@@ -102,7 +110,7 @@
            {{row.item.roles.join(", ")}}
         </template>
         <!-- Footer for Global Calculations -->
-        <template #custom-foot v-if="isActiveSectionData()">
+        <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
           <tr>
             <td><strong>1-4 классы</strong></td>
             <td> {{table.formulas.data["1_4"].global_amount()}}</td>
@@ -119,23 +127,30 @@
             <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
           </tr>
         </template>
+        <template #table-caption v-if="isActiveSectionData() && isDataLoaded">
+          {{ `Данные заполнены для ${table.items.filter(item => item.isClassDataFilled).length} / ${table.items.length} классов (${(table.items.filter(item => item.isClassDataFilled).length / table.items.length * 100).toFixed(2)}%)` }}
+        </template>
+
+        <template #table-busy>
+          <div class="text-center my-2">
+            <b-spinner class="align-middle" ></b-spinner>
+            <strong>Loading...</strong>
+          </div>
+        </template>
       </b-table>
     </div>
   </div>
 </template>
 
 <script>
-// import axios from "axios";
-
-import {expectedError} from "@babel/core/lib/errors/rewrite-stack-trace";
-
+import * as XLSX from 'xlsx';
 export default {
   name: "AdminContent",
   data() {
     return {
-      showDetails: false,
       isDataExists: true,
       isDataLoaded: false,
+
       showFormulas: false,
 
 
@@ -267,12 +282,7 @@ export default {
 
       expandedRowIds: [],
       pinedExpandedRowIds: [],
-      //todo Dynamic <template>
-      template_table_cells: {
-        class: '',
-        user: '',
 
-      },
       activeSection: String,
       sectionDataMethods: {
         data: this.getData,
@@ -287,41 +297,32 @@ export default {
   beforeMount() {
     this.$root.$off('renderContentSection', this.handleRenderContentSection);
     this.$root.$off('calendar:call');
-
+    this.$root.$off('exportData');
   },
   async mounted() {
     // Define the event handler
-    this.handleRenderContentSection = async (section, ...dates) => {
+    this.handleRenderContentSection = async (section,...dates) => {
       this.activeSection = section;
       this.isDataLoaded = false;
       this.tableDataDates = '';
 
-
-      console.log(section, '-', dates)
-      this.updateTableFields(section);
+      console.log(section, '-', dates);
 
       if (this.sectionDataMethods[section]) {
         this.raw_data = await this.sectionDataMethods[section](...dates);
 
-        // Logic to handle responses based on section
-        if (section === "data") {
-          if (this.raw_data !== null) {
-            this.table.items = Object.keys(this.raw_data).map(key => ({
-              id: key,
-              ...this.raw_data[key]
-            }));
-            this.isDataExists = true;
-          }
-          else {
-            this.isDataExists = false;
-          }
-        }
-        else {
-          this.table.items = this.raw_data;
-          this.isDataExists = true;
+        this.isDataExists = (this.raw_data !== null);
+        this.updateTableFields(section);
+        await new Promise(r => setTimeout(r, 200));
+
+        if (this.raw_data !== null) {
+          this.table.items = section === "data"
+              ? Object.keys(this.raw_data).map(key => ({ id: key,...this.raw_data[key] }))
+              : this.raw_data;
         }
 
-        this.isDataLoaded = true; // Mark data load as complete
+
+        this.isDataLoaded = true;
       } else {
         console.warn(`Unknown section: ${section}`);
       }
@@ -333,11 +334,20 @@ export default {
     this.$root.$on('calendar:call', () => {
       this.$root.$emit('calendar:response', this.calendarDate);
     });
+    this.$root.$on('exportData', () => {
+      this.exportExcel();
+    });
 
   },
   methods: {
+     getCurrentDateFormatted() {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // +1, потому что месяцы считаются от 0
+        const day = String(date.getDate()).padStart(2, '0');
 
-    expectedError,
+        return `${year}-${month}-${day}`;
+    },
     async getData(date = null, date_2 = null) {
       let url = '/api/org/data';
       if (date) {
@@ -350,7 +360,7 @@ export default {
         }
         this.calendarDate = date;
       } else {
-        this.tableDataDates = 'сегодня';
+        this.tableDataDates = this.getCurrentDateFormatted();
         this.calendarDate = null;
       }
       return (await this.$root.$makeApiRequest(url)).data;
@@ -358,7 +368,7 @@ export default {
     async genDataForToday() {
       const status = await this.$root.$makeApiRequest('/api/org/data', 'POST');
       if (status === 204)
-        await this.getDataToday();
+        this.$root.$emit('renderContentSection', 'data');
       else
         alert('Что-то пошло не так. Обратитесь к разработчикам, если это повторится')
     },
@@ -385,15 +395,12 @@ export default {
       const index = this.expandedRowIds.indexOf(id);
       if (index !== -1) {
 
-        // Удаляем идентификатор, если он уже есть
         this.expandedRowIds.splice(index, 1);
       } else {
-        // Добавляем идентификатор, если его нет
         this.expandedRowIds.push(id);
       }
     },
     isRowExpanded(id) {
-      // Проверяем, находится ли идентификатор в массиве раскрытых строк
       return this.expandedRowIds.includes(id);
     },
 
@@ -419,10 +426,104 @@ export default {
         'bg-danger text-white': !item.item.isClassDataFilled,
       };
     },
+    // Export
+    // ! COMMMIT
+    exportExcel() {
+      const sortedData = this.table.items.slice().sort((a, b) => {
+        const classA = a.name.replace(/_/g, '').toUpperCase();
+        const classB = b.name.replace(/_/g, '').toUpperCase();
+
+        // Compare class numbers
+        const matchA = classA.match(/^\d+/);
+        const numA = matchA?.[0]? parseInt(matchA[0]) : null;
+
+        const matchB = classB.match(/^\d+/);
+        const numB = matchB?.[0]? parseInt(matchB[0]) : null;
+
+        if (numA !== numB) {
+          return numA - numB;
+        }
+
+        // Compare class letters
+        const letterA = classA.slice(-1);
+        const letterB = classB.slice(-1);
+        return letterA.localeCompare(letterB);
+      });
+
+      const data = sortedData.map(item => [
+        item.name,
+        item.students.length,
+        item.absent.global.length,
+        item.absent.ORVI.join(', ') || '',
+        item.absent.respectful.join(', ') || '',
+        item.absent.not_respectful.join(', ') || '',
+        item.absent.fstudents.join(', ') || '',
+        item.owners.map(owner => owner.name).join(', ') || '',
+      ]);
+
+      const firstFiveIndex = sortedData.findIndex(item => {
+        const match = item.name.match(/\d+/);
+        return match && parseInt(match[0]) === 5;
+      });
+
+      const header = [
+        'Класс',
+        'Количество учащихся в классе',
+        'Количество отсутствующих в классе',
+        'Отсутствуют по ОРВИ (фамилии)',
+        'Отсутствуют по уважительной причине (фамилии)',
+        'Отсутствуют по неуважительной причине (фамилии)',
+        'Из них бесплатники (фамилии)',
+        'Классный руководитель (фамилия, инициалы)',
+      ];
+
+      const formulas = [
+        ['1-4 классы', `=SUM(B2:B${firstFiveIndex + 1})`, `=SUM(C2:C${firstFiveIndex + 1})`, '', '', '', ''],
+        ['5-11 классы', `=SUM(B${firstFiveIndex + 2}:B${sortedData.length + 1})`, `=SUM(C${firstFiveIndex + 2}:C${sortedData.length + 1})`, '', '', '', ''],
+        ['Всего', `=SUM(B2:B${sortedData.length + 1})`, `=SUM(C2:C${sortedData.length + 1})`, '', '', '', ''],
+      ];
+
+// Добавляем фамилии отсутствующих для каждой группы
+      const absentFormulas = [];
+      for (const group of formulas) {
+        const groupName = group[0];
+        const startIndex = groupName === '1-4 классы'? 2 : groupName === '5-11 классы'? firstFiveIndex + 2 : 2;
+        const endIndex = groupName === '1-4 классы'? firstFiveIndex + 1 : groupName === '5-11 классы'? sortedData.length + 1 : sortedData.length + 1;
+        const orvi = `=TEXTJOIN(", ", TRUE, D${startIndex}:D${endIndex})`;
+        const respectful = `=TEXTJOIN(", ", TRUE, E${startIndex}:E${endIndex})`;
+        const notRespectful = `=TEXTJOIN(", ", TRUE, F${startIndex}:F${endIndex})`;
+        const fstudents = `=TEXTJOIN(", ", TRUE, G${startIndex}:G${endIndex})`;
+        absentFormulas.push([...group.slice(0, 3), orvi, respectful, notRespectful, fstudents]);
+      }
+      const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
+        if (typeof cell ==='string' && cell.startsWith('=')) {
+          return { f: cell, v: 'Обновите ячейку'};
+        }
+        return cell;
+      }))]);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      XLSX.utils.sheet_to_formulae(wb);
+
+      XLSX.writeFile(wb, `${this.tableDataDates}.xlsx`);
+    }
   },
 }
 </script>
 <style scoped>
+
+/* Busy table styling */
+table.b-table[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.b-table-sticky-header > .table.b-table > thead > tr > th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+}
+
 .list-group-item {
   max-height: 35px;
   //min-width: 220px;

@@ -37,7 +37,8 @@
                     <span>{{ section.label }}</span>
                   </div>
                 </div>
-                <div v-if="section.value === 'data'">
+<!--                Region context menu for 'data' section -->
+                <div v-if="section.value === 'data' && !compactMode">
                   <b-container
                     style="
                       display: flex;
@@ -47,9 +48,10 @@
                       height: 40px;
                       cursor: pointer;
                     "
-                    @click.stop="showMoreData = !showMoreData"
+                    @click.prevent.stop="showMoreData = !showMoreData"
                     v-b-toggle.additionalDataCollapse
                   >
+<!--                    Icon switcher-->
                     <b-icon
                       v-if="showMoreData"
                       icon="chevron-double-down"
@@ -60,33 +62,62 @@
                 </div>
               </b-list-group-item>
               <b-collapse
-                v-if="section.value === 'data' && !compactMode"
-                id="additionalDataCollapse"
+                  v-if="section.value === 'data' &&!compactMode"
+                  id="additionalDataCollapse"
               >
-                <b-card-body class="pl-0 pr-0">
-                  <b-calendar
-                    v-if="showCalendar"
-                    v-model="calendarDate"
-                    :start-weekday="1"
-                    style="
-                      max-width: 218px;
-                      border: none;
-                      padding-bottom: 0;
-                      margin-bottom: 5px;
-                    "
-                  />
+                <b-card-body class="pl-2 pr-2 pt-2 border border-top-0 border-dark">
                   <b-button-group vertical class="w-100">
+<!--                    Region custom date -->
                     <b-button
-                      variant="primary"
-                      @click.stop="handleSectionClick('data', 'date')"
-                      >За выбранную дату</b-button
+                        v-b-toggle.dateInputCollapse
+                    >Конкретная дата</b-button
                     >
+                    <b-collapse id="dateInputCollapse"
+                                v-model="showCustomDateInput"
+                                class="d-flex align-self-center">
+                    <b-form-input
+                        v-if="showCustomDateInput"
+                        v-model="calendarDate"
+                        type="date"
+                        placeholder="Дата"
+                    />
+                      <b-button
+                          variant="primary"
+                          v-if="showCustomDateInput"
+                          @click.stop="handleSectionClick('data', 'date')"
+                      >
+                        <b-icon icon="arrow-return-right"/>
+                      </b-button>
+
+                    </b-collapse>
+<!--                    Region period -->
                     <b-button
-                      variant="info"
-                      @click.stop="handleSectionClick('data', 'period')"
-                      >За период времени</b-button
-                    >
-                    <b-button variant="success">Экспорт</b-button>
+                        v-b-toggle.periodInputCollapse
+                    >Период времени
+                    </b-button>
+                    <b-collapse id="periodInputCollapse" v-model="showPeriodInput" class="d-flex flex-column align-self-center">
+                      <b-form-input
+                          v-if="showPeriodInput"
+                          v-model="periodStartDate"
+                          type="date"
+                          placeholder="Начальная дата"
+                      />
+                      <b-form-input
+                          v-if="showPeriodInput"
+                          v-model="periodEndDate"
+                          type="date"
+                          placeholder="Конечная дата"
+                      />
+                      <b-button
+                          variant="primary"
+                          class="pt-2 border-top"
+                          v-if="showPeriodInput"
+                          @click.stop="handleSectionClick('data', 'period')"
+                      >
+                        Запросить
+                      </b-button>
+                    </b-collapse>
+                    <b-button @click.stop="exportDataCall" variant="success">Экспорт</b-button>
                   </b-button-group>
                 </b-card-body>
               </b-collapse>
@@ -97,29 +128,27 @@
           <AdminContent :activeSection="contentSection" />
         </b-col>
         <b-col class="sidebar-r" v-if="hasAccess">
-          <b-container
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              padding: 0.5rem;
-              height: 40px;
-              cursor: pointer;
-            "
-            @click="toggleShowCalendar"
-          >
-            <b style="margin-right: 5px">Календарь</b>
-            <b-icon
-              v-if="showCalendar"
-              icon="chevron-double-down"
-              scale="1.15"
-            />
-            <b-icon v-else icon="chevron-double-up" scale="1.15" />
-          </b-container>
+<!--          <b-container-->
+<!--            style="-->
+<!--              display: flex;-->
+<!--              align-items: center;-->
+<!--              justify-content: center;-->
+<!--              padding: 0.5rem;-->
+<!--              height: 40px;-->
+<!--              cursor: pointer;-->
+<!--            "-->
+<!--            @click="toggleShowCalendar"-->
+<!--          >-->
+<!--            <b style="margin-right: 5px">Календарь</b>-->
+<!--            <b-icon-->
+<!--              v-if="showCalendar"-->
+<!--              icon="chevron-double-down"-->
+<!--              scale="1.15"-->
+<!--            />-->
+<!--            <b-icon v-else icon="chevron-double-up" scale="1.15" />-->
+<!--          </b-container>-->
 
           <b-calendar
-            v-if="showCalendar"
-            v-model="calendarDate"
             :start-weekday="1"
           ></b-calendar>
 
@@ -155,7 +184,7 @@ export default {
       contentSection: null,
 
       // Sections
-      activeSection: this.contentSection || 'dashboard',
+      activeSection: this.contentSection || 'data',
       sections: [
         { label: 'Данные', value: 'data', icon: 'table' },
         { label: 'Классы', value: 'classes', icon: 'layers' },
@@ -165,6 +194,11 @@ export default {
 
       // Calendar data
       calendarDate: '',
+
+      showCustomDateInput: false,
+      showPeriodInput: false,
+      periodStartDate: null,
+      periodEndDate: null,
     };
   },
   async mounted() {
@@ -178,6 +212,11 @@ export default {
     } finally {
       this.firstLoading = false;
     }
+
+    await new Promise(r => setTimeout(r, 100))
+    if (this.hasAccess)
+      this.$root.$emit('renderContentSection', this.activeSection);
+
   },
   computed: {
     isDateChosen() {
@@ -196,8 +235,9 @@ export default {
           else
             this.$root.$emit('renderContentSection', this.activeSection, this.calendarDate);
         }
-        else if (dataType === 'period')
-          this.$root.$emit('renderContentSection', this.activeSection, this.calendarDate);
+        else if (dataType === 'period') {
+          this.$root.$emit('renderContentSection', this.activeSection, this.periodStartDate, this.periodEndDate);
+        }
         else {
           this.$root.$emit('renderContentSection', this.activeSection);
       }
@@ -207,6 +247,9 @@ export default {
     },
     toggleShowCalendar() {
       this.showCalendar = !this.showCalendar;
+    },
+    exportDataCall() {
+      this.$root.$emit('exportData');
     },
   }
 };
