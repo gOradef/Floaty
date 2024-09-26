@@ -1588,27 +1588,12 @@ ALTER FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text, _req_s
 
 CREATE FUNCTION public.school_invite_req_id_gen(_school_id uuid) RETURNS integer
     LANGUAGE plpgsql
-    AS $$
-DECLARE
-	unique_number int;
+    AS $$DECLARE
+    unique_id TEXT;
 BEGIN
-	WITH existing_numbers AS (
-        SELECT req_id::int
-        FROM schools_invites
-        WHERE school_id = _school_id
-    )
-    SELECT COALESCE(
-        (
-            SELECT MIN(e.req_id) + 1
-            FROM existing_numbers e
-            WHERE e.req_id + 1 NOT IN (SELECT req_id FROM existing_numbers)
-        ),
-        (SELECT COUNT(*) FROM existing_numbers) + 1  -- Fallback to next number after the highest
-    ) INTO unique_number;
-
-    RETURN LPAD(unique_number::TEXT, 4, '0');
-END;
-$$;
+    unique_id := LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0');
+    RETURN unique_id;
+END;$$;
 
 
 ALTER FUNCTION public.school_invite_req_id_gen(_school_id uuid) OWNER TO postgres;
@@ -2417,6 +2402,7 @@ COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin
 00000000-0000-0000-0000-000000000000	3	860	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
 00000000-0000-0000-0000-000000000000	4	435	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
 00000000-0000-0000-0000-000000000000	5	9618	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
+00000000-0000-0000-0000-000000000000	998248	8982	{"name": "123", "roles": ["teacher", "admin"], "classes": null}
 \.
 
 
