@@ -42,7 +42,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
         // Global
         c->prepare(psqlMethods::isDate, "select is_date($1)");
-
+        c->prepare(psqlMethods::org::getData, "select school_org_data_get($1::text)");
 
         // * Class Handler
         c->prepare(psqlMethods::classes::checks::isOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");

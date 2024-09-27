@@ -12,6 +12,11 @@ namespace psqlMethods {
     using str = std::string;
 
     inline str isDate = "is_date"; //todo move into some other space
+
+    namespace org {
+      inline str getData = "school_org_data_get"; //org data
+    };
+
     namespace encoding {
         inline str encode = "encode";
         inline str decode = "decode";
@@ -22,7 +27,7 @@ namespace psqlMethods {
         inline str isExists = "is_invite_exists";
         inline str create = "invite_create";
         inline str getProperties = "invite_props_get";
-        inline str drop = "drop_invite"; // drops row with invite
+        inline str drop = "drop_invite"; // drops row with invite school_id and invite_id
 
     }
     namespace userChecks {

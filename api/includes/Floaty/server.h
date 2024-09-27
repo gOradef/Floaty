@@ -124,12 +124,16 @@ class Server {
 
         static void refreshToken(const crow::request& req, crow::response& res);
 
-        static void getInviteProps(const crow::request& req, crow::response& res, const std::string& schoolID);
+        static void getOrgInformation(const crow::request& req, crow::response& res, const std::string& schoolID);
+
+        static void getInviteProps(const crow::request& req, crow::response& res, const std::string& schoolID,
+            const std::string& invite_code, const std::string& invite_secret);
 
         static void signupUsingInvite(const crow::request& req, crow::response& res, const std::string& schoolID);
     };
     struct routes_user
     {
+
         static void getUserRoles(const crow::request& req, crow::response& res);
 
         static void getUserClasses(const crow::request& req, crow::response& res);;

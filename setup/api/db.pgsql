@@ -1576,7 +1576,7 @@ CREATE FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text, _req_
 		and req_id = _req_id
 		and req_secret = _req_secret;
 	end if;
-	return '{}'::jsonb;
+	return null;
 end;$$;
 
 
@@ -1597,6 +1597,33 @@ END;$$;
 
 
 ALTER FUNCTION public.school_invite_req_id_gen(_school_id uuid) OWNER TO postgres;
+
+--
+-- Name: school_org_data_get(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.school_org_data_get(_orgid text) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	if (_orgID IS NULL) THEN
+		return null;
+	END IF;
+	
+	return (
+		select 
+			jsonb_build_object(
+				'title', title,
+				'city', city,
+				'email', email
+			)
+		from schools where id::text = _orgID
+		);
+END;
+$$;
+
+
+ALTER FUNCTION public.school_org_data_get(_orgid text) OWNER TO postgres;
 
 --
 -- Name: school_req_get(uuid); Type: FUNCTION; Schema: public; Owner: postgres
@@ -2425,6 +2452,8 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	{teacher,admin}
 00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher,admin}
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{teacher,admin}
+00000000-0000-0000-0000-000000000000	0e5fe7b3-8002-48be-80a8-e62bd32aefb9	{teacher}
+00000000-0000-0000-0000-000000000000	626de5e5-2d13-4f66-80be-402641a05265	{teacher}
 \.
 
 
@@ -2442,6 +2471,8 @@ ff856428-37b2-4c21-a1d7-ed647b514e27	00000000-0000-0000-0000-000000000000	811f18
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	00000000-0000-0000-0000-000000000000	7117476ce4f850bfa18c365922a07b7e4347eef8057c3bbaf14442cc3b1e625d	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.6yYyOJf39PCwq.YeDs4ISmqKZjLTo2q	api-test
 82b4b650-1f1d-4868-be93-0bc98b1c5190	00000000-0000-0000-0000-000000000000	123	$2a$06$IqR5XqMqT9bu4n6wWNeR1.PwJnMnI/.1ECjCFR7oCaEny5/4O3M96	123
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	00000000-0000-0000-0000-000000000000	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$6s3yGfIcbfKE/bQenSOuaOnFfI3CwQv8jQhG/5SM3L5Bv1Ii65Iz2	Юлия Александровна
+0e5fe7b3-8002-48be-80a8-e62bd32aefb9	00000000-0000-0000-0000-000000000000	932f3c1b56257ce8539ac269d7aab42550dacf8818d075f0bdf1990562aae3ef	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtOFsrkbvbT6lxZsFnBK0TJVItsnVslCmy	api-test
+626de5e5-2d13-4f66-80be-402641a05265	00000000-0000-0000-0000-000000000000	96cae35ce8a9b0244178bf28e4966c2ce1b8385723a96a6b838858cdd6ca0a1e	$2a$06$DtbVi4uikMb4beNC3.1Vv.2w198tyTTbXdyPhDByvXCfV0jqkfw5q	api-test
 \.
 
 
@@ -2461,6 +2492,8 @@ ff856428-37b2-4c21-a1d7-ed647b514e27	$2a$06$F7QFfmA.70gde5jf/GlMQ.
 934ced4e-ee81-4b21-96c7-fd6a67aaf19f	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.
 82b4b650-1f1d-4868-be93-0bc98b1c5190	$2a$06$IqR5XqMqT9bu4n6wWNeR1.
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	$2a$06$6s3yGfIcbfKE/bQenSOuaO
+0e5fe7b3-8002-48be-80a8-e62bd32aefb9	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtO
+626de5e5-2d13-4f66-80be-402641a05265	$2a$06$DtbVi4uikMb4beNC3.1Vv.
 \.
 
 

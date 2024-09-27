@@ -5,6 +5,7 @@ import VueRouter from 'vue-router'
 import HelloWorld from '@/components/HelloWorld.vue'
 
 import loginPage from '@/views/LoginView.vue'
+import signupInvite from "@/views/SignupInvite.vue";
 
 import UserView from "@/views/Roles/UserView.vue";
 import userForm from '@/components/user/form.vue'
@@ -30,6 +31,18 @@ const routes = [
       component: loginPage
     },
     {
+        path: '/signup/invite',
+        name: 'signupInvite',
+        component: signupInvite,
+        props: () => ({ orgID: '' })
+    },
+    {
+        path: '/signup/invite/:orgID',
+        name: 'signupInviteWithOrgId',
+        component: signupInvite,
+        props: (route) => ({ orgID: route.params.orgID })
+    },
+    {
         path: '/about',
         name: 'О нас',
         component: AboutView
@@ -42,7 +55,7 @@ const routes = [
     {
         path: '/form/:classID',
         name: 'Заполнение данных кл. рук.',
-        component: userForm
+        component: userForm,
     },
     {
         path: '/org',

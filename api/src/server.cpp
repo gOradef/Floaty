@@ -194,27 +194,41 @@ void Server::routes_auth::refreshToken(const crow::request& req, crow::response&
     return res.end(); // End the response
 }
 
-void Server::routes_auth::getInviteProps(const crow::request& req, crow::response& res,
-    const std::string& schoolID) {
-    const crow::json::rvalue root_body = crow::json::load(req.body);
-    const crow::json::rvalue& invite_creds = root_body["invite"];
+void Server::routes_auth::getOrgInformation(const crow::request& req, crow::response& res, const std::string& schoolID) {
+    auto con = _connectionPool->getConnection();
 
-    if (!invite_creds ||
-        !invite_creds.has("code") ||
-        !invite_creds.has("secret")
-    ) {
-        res.code = 400;
-        res.write(R"(No "invite" field or "code" or "secret")");
-        return res.end();
+    pqxx::read_transaction rtx(*con);
+    auto pres = rtx.exec_prepared(psqlMethods::org::getData, schoolID);
+    crow::json::wvalue json;
+
+    if (!pres[0][0].is_null()) {
+        json["org"] = crow::json::load(pres[0][0].as<std::string>());
+        json["status"] = 200;
     }
-    const std::string& invite_code = invite_creds["code"].s();
-    const std::string& invite_secret = invite_creds["secret"].s();
+    else
+        json["status"] = 404;
+
+    _connectionPool->releaseConnection(con);
+    res.body = json.dump();
+    return res.end();
+}
+
+
+void Server::routes_auth::getInviteProps(const crow::request& req, crow::response& res,
+    const std::string& schoolID, const std::string& invite_code, const std::string& invite_secret) {
 
     auto con = _connectionPool->getConnection();
     pqxx::read_transaction work(*con);
 
-    auto props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret).front().front().as<std::string>();
-    res.body = props;
+    auto props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret);
+    crow::json::wvalue json;
+    if (!props[0][0].is_null()) {
+        json["invite"] = crow::json::load(props[0][0].as<std::string>());
+        json["status"] = 200;
+    }
+    else
+        json["status"] = 404;
+    res.body = json.dump();
     _connectionPool->releaseConnection(con);
     return res.end();
 }

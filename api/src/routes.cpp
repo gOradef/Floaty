@@ -25,7 +25,11 @@ inline void Server::route_auth() {
     .methods(crow::HTTPMethod::POST)
     (routes_auth::refreshToken);
 
-    CROW_ROUTE(app, "/api/signup/invite/<string>")
+    CROW_ROUTE(app, "/api/org/<string>/info")
+    .methods(crow::HTTPMethod::GET)
+    (routes_auth::getOrgInformation);
+
+    CROW_ROUTE(app, "/api/invite/<string>/<string>/<string>")
     .methods(crow::HTTPMethod::GET)
     (routes_auth::getInviteProps);
 
@@ -34,10 +38,12 @@ inline void Server::route_auth() {
     (routes_auth::signupUsingInvite);
 }
 inline void Server::route_user() {
+    // Get roles
     CROW_ROUTE(app, "/api/roles")
         .methods(crow::HTTPMethod::GET)
         (routes_user::getUserRoles);
 
+    // Get classes
     CROW_ROUTE(app, "/api/user/classes")
     .methods(crow::HTTPMethod::GET)
     (routes_user::getUserClasses);
@@ -89,6 +95,7 @@ inline void Server::route_classHandler() {
     (routes_classHandler::insertData);
 }
 inline void Server::route_admin() {
+    // Region classes
     // Get all classes
     CROW_ROUTE(app, "/api/org/classes")
     .methods(crow::HTTPMethod::GET)
