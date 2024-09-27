@@ -1492,16 +1492,49 @@ $$;
 ALTER FUNCTION public.school_id_get(_userid uuid) OWNER TO postgres;
 
 --
+-- Name: school_invite_archive(uuid, text); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.school_invite_archive(IN _orgid uuid, IN _reqid text)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	WITH moved_invites AS (
+	  DELETE FROM schools_invites
+	  WHERE req_id = _reqID
+	  RETURNING school_id,
+	  	req_id, 
+	  	req_secret, 
+	  	req_body
+	)
+	INSERT INTO schools_invites_archived (
+		school_id, 
+		req_id, 
+		req_secret,
+		req_body,
+		use_time)
+	SELECT school_id,
+		req_id, 
+		req_secret, 
+		req_body,
+		NOW()
+	FROM moved_invites;
+END;
+$$;
+
+
+ALTER PROCEDURE public.school_invite_archive(IN _orgid uuid, IN _reqid text) OWNER TO postgres;
+
+--
 -- Name: school_invite_create(uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
 CREATE PROCEDURE public.school_invite_create(IN _school_id uuid, IN _req_body jsonb)
     LANGUAGE plpgsql
-    AS $$
-DECLARE
-	num int;
-	
+    AS $$DECLARE
+    num int;
 BEGIN
+
     INSERT INTO public.schools_invites(
         school_id, 
         req_id, 
@@ -1512,19 +1545,22 @@ BEGIN
         school_invite_req_id_gen(_school_id),
         floor(random() * 10000),
         jsonb_build_object(
-			'name', _req_body->'name',
+            'name', _req_body->'name',
             'roles', _req_body->'roles',
             'classes', (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'id', u_class_id,
-                        'name', (
-                            SELECT class_body->>'name' 
-                            FROM schools_classes
-                            WHERE school_id = _school_id
-                            AND class_id = u_class_id::uuid  -- Ensure you have the correct type for class_id
+                SELECT COALESCE(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'id', u_class_id,
+                            'name', (
+                                SELECT class_body->>'name' 
+                                FROM schools_classes
+                                WHERE school_id = _school_id
+                                AND class_id = u_class_id::uuid  -- Ensure you have the correct type for class_id
+                            )
                         )
-                    )
+                    ),
+                    '[]'::jsonb  -- Return an empty array if the result is NULL
                 )
                 FROM jsonb_array_elements_text(_req_body->'classes') AS u_class_id
             )
@@ -2279,6 +2315,21 @@ CREATE TABLE public.schools_invites (
 ALTER TABLE public.schools_invites OWNER TO postgres;
 
 --
+-- Name: schools_invites_archived; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.schools_invites_archived (
+    school_id uuid,
+    req_id character varying(6),
+    req_secret character varying(6),
+    req_body jsonb,
+    use_time timestamp without time zone
+);
+
+
+ALTER TABLE public.schools_invites_archived OWNER TO postgres;
+
+--
 -- Name: schools_template_classes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2426,10 +2477,18 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 --
 
 COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin;
-00000000-0000-0000-0000-000000000000	3	860	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
 00000000-0000-0000-0000-000000000000	4	435	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
 00000000-0000-0000-0000-000000000000	5	9618	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
-00000000-0000-0000-0000-000000000000	998248	8982	{"name": "123", "roles": ["teacher", "admin"], "classes": null}
+\.
+
+
+--
+-- Data for Name: schools_invites_archived; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.schools_invites_archived (school_id, req_id, req_secret, req_body, use_time) FROM stdin;
+00000000-0000-0000-0000-000000000000	3	860	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}	2024-09-27 20:40:22.848867
+00000000-0000-0000-0000-000000000000	206988	5848	{"name": "test", "roles": ["teacher", "admin"], "classes": []}	2024-09-27 20:53:59.600002
 \.
 
 
@@ -2454,6 +2513,7 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{teacher,admin}
 00000000-0000-0000-0000-000000000000	0e5fe7b3-8002-48be-80a8-e62bd32aefb9	{teacher}
 00000000-0000-0000-0000-000000000000	626de5e5-2d13-4f66-80be-402641a05265	{teacher}
+00000000-0000-0000-0000-000000000000	a3d33e99-d3d9-43ab-a068-c4196cc6c94c	{teacher,admin}
 \.
 
 
@@ -2473,6 +2533,7 @@ ff856428-37b2-4c21-a1d7-ed647b514e27	00000000-0000-0000-0000-000000000000	811f18
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	00000000-0000-0000-0000-000000000000	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$6s3yGfIcbfKE/bQenSOuaOnFfI3CwQv8jQhG/5SM3L5Bv1Ii65Iz2	Юлия Александровна
 0e5fe7b3-8002-48be-80a8-e62bd32aefb9	00000000-0000-0000-0000-000000000000	932f3c1b56257ce8539ac269d7aab42550dacf8818d075f0bdf1990562aae3ef	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtOFsrkbvbT6lxZsFnBK0TJVItsnVslCmy	api-test
 626de5e5-2d13-4f66-80be-402641a05265	00000000-0000-0000-0000-000000000000	96cae35ce8a9b0244178bf28e4966c2ce1b8385723a96a6b838858cdd6ca0a1e	$2a$06$DtbVi4uikMb4beNC3.1Vv.2w198tyTTbXdyPhDByvXCfV0jqkfw5q	api-test
+a3d33e99-d3d9-43ab-a068-c4196cc6c94c	00000000-0000-0000-0000-000000000000	5f88134474eb05a9a3907d21b6263f85d63157bb4bfe6643f02b46f6a7c5b50b	$2a$06$tMHcyuHPtblDLpYfeDNoXefPQWEJBn8g/sbRLpGR37hpKxjZgcvem	test
 \.
 
 
@@ -2494,6 +2555,7 @@ ff856428-37b2-4c21-a1d7-ed647b514e27	$2a$06$F7QFfmA.70gde5jf/GlMQ.
 82ef00ca-96bc-48b2-8eac-d0768a4ece81	$2a$06$6s3yGfIcbfKE/bQenSOuaO
 0e5fe7b3-8002-48be-80a8-e62bd32aefb9	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtO
 626de5e5-2d13-4f66-80be-402641a05265	$2a$06$DtbVi4uikMb4beNC3.1Vv.
+a3d33e99-d3d9-43ab-a068-c4196cc6c94c	$2a$06$tMHcyuHPtblDLpYfeDNoXe
 \.
 
 
@@ -2665,6 +2727,14 @@ ALTER TABLE ONLY public.schools_data
 
 
 --
+-- Name: schools_invites_archived schools_invites_archived_school_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schools_invites_archived
+    ADD CONSTRAINT schools_invites_archived_school_id_fkey FOREIGN KEY (school_id) REFERENCES public.schools(id);
+
+
+--
 -- Name: TABLE schools; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -2704,6 +2774,13 @@ GRANT ALL ON TABLE public.schools_data TO floatyapi;
 --
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.schools_invites TO floatyapi WITH GRANT OPTION;
+
+
+--
+-- Name: TABLE schools_invites_archived; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.schools_invites_archived TO floatyapi WITH GRANT OPTION;
 
 
 --

@@ -301,6 +301,7 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
                            roles,
                            classes
         );
+        work.exec_prepared(psqlMethods::invites::archive, schoolID, invite_code);
         work.commit();
         res.code = 204;
     }

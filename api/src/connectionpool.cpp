@@ -30,6 +30,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::invites::drop, "delete from schools_invites "
                                                   "where school_id = $1::uuid "
                                                   "and req_id = $2 ");
+        c->prepare(psqlMethods::invites::archive, "call school_invite_archive($1::uuid, $2)");
         c->prepare(psqlMethods::invites::getProperties, "select school_invite_props_get($1::uuid, $2, $3)");
 
         c->prepare(psqlMethods::userData::getName, "select name from users where school_id = $1::uuid"

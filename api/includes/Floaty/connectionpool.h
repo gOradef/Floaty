@@ -28,7 +28,7 @@ namespace psqlMethods {
         inline str create = "invite_create";
         inline str getProperties = "invite_props_get";
         inline str drop = "drop_invite"; // drops row with invite school_id and invite_id
-
+        inline str archive = "archive_invite";
     }
     namespace userChecks {
         inline str isLoginOccupied = "is_login_occupied";
