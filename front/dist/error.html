@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floaty - error (°ロ°)</title>
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #526f8c;
+        font-family: Arial, sans-serif;
+    }
+
+    .container {
+        text-align: center;
+    }
+
+    .logo {
+        font-size: 48px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 30px;
+    }
+    .ballscon {
+        display: inline-flex;
+        justify-content: space-around;
+        
+    }
+    .ball {
+        justify-self: baseline;
+        margin: 6px;
+        width: 6vmin;
+        height: 6vmin;
+        border-radius: 50%;
+        background: #fedd31;
+        animation: bounce 1s infinite;
+        animation-timing-function: ease;
+        animation-direction: alternate;     
+}
+
+.bounce:nth-child(1) {
+  left: calc(50% - 2vmin);
+  animation-delay: -200ms;
+}
+.bounce:nth-child(2) {
+  left: calc(50% - 10vmin);
+  animation-delay: -300ms;
+}
+.bounce:nth-child(3) {
+  left: calc(50% - 18vmin);
+  animation-delay: -400ms;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(30px);
+    background: #fedd31;
+  }
+  to {
+    transform: translateY(-30px);
+    background: #d0782a;
+  }
+}
+
+
+    </style>
+</head>
+
+<body>
+  
+  <style>
+    input {
+      margin-top:12px;
+    }
+  </style>
+    <style>
+      * {
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 100vh;
+    background: #000;
+    overflow: hidden;
+  }
+  
+  .glowing {
+    position: relative;
+    min-width: 700px;
+    height: 550px;
+    margin: -150px;
+    transform-origin: right;
+    animation: colorChange 5s linear infinite;
+  }
+  
+  .glowing:nth-child(even) {
+    transform-origin: left;
+  }
+  
+  @keyframes colorChange {
+    0% {
+      filter: hue-rotate(0deg);
+      transform: rotate(0deg);
+    }
+    100% {
+      filter: hue-rotate(360deg);
+      transform: rotate(360deg);
+    }
+  }
+  
+  .glowing span {
+    position: absolute;
+    top: calc(80px * var(--i));
+    left: calc(80px * var(--i));
+    bottom: calc(80px * var(--i));
+    right: calc(80px * var(--i));
+  }
+  
+  .glowing span::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -8px;
+    width: 15px;
+    height: 15px;
+    background: #f00;
+    border-radius: 50%;
+  }
+  
+  .glowing span:nth-child(3n + 1)::before {
+    background: rgba(134,255,0,1);
+    box-shadow: 0 0 20px rgba(134,255,0,1),
+      0 0 40px rgba(134,255,0,1),
+      0 0 60px rgba(134,255,0,1),
+      0 0 80px rgba(134,255,0,1),
+      0 0 0 8px rgba(134,255,0,.1);
+  }
+  
+  .glowing span:nth-child(3n + 2)::before {
+    background: rgba(255,214,0,1);
+    box-shadow: 0 0 20px rgba(255,214,0,1),
+      0 0 40px rgba(255,214,0,1),
+      0 0 60px rgba(255,214,0,1),
+      0 0 80px rgba(255,214,0,1),
+      0 0 0 8px rgba(255,214,0,.1);
+  }
+  
+  .glowing span:nth-child(3n + 3)::before {
+    background: rgba(0,226,255,1);
+    box-shadow: 0 0 20px rgba(0,226,255,1),
+      0 0 40px rgba(0,226,255,1),
+      0 0 60px rgba(0,226,255,1),
+      0 0 80px rgba(0,226,255,1),
+      0 0 0 8px rgba(0,226,255,.1);
+  }
+  
+  .glowing span:nth-child(3n + 1) {
+    animation: animate 10s alternate infinite;
+  }
+  
+  .glowing span:nth-child(3n + 2) {
+    animation: animate-reverse 3s alternate infinite;
+  }
+  
+  .glowing span:nth-child(3n + 3) {
+    animation: animate 8s alternate infinite; 
+  }
+  
+  @keyframes animate {
+    0% {
+      transform: rotate(180deg);
+    }
+    50% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes animate-reverse {
+    0% {
+      transform: rotate(360deg);
+    }
+    
+    50% {
+      transform: rotate(180deg);
+    }
+    
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+    </style>
+    <nav class="navbar" style="display: inline-grid; grid-template-columns: 7; top: 0px; position: fixed;">
+      <script>
+          function home() {
+              location.assign("/home.html");
+          }
+          function login(){
+            location.assing("/login.html")
+          }
+      </script>
+      <div class="logoDiv" onclick="home()"><img src="/Logo2v2.png" style="object-fit: scale-down; height: 59px; grid-column: 1;"></div>
+   
+    </nav>
+  <div class="glowing" style="z-index: -1;">
+      
+      <span style="--i:1;"></span>
+      
+      <span style="--i:2;"></span>
+      
+      <span style="--i:3;"></span>
+      
+    </div>
+    
+    <div class="glowing">
+      
+      <span style="--i:1;"></span>
+      
+      <span style="--i:2;"></span>
+      
+      <span style="--i:3;"></span>
+      
+    </div>
+    
+    <div class="glowing">
+      
+      <span style="--i:1;"></span>
+      
+      <span style="--i:2;"></span>
+      
+      <span style="--i:3;"></span>
+      
+    </div>
+    
+    <div class="glowing">
+      
+      <span style="--i:1;"></span>
+      
+      <span style="--i:2;"></span>
+      
+      <span style="--i:3;"></span>
+    
+    </div>
+    <div class="container" style="position: fixed;">
+        <div class="logo" style="color: rgb(136, 255, 0);">Floaty</div> <br><br><br><br>
+        <div class="ballscon"> 
+        <div class='ball bounce'></div>
+        <div class='ball bounce'></div>
+        <div class='ball bounce'></div>
+        </div>
+        <br><br><br>
+        <h1 style="color: white;">Ошибка {{ec}} - {{ecom}}</h1>
+        <h3 style="color: white;">На домашнюю страницу <a href="/home.html" style="text-decoration: none; color: rgb(80, 214, 134);">здесь</a></h3>
+    </div>
+</body>
+
+</html>
