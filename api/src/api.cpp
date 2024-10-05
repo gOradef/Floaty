@@ -344,7 +344,11 @@ crow::json::wvalue schoolManager::getClasses() {
     pqxx::read_transaction readTransaction(*_connection);
 
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::classes::getAll, _org_id);
-    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.front().front().as<std::string>());
+    else
+        json = crow::json::load("[]");
     return json;
 }
 crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
@@ -457,7 +461,11 @@ void schoolManager::updateClassStudents(const std::string& classID, const std::s
 crow::json::wvalue schoolManager::getUsers() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::users::getAll, _org_id);
-    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.front().front().as<std::string>());
+    else
+        json = crow::json::load("[]");
     return json;
 }
 
@@ -575,7 +583,11 @@ void schoolManager::inviteCreate(const std::string& invite_body) {
 crow::json::wvalue schoolManager::getAllInvites() {
     pqxx::read_transaction rtx(*_connection);
     auto res = rtx.exec_prepared(psqlMethods::invites::getAll, _org_id);
-    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.front().front().as<std::string>());
+    else
+        json = crow::json::load("[]");
     return json;
 }
 void schoolManager::inviteDrop(const std::string& reqID) {
