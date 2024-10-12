@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(buildSrc)
 
-set(LIBS_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
-set(INCLUDES ${CMAKE_SOURCE_DIR}/includes)
+set(LIBS_DIR ${CMAKE_SOURCE_DIR}/lib)
+set(INCLUDES ${CMAKE_SOURCE_DIR}/include)
 
 list(APPEND SOURCES
         connectionpool.cpp
@@ -16,13 +16,13 @@ add_definitions(-DCROW_ENABLE_SSL)
 
 add_executable(Floaty ${SOURCES})
 
-target_include_directories(Floaty PRIVATE ${INCLUDES})
+# Set the public include directories for the Floaty target
+target_include_directories(Floaty PUBLIC ${INCLUDES})
 
-target_link_libraries(Floaty PRIVATE
-        jsoncpp
-        crypto
-        ssl
-        pqxx
+# Link the static library libpqxx.a from the ${LIBS_DIR} directory to the Floaty target
+target_link_libraries(Floaty PUBLIC
+        ${LIBS_DIR}/libpqxx.a
+#        pqxx
         pq
         c
         com_err
@@ -38,4 +38,6 @@ target_link_libraries(Floaty PRIVATE
         resolv
         sasl2
         stdc++
+        crypto
+        ssl
 )
