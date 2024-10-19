@@ -11,13 +11,14 @@ export default {
   },
   data() {
     return {
-      isClassChosen: false,
-      chosenClass: {},
-      chosenClassBody: {},
-
       showForbidden: false,
       hasAccess: true,
       firstLoading: true, // Track loading state
+      noAccessReason: '',
+
+      isClassChosen: false,
+      chosenClass: {},
+      chosenClassBody: {},
     };
   },
   computed: {
@@ -30,9 +31,11 @@ export default {
     this.firstLoading = true; // Set loading to true
     await new Promise(r => setTimeout(r, 600))
     try {
-      this.hasAccess = await this.$root.$checkAccessRole('teacher');
+      const response = await this.$root.$checkAccessRole('admin');
+      this.hasAccess = response.status;
       if (!this.hasAccess)
-        this.showForbidden = true;
+        this.noAccessReason = response.reason;
+
 
     } catch (error) {
       console.error("Error checking access:", error);
@@ -67,21 +70,22 @@ export default {
     fluid
     class="d-flex align-items-center justify-content-center min-vh-100 bg-light"
   >
-    <b-row>
+    <b-row v-if="hasAccess">
       <b-card :title="title">
 
-      <b-col v-if="!isClassChosen && hasAccess">
+      <b-col v-if="!isClassChosen">
         <choseClass />
       </b-col>
-      <b-col v-else-if="isClassChosen && hasAccess">
+      <b-col v-else-if="isClassChosen">
         <userForm :classData="chosenClass"/>
-      </b-col>
-      <b-col v-if="showForbidden">
-        <h1>У вас нет доступа к этой странице</h1>
       </b-col>
 
       </b-card>
     </b-row>
+    <b-col v-if="!hasAccess && !firstLoading" style="min-height: 600px" class=" text-center align-items-center justify-items-center">
+      <h1>У вас нет доступа к этой странице.</h1>
+      <h3>{{this.noAccessReason}}</h3>
+    </b-col>
   </b-container>
   </b-overlay>
 </template>

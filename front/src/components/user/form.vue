@@ -8,8 +8,16 @@
             <notificationsForm/>
 
             <b-form title="Редактировать отсутствие" @submit.prevent="selectStudent">
+              <b-modal id="editStudentsList" title='Редактировать список учащихся класса'>
+
+              </b-modal>
               <h4>
                 Класс: <b>{{ chosenClass.name }}</b>
+                <b-button variant="link" v-b-modal.editStudentsList>
+                  <b-icon variant="dark" icon="pencil">
+
+                  </b-icon>
+                </b-button>
               </h4>
 
               <b-container fluid>
@@ -172,7 +180,7 @@ export default {
   components: { notificationsForm },
   data() {
     return {
-      classID: '',
+      classID: '' ,
       chosenClass: {
         absent: {
           ORVI: [],
@@ -181,7 +189,8 @@ export default {
         },
       },
       classData: {},
-      students: [],
+      classStudents: [],
+      classFstudents: [],
       selectedStudent: '',
       searchQuery: '',
       newStudentName: '', // New data property for the new student's name
@@ -195,7 +204,20 @@ export default {
       ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
       absent: { ORVI: [], respectful: [], not_respectful: [] }
     };
-    console.log(this.chosenClass);
+    this.classStudents = this.chosenClass.students;
+    this.classFstudents = this.chosenClass.fstudents;
+
+    //! Отправка нового списка учащихся
+    const status = this.$root.$makeApiRequest('/api/user/classes/' + this.classID + '/students',
+                                              'PUT',
+        {
+          students: this.classStudents,
+          fstudents: this.classFstudents
+        }
+    );
+
+    status;
+
   },
   computed: {
     availableStudents() {

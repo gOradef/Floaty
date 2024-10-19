@@ -66,16 +66,22 @@
     <div v-if="action === 'edit'">
       <b-table :items="students" :fields="[
           {
-            label: 'Имя',
+            label: 'Учащийся',
             key: 'name'
           },
           {
-            label: 'Статус',
+            label: 'Бесплатник?',
             key: 'isFree'
+          },
+          {
+            label: '',
+            key: 'delete'
           }
       ]">
         <template #cell(name)="data">
-          <span @click="openEditModal(data.item)">{{ data.item.name }}</span>
+          <span :style="{ color: data.item.isDeleted ? 'red' : '#2d84dc', textDecoration: data.item.isDeleted ? 'line-through' : 'underline' }" @click="openEditModal(data.item)">
+          {{ data.item.name }}
+          </span>
         </template>
         <template #cell(isFree)="data">
           <b-form-checkbox
@@ -84,8 +90,10 @@
             Бесплатник
           </b-form-checkbox>
         </template>
-        <template #cell(actions)="data">
-          <b-button size="sm" @click.stop="deleteStudent(data.item)">Удалить</b-button>
+        <template #cell(delete)="data">
+          <b-button variant="link" @click.stop="deleteStudent(data.item)" class="p-0">
+            <b-icon icon="trash"></b-icon>
+          </b-button>
         </template>
       </b-table>
 
@@ -106,14 +114,14 @@
 
       <!-- Модальное окно редактирования ученика -->
       <b-modal v-model="showEditModal" title="Редактировать ученика">
-        <b-form @submit.prevent="updateStudent">
+        <b-form @submit.prevent="renameStudent">
           <b-form-group label="Имя ученика" label-for="edit-student-name">
             <b-form-input id="edit-student-name" v-model="newStudentName" required></b-form-input>
           </b-form-group>
         </b-form>
         <template #modal-footer>
-          <b-button @click.prevent="updateStudent" variant="primary"> Подтвердить</b-button>
-          <b-button @click="showAddModal = false" variant="secondary">Отмена</b-button>
+          <b-button @click.stop="showEditModal = false" variant="secondary">Отмена</b-button>
+          <b-button @click.prevent="renameStudent" variant="primary"> Подтвердить</b-button>
         </template>
       </b-modal>
     </div>
@@ -228,10 +236,11 @@ export default {
       this.students = students.map(student => ({
         name: student,
         isFree: fstudents.includes(student), // Помечаем как бесплатник
+        isDeleted: false,
       }));
 
       // Локальный массив бесплатников для обновлений
-      this.localFreeStudents = new Set(fstudents); // Добавим в сет для удобства
+      this.localFstudents = new Set(fstudents); // Добавим в сет для удобства
     },
     async getOwners() {
       this.raw_data = await this.$root.$makeApiRequest('/api/org/users');
@@ -259,9 +268,9 @@ export default {
     toggleFreeStudent(student) {
       // Если студент стал бесплатником, добавляем его в локальный массив, иначе удаляем
       if (student.isFree) {
-        this.localFreeStudents.add(student.name);
+        this.localFstudents.add(student.name);
       } else {
-        this.localFreeStudents.delete(student.name);
+        this.localFstudents.delete(student.name);
       }
     },
     // Редактирование ученика
@@ -274,7 +283,7 @@ export default {
       if (this.newStudentName.trim() === '') return;
 
       this.students.push({ name: this.newStudentName, isFree: false });
-      this.localFreeStudents.delete(this.newStudentName); // По умолчанию не бесплатник
+      this.localFstudents.delete(this.newStudentName); // По умолчанию не бесплатник
       this.newStudentName = ''; // Сбросить поле ввода
       this.showAddModal = false; // Закрыть модальное окно
     },
@@ -282,8 +291,9 @@ export default {
     deleteStudent(student) {
       const index = this.students.indexOf(student);
       if (index !== -1) {
-        this.students.splice(index, 1); // Удалить ученика из локального массива
-        this.localFreeStudents.delete(student.name); // Удалить из бесплатников, если он был
+        this.students[index].isDeleted = !this.students[index].isDeleted; // Удалить ученика из локального массива
+        console.log(this.students[index])
+        this.localFstudents.delete(student.name); // Удалить из бесплатников, если он был
       }
     },
 
@@ -292,10 +302,10 @@ export default {
       this.showEditModal = true;
     },
 
-    async updateStudent() {
+    async renameStudent() {
       const index = this.students.findIndex(s => s.name === this.selectedStudent.name);
       if (index !== -1) {
-        this.students[index].name = this.newStudentName; // Обновить имя ученика
+        this.students[index].name = this.newStudentName;
       }
       this.newStudentName = '';
       this.showEditModal = false;
@@ -310,17 +320,13 @@ export default {
       }
 
       const status = await this.$root.$makeApiRequest('/api/org/classes', 'POST', this.newClass)
-      if (status === 204)
-        this.$root.$emit('notification', 'success', '');
-      else
-        this.$root.$emit('notification', 'error', '');
-
+      this.$root.$callNotificationEvent(status === 204);
     },
     async saveNewStudents() {
-      const fstudents = Array.from(this.localFreeStudents);
+      const fstudents = Array.from(this.localFstudents);
 
       const dataToSend = {
-        students: this.students.map(student => student.name),
+        students: this.students.filter(student => !student.isDeleted).map(student => student.name),
         fstudents: fstudents,
       };
 
@@ -342,19 +348,13 @@ export default {
           {
             name: this.newClassName
           });
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     },
     async deleteClass() {
       const status = await this.$root.$makeApiRequest(
           '/api/org/classes/' + this.entity.id,
           'DELETE')
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     }
   },
 

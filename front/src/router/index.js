@@ -53,14 +53,14 @@ const routes = [
         component: UserView
     },
     {
-        path: '/form/:classID',
-        name: 'Заполнение данных кл. рук.',
-        component: userForm,
-    },
-    {
         path: '/org',
         name: 'Управление учреждением',
         component: AdminView
+    },
+    {
+        path: '/form/:classID',
+        name: 'Заполнение данных кл. рук.',
+        component: userForm,
     },
     {
       path: '/org/:section',

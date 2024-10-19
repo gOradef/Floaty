@@ -232,20 +232,14 @@ export default {
             classes: classes_buff,
             roles: this.userRoles
           });
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
 
     },
     async deleteInvite() {
       const status = await this.$root.$makeApiRequest(
           '/api/org/invites/' + this.entity.id,
           'DELETE');
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     },
   },
 };

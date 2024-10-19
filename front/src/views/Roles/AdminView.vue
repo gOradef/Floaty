@@ -155,10 +155,11 @@
           <AdminContextMenu />
         </b-col>
 
-        <b-col v-if="!hasAccess && !firstLoading">
-          <h1>У вас нет доступа к этой странице.</h1>
-        </b-col>
       </b-row>
+      <b-col v-if="!hasAccess && !firstLoading" style="min-height: 600px" class=" text-center align-items-center justify-items-center">
+        <h1>У вас нет доступа к этой странице.</h1>
+        <h3>{{this.noAccessReason}}</h3>
+      </b-col>
     </b-container>
   </b-overlay>
 </template>
@@ -176,8 +177,9 @@ export default {
   data() {
     return {
       hasAccess: false,
-
       firstLoading: true,
+      noAccessReason: '',
+
       compactMode: false,
       showMoreData: false,
       showCalendar: true,
@@ -205,9 +207,12 @@ export default {
     this.firstLoading = true;
     await new Promise(r => setTimeout(r, 600))
     try {
-      this.hasAccess = await this.$root.$checkAccessRole('admin');
+      const response = await this.$root.$checkAccessRole('admin');
+      this.hasAccess = response.status;
+      if (!this.hasAccess)
+        this.noAccessReason = response.reason;
     } catch (error) {
-      console.error("Error checking access:", error);
+      console.warn("Error checking access:", error);
       this.hasAccess = false;
     } finally {
       this.firstLoading = false;

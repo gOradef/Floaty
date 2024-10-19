@@ -2,7 +2,7 @@
 
 // Plugin file (for example, api.js)
 import axios from "axios";
-import router from "@/router";
+// import router from "@/router";
 
 let isAPIInitialized = false;
 function isAPIResponding(response) {
@@ -54,11 +54,12 @@ export default {
                                 // Retry the request after refreshing the token
                                 return this.$makeApiRequest(url, method, data);
                             } else {
-                                alert('Ключ доступа истёк, пожалуйста, войдите снова');
-                                await router.push('/login');
+                                console.error('Ключ доступа истёк, пожалуйста, войдите снова');
+                                // await router.push('/login');
                             }
                         } catch (refreshError) {
-                            await router.push('/login'); // Redirect if unable to refresh
+                            console.error('Unexpected error from api server:', refreshError)
+                            // await router.push('/login'); // Redirect if unable to refresh
                         }
                     } else {
                         console.log('API Error:', error);
@@ -67,25 +68,47 @@ export default {
                 }
             };
 
-            Vue.prototype.$refreshAccessToken = async () => {
+
+            Vue.prototype.$refreshAccessToken = async () => { // returns true or false
                 try {
                     const res = await axios.post('/api/refresh-token');
                     return res.status === 200; // Return true if the request was successful
                 } catch (error) { // Handle API errors
-                    console.error('Error refreshing access token:', error?.response?.data || error); // Improved logging with optional chaining
-                    throw error; // Rethrow the error to be handled by the caller
+                    console.warn('Error refreshing access token:', error?.response?.data || error); // Improved logging with optional chaining
                 }
+                return false;
             };
             Vue.prototype.$checkAccessRole = async function(requiredRole) {
-                const roles = await this.$makeApiRequest("/api/roles");
-                if (!roles.roles.includes(requiredRole)) {
-                    // Redirect or show an alert if the user does not have access
-                    alert('У вас нет разрешения для доступа к данному интерфейсу');
-                    await router.push('/'); // Redirect to an unauthorized page
+                try {
+                    const roles = await this.$makeApiRequest("/api/roles");
+                    if (!roles.roles.includes(requiredRole)) {
+                        return {
+                            status: false,
+                            reason: 'Вы не владеете необходимой ролью. ' +
+                                'Для получения доступа к данному интерфейсу - обратитесь к администратору организации'
+                        };
+                    }
                 }
-                return true;
+                catch (err) {
+                    return {
+                        status: false,
+                        reason: 'Ваш ключ доступа истёк. Пожалуйста, войдите в систему заново'
+                    };
+                    // await router.push('/login'); // Redirect to an unauthorized page
+                }
+
+                return {
+                    status: true
+                };
             }
             isAPIInitialized = true;
+
+            Vue.prototype.$callNotificationEvent = function (isAllGood = false) {
+                isAllGood ?
+                    this.$root.$emit('notification', 'success')
+            :
+                this.$root.$emit('notification', 'error');
+            }
         }
     }
 };

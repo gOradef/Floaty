@@ -48,7 +48,7 @@
                 <b-button class="mt-1" @click="isShowRoles = true" >Востановить последнюю сессию?</b-button>
               </p>
             </div>
-            <b-button type="submit" variant="primary" block :disabled="isShowRoles">Войти</b-button>
+            <b-button type="submit" variant="primary" block>Войти</b-button>
           </b-form>
 
           <div class="text-center mt-2">
@@ -102,7 +102,7 @@ export default {
   methods: {
     async loginProcess() {
 
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 500));
       this.showAlert = true;
       this.isLoading = false;
       await new Promise(r => setTimeout(r, 400));

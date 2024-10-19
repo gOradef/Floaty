@@ -236,7 +236,7 @@
     </b-card>
     <b-card>
       <b-card-title>
-        Приглашение: <i>{{this.invite.id}} - {{this.invite.secret}}</i>1
+        Приглашение: <i>{{this.invite.id}} | {{this.invite.secret}}</i>
       </b-card-title>
 
     </b-card>
@@ -410,7 +410,9 @@ export default {
         this.stepper.currentStep = stepNumber;
       },
       async checkOrg() {
-        if (this.v_orgID!== '') {
+        if (this.v_orgID!== ''
+          // && this.v_orgID.length === 36
+        ) {
           this.isOrgSelected = true;
           this.isOrgValid = await this.isValidUUID(this.v_orgID);
         } else {
