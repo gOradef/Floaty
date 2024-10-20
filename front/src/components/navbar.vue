@@ -5,8 +5,8 @@ export default {
 </script>
 
 <template>
-  <b-navbar toggleable="lg" type="light" variant="light" class="w-100">
-    <b-navbar-brand href="/home" style="font-family: Arial, Helvetica, sans-serif;">      
+  <b-navbar toggleable="lg" type="light" variant="light" class="border-bottom">
+    <b-navbar-brand href="/home" style="font-family: Arial, Helvetica, sans-serif;">
       Ⓕ Floaty
     </b-navbar-brand>
     
@@ -20,7 +20,7 @@ export default {
 </template>
 
 <style scoped>
-  navbar {
-    background-color: #333333;
+  .navbar {
+    background-color: #eaf1f8 !important ;
   }
 </style>

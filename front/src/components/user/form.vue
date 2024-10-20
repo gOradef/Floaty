@@ -14,7 +14,7 @@
                     Список класса успешно обновлён
                   </b-alert>
                   <b-alert show v-else-if="!isSuccessEditStudList && isUserSentEditStudList" variant="danger">
-                    Что-то пошло не так, пожалуйста, свяжитесь с нами
+                    Что-то пошло не так :( Пожалуйста, свяжитесь с нами
                   </b-alert>
                 </div>
                 <b-table
@@ -63,8 +63,8 @@
                     </b-form-group>
                   </b-form>
                   <template #modal-footer>
-                    <b-button @click.prevent="addStudent" variant="primary">Добавить</b-button>
                     <b-button @click="showAddModal = false" variant="secondary">Отмена</b-button>
+                    <b-button @click.prevent="addStudent" variant="primary">Добавить</b-button>
                   </template>
                 </b-modal>
 
@@ -96,18 +96,16 @@
                 </b-button>
               </h4>
 
-              <b-alert show variant="warning" v-if="!isUserSentEditStudList && isUserWereEditingStudList">
-                У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
-              </b-alert>
+
               <b-container fluid>
 
                 <!-- Dropdown for selecting students -->
                 <b-dropdown
-                  class="mb-3"
-                  size="sm"
-                  variant="outline-secondary"
-                  block
-                  menu-class="dropdown-scrollable w-100"
+                    class="mb-3"
+                    size="sm"
+                    variant="outline-secondary"
+                    block
+                    menu-class="w-100"
                 >
                   <template #button-content>
                     <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
@@ -115,38 +113,38 @@
 
                   <b-dropdown-form>
                     <b-form-group
-                      label="Поиск ученика:"
-                      label-for="student-search-input"
-                      label-cols-md="auto"
-                      class="mb-0"
-                      label-size="sm"
+                        label="Поиск ученика:"
+                        label-for="student-search-input"
+                        label-cols-md="auto"
+                        class="mb-0"
+                        label-size="sm"
                     >
                       <b-form-input
-                        v-model="searchQuery"
-                        id="student-search-input"
-                        type="search"
-                        size="sm"
-                        autocomplete="off"
-                        placeholder="Введите имя или фамилию ученика"
+                          v-model="searchQuery"
+                          id="student-search-input"
+                          type="search"
+                          size="sm"
+                          autocomplete="off"
+                          autofocus
+                          placeholder="Введите имя или фамилию ученика"
                       ></b-form-input>
                     </b-form-group>
                   </b-dropdown-form>
 
                   <b-dropdown-item
-                    v-for="student in availableStudents"
-                    :key="student.value"
-                    :disabled="student.disabled"
-                    @click="!student.disabled && selectStudent(student.value)"
-                    :class="{
-                      'text-danger': student.fstudent,
-                      'text-muted': student.disabled,
-                    }"
+                      v-for="student in availableStudents"
+                      :key="student.value"
+                      :disabled="student.disabled"
+                      @click="!student.disabled && selectStudent(student.value)"
+                      class="text-wrap"
                   >
-                    {{ student.text }}
-                    <span v-if="student.disabled" class="text-muted">
-                      (Уже в списке {{ student.list }})
-                    </span>
-                    <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
+                    <div class="text-wrap border-bottom">
+                      {{ student.text }}
+                      <span v-if="student.disabled" class="text-muted">
+                        (Уже в списке {{ student.list }})
+                      </span>
+                      <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
+                    </div>
                   </b-dropdown-item>
                 </b-dropdown>
 
@@ -210,14 +208,19 @@
                   </b-col>
                 </b-row>
 
-                <b-row>
-                  <div class="mt-4 border-top" style="justify-content: end">
+                <b-row class=" mt-3 justify-content-end">
+                  <b-alert show variant="warning" v-if="isUserWereEditingStudList && !showStudentModal">
+                    У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
+                  </b-alert>
+
+                  <div class="border-top d-flex justify-content-end">
                     <b-button block variant="primary" @click="submitForm">
                       Отправить
                     </b-button>
                   </div>
                 </b-row>
               </b-container>
+
             </b-form>
           </b-col>
         </b-row>
@@ -247,11 +250,11 @@ export default {
 
       newStudentName: '', // New data property for the new student's name
 
-      showStudentModal: false,
+      showStudentModal: false, //Edit stud list modal
       showAddModal: false,
       showEditModal: false,
-      isSuccessEditStudList: null,
-      isUserSentEditStudList: false,
+      isUserSentEditStudList: false, //is user sent new list
+      isSuccessEditStudList: null, //is data applied on server
 
       //Used only for editing class list
       editedStudents: [],
@@ -274,7 +277,7 @@ export default {
         ORVI: new Set(this.chosenClass.absent.ORVI),
         respectful: new Set(this.chosenClass.absent.respectful),
         not_respectful: new Set(this.chosenClass.absent.not_respectful),
-        fstudents: new Set(this.chosenClass.absent.fstudents),
+        fstudents: new Set(this.chosenClass.fstudents),
       };
 
       if (this.chosenClass.students) {
@@ -367,6 +370,7 @@ export default {
       this.showEditModal = false;
     },
     async saveNewStudents() {
+      this.isUserSentEditStudList = false;
 
       const dataToSend = {
         students: this.editedStudents.filter(student => !student.isDeleted).map(student => student.name),
@@ -374,8 +378,6 @@ export default {
       };
 
       try {
-        console.log('data is send!')
-        console.log(dataToSend)
         const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.classID + '/students', 'PUT', dataToSend);
 
         this.isUserSentEditStudList = true;
@@ -386,6 +388,7 @@ export default {
             ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
             absent: { ORVI: [], respectful: [], not_respectful: [] }
           };
+          this.editedStudents = this.getStudents();
         }
       }
       catch (error) {
