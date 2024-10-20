@@ -82,7 +82,8 @@
                 </b-modal>
 
                 <template #modal-footer>
-                  <b-button @click.prevent="showStudentModal = false" variant="secondary">Отмена</b-button>
+                  <b-button @click.prevent="editedStudents = getStudents()" variant="warning">Восстановить</b-button>
+                  <b-button @click.prevent="showStudentModal = false" variant="secondary">Вернуться</b-button>
                   <b-button @click.prevent="saveNewStudents" variant="primary"> Подтвердить изменения </b-button>
                 </template>
               </b-modal>
@@ -95,6 +96,9 @@
                 </b-button>
               </h4>
 
+              <b-alert show variant="warning" v-if="!isUserSentEditStudList && isUserWereEditingStudList">
+                У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
+              </b-alert>
               <b-container fluid>
 
                 <!-- Dropdown for selecting students -->
@@ -294,7 +298,29 @@ export default {
     },
     selectedStudentText() {
       return this.selectedStudent || 'Выберите ученика';
-    }
+    },
+    isUserWereEditingStudList() {
+      const firstData = this.getStudents();
+
+      // Check if the lengths of the arrays are different
+      if (firstData.length !== this.editedStudents.length) {
+        return true;
+      }
+
+      // Compare each student object in the arrays
+      for (let i = 0; i < firstData.length; i++) {
+        const student1 = firstData[i];
+        const student2 = this.editedStudents[i];
+
+        // Check if any property of the student objects is different
+        if (student1.name !== student2.name || student1.isFree !== student2.isFree || student1.isDeleted !== student2.isDeleted) {
+          return true;
+        }
+      }
+
+      // If all student objects are the same, return false
+      return false;
+    },
   },
   methods: {
     getStudents() {
@@ -351,8 +377,16 @@ export default {
         console.log('data is send!')
         console.log(dataToSend)
         const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.classID + '/students', 'PUT', dataToSend);
+
         this.isUserSentEditStudList = true;
         this.isSuccessEditStudList = (status === 204);
+
+        if (this.isSuccessEditStudList) {
+          this.chosenClass = {
+            ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
+            absent: { ORVI: [], respectful: [], not_respectful: [] }
+          };
+        }
       }
       catch (error) {
         console.error('Ошибка при сохранении изменений:', error);
