@@ -103,11 +103,11 @@ export default {
             }
             isAPIInitialized = true;
 
-            Vue.prototype.$callNotificationEvent = function (isAllGood = false) {
+            Vue.prototype.$callNotificationEvent = function (isAllGood = false, customMsg = "Что-то пошло не так :(  Чтобы решить проблему как можно быстрее, пожалуйста, свяжитесь с нами:  ") {
                 isAllGood ?
                     this.$root.$emit('notification', 'success')
             :
-                this.$root.$emit('notification', 'error');
+                this.$root.$emit('notification', 'error', customMsg);
             }
         }
     }

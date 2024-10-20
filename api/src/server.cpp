@@ -400,6 +400,7 @@ void Server::routes_classHandler::insertData(const crow::request& req, crow::res
     auto f = [&](const crow::request& req, crow::response& res) {
         classHandler user(_connectionPool, req, classID);
         user.insertData(req.body);
+        res.code = 204;
     };
     return verifier(req, res, f);
 }

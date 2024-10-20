@@ -273,12 +273,6 @@ export default {
         this.localFstudents.delete(student.name);
       }
     },
-    // Редактирование ученика
-    editStudent(student) {
-      this.selectedStudent = { ...student };
-      this.showEditModal = true;
-    },
-
     async addStudent() {
       if (this.newStudentName.trim() === '') return;
 
@@ -332,10 +326,7 @@ export default {
 
       try {
         const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students', 'PUT', dataToSend);
-        if (status === 204)
-          this.$root.$emit('notification', 'success');
-        else
-          this.$root.$emit('notification', 'error');
+        this.$root.$callNotificationEvent(status === 204);
       }
       catch (error) {
         console.error('Ошибка при сохранении изменений:', error);
