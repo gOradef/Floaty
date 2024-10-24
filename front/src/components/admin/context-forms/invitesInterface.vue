@@ -192,7 +192,7 @@ export default {
             // Sort by 'disabled': false (no classes) should come before true (has classes)
             return (a.isHasOwners === b.isHasOwners) ? 0 : a.isHasOwners ? 1 : -1;
           });
-      console.log(this.availableClassesList);
+      // console.log(this.availableClassesList);
     },
     removeTag(index) {
       this.userClasses.splice(index, 1);

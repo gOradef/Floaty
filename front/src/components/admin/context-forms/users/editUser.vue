@@ -29,7 +29,7 @@ export default {
   mounted() {
     this.isTeacher = this.entity_buff.roles.includes('teacher');
     this.isAdmin = this.entity_buff.roles.includes('admin');
-    console.log(this.entity);
+    // console.log(this.entity);
     this.getClasses();
     this.$root.$on('interface:editUser', () => {
       this.handleEditConfirm();
@@ -98,7 +98,7 @@ export default {
             // Sort by 'disabled': false (no classes) should come before true (has classes)
             return (a.isHasOwners === b.isHasOwners) ? 0 : a.isHasOwners ? 1 : -1;
           });
-      console.log(this.availableClassesList);
+      // console.log(this.availableClassesList);
     },
     removeTag(index) {
       this.entity_buff.classes.splice(index, 1);

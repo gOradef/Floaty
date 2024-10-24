@@ -306,7 +306,7 @@ export default {
       this.isDataLoaded = false;
       this.tableDataDates = '';
 
-      console.log(section, '-', dates);
+      // console.log(section, '-', dates);
 
       if (this.sectionDataMethods[section]) {
         this.raw_data = await this.sectionDataMethods[section](...dates);
@@ -405,7 +405,7 @@ export default {
     },
 
     onRowSelected(item) {
-      console.log(this.activeSection,' - ', item);
+      // console.log(this.activeSection,' - ', item);
 
 
       if (item.length !== 0) {

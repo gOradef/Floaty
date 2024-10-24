@@ -121,7 +121,7 @@ export default {
 
     },
     async successfulLogin(response) {
-      console.log(response);
+      // console.log(response);
       this.alertMessage = 'Успешно!';
       this.alertVariant = 'success';
 

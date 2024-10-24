@@ -423,7 +423,7 @@ export default {
       async checkInvite() {
         if (this.invite.id !== '' && this.invite.secret !== '') {
           const data = await this.$root.$makeApiRequest(`/api/invite/${this.v_orgID}/${this.invite.id}/${this.invite.secret}`);
-          console.log(data);
+          // console.log(data);
           if (data.status === 200) {
             this.inviteData.userName = data.invite.name;
             this.inviteData.roles = data.invite.roles;

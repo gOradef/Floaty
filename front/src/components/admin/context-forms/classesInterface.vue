@@ -239,7 +239,7 @@ export default {
     },
     isNewStudListHasDuplicates() {
       const uniqStuds = new Set(this.editedStudents.filter(stud => !stud.isDeleted).map(stud => stud.name));
-      console.log(this.editedStudents);
+      // console.log(this.editedStudents);
       return uniqStuds.size !== this.editedStudents.filter(stud => !stud.isDeleted).length;
     },
   },

@@ -308,7 +308,7 @@ export default {
       this.isClassValid = true;
     }
     catch (err) {
-      console.log('this class is not exits');
+      // console.log('this class is not exits');
       this.isClassValid = false;
     }
     this.editedStudents = this.getStudents();
