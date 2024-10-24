@@ -6,7 +6,7 @@
       </span>
       <b-card-body>
         <b-row class="justify-content-center">
-          <b-col>
+          <b-col v-if="isClassValid">
             <notificationsForm/>
 
             <b-form @submit.prevent="selectStudent">
@@ -251,6 +251,12 @@
 
             </b-form>
           </b-col>
+          <b-col v-else class="text-center">
+            <h4>Доступ запрещён </h4>
+            <p>
+              Данный класс не существует или у текущего пользователя отсутствуют права для его редактирования.
+            </p>
+          </b-col>
         </b-row>
       </b-card-body>
     </b-card>
@@ -266,6 +272,7 @@ export default {
   data() {
     return {
       classID: '' ,
+      isClassValid: true,
       chosenClass: { //Absent data fill only
         absent: {
           ORVI: [],
@@ -293,10 +300,17 @@ export default {
   async mounted() {
     this.classID = this.$route.params.classID;
 
-    this.chosenClass = {
-      ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
-      absent: { ORVI: [], respectful: [], not_respectful: [] }
-    };
+    try {
+      this.chosenClass = {
+        ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
+        absent: { ORVI: [], respectful: [], not_respectful: [] }
+      };
+      this.isClassValid = true;
+    }
+    catch (err) {
+      console.log('this class is not exits');
+      this.isClassValid = false;
+    }
     this.editedStudents = this.getStudents();
   },
   computed: {
