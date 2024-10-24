@@ -61,6 +61,10 @@
             С возвращением, <br> {{actualUserName}} 👋
           </h5>
           <RoleSelect v-if="hasRefreshToken || isShowRoles"/>
+          <div v-if="isUserDoesntHaveAnyRoles">
+            <h4>Доступ запрещён.</h4>
+            <p>Вы не владеете ни одной ролью в данной организации. Чтобы получить права для заполнения / редактирования данных, обратитесь к администратору организации</p>
+          </div>
         </b-card-body>
       </b-overlay>
     </b-card>
@@ -91,6 +95,7 @@ export default {
       isShowLogin: true,
       isShowRoles: false,
       actualUserName: '',
+      isUserDoesntHaveAnyRoles: false,
     };
   },
   async mounted() {
@@ -122,14 +127,18 @@ export default {
 
       await this.loginProcess();
 
-      this.actualUserName = response.data.user.name;
+      if (response.data.user.name) {
+        this.actualUserName = response.data.user.name;
+        //Saving name of user
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // Set cookie expiration to 7 days from now
+        document.cookie = `username=${this.actualUserName}; expires=${expirationDate.toUTCString()}; SameSite=Lax; path=/`;
 
-      //Saving name of user
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 7); // Set cookie expiration to 7 days from now
-      document.cookie = `username=${this.actualUserName}; expires=${expirationDate.toUTCString()}; SameSite=Lax; path=/`;
+        this.isShowRoles = true;
+      }
+      else
+        this.isUserDoesntHaveAnyRoles = true;
 
-      this.isShowRoles = true;
     },
     async checkForRefreshToken() {
       const data = await this.$root.$makeApiRequest('/api/roles');
