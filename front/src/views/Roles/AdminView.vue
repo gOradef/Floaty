@@ -1,6 +1,5 @@
 <template>
-  <b-overlay :show="firstLoading">
-    <b-container class="bv-example-row" fluid>
+<!--    <b-container class="bv-example-row" fluid>-->
       <b-row class="text-center">
         <b-col
           class="sidebar-l"
@@ -128,40 +127,14 @@
           <AdminContent :activeSection="contentSection" />
         </b-col>
         <b-col class="sidebar-r" v-if="hasAccess">
-<!--          <b-container-->
-<!--            style="-->
-<!--              display: flex;-->
-<!--              align-items: center;-->
-<!--              justify-content: center;-->
-<!--              padding: 0.5rem;-->
-<!--              height: 40px;-->
-<!--              cursor: pointer;-->
-<!--            "-->
-<!--            @click="toggleShowCalendar"-->
-<!--          >-->
-<!--            <b style="margin-right: 5px">Календарь</b>-->
-<!--            <b-icon-->
-<!--              v-if="showCalendar"-->
-<!--              icon="chevron-double-down"-->
-<!--              scale="1.15"-->
-<!--            />-->
-<!--            <b-icon v-else icon="chevron-double-up" scale="1.15" />-->
-<!--          </b-container>-->
-
           <b-calendar
             :start-weekday="1"
+            class="emptyCalendar"
           ></b-calendar>
-
           <AdminContextMenu />
         </b-col>
 
       </b-row>
-      <b-col v-if="!hasAccess && !firstLoading" style="min-height: 600px" class=" text-center align-items-center justify-items-center">
-        <h1>У вас нет доступа к этой странице.</h1>
-        <h3>{{this.noAccessReason}}</h3>
-      </b-col>
-    </b-container>
-  </b-overlay>
 </template>
 
 <script>
@@ -311,5 +284,10 @@ body {
 
 ::v-deep.b-calendar.b-calendar-inner {
   min-width: 100%;
+}
+@media (min-width: 420px) and (max-width: 1024px) {
+  .emptyCalendar {
+    display: none;
+  }
 }
 </style>

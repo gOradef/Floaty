@@ -1,13 +1,11 @@
 <script>
 import choseClass from "@/components/user/choseClass.vue";
-import userForm from '@/components/user/form.vue'
 import router from "@/router";
 
 export default {
   name: "UserView",
   components: {
-    choseClass,
-    userForm
+    choseClass
   },
   data() {
     return {
@@ -35,8 +33,6 @@ export default {
       this.hasAccess = response.status;
       if (!this.hasAccess)
         this.noAccessReason = response.reason;
-
-
     } catch (error) {
       console.error("Error checking access:", error);
       this.hasAccess = false; // Assume no access on error
@@ -49,7 +45,6 @@ export default {
       this.isClassChosen = true;
 
       router.push('/form/' + classUUID.id);
-      // this.setBodyOfSelectedClass();
     })
   },
   methods: {
@@ -57,37 +52,14 @@ export default {
       this.chosenClass = {};
       this.isClassChosen = false;
     },
-    // async setBodyOfSelectedClass() {
-
-    // }
   }
 };
 </script>
 
 <template>
-  <b-overlay :show="firstLoading">
-  <b-container
-    fluid
-    class="d-flex align-items-center justify-content-center min-vh-100 bg-light"
-  >
-    <b-row v-if="hasAccess">
       <b-card :title="title">
-
-      <b-col v-if="!isClassChosen">
         <choseClass />
-      </b-col>
-      <b-col v-else-if="isClassChosen">
-        <userForm :classData="chosenClass"/>
-      </b-col>
-
       </b-card>
-    </b-row>
-    <b-col v-if="!hasAccess && !firstLoading" style="min-height: 600px" class=" text-center align-items-center justify-items-center">
-      <h1>У вас нет доступа к этой странице.</h1>
-      <h3>{{this.noAccessReason}}</h3>
-    </b-col>
-  </b-container>
-  </b-overlay>
 </template>
 
 <style scoped></style>

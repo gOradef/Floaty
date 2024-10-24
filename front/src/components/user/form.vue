@@ -1,28 +1,23 @@
 <template>
   <b-container class="vh-100 p-5">
-    <b-card class="">
+    <b-card>
+      <span @click.stop="$router.push('/user')" class="returnIcon">
+        <b-icon icon="arrow-left-circle" scale="1.6"/>
+      </span>
       <b-card-body>
-
         <b-row class="justify-content-center">
           <b-col>
             <notificationsForm/>
 
-            <b-form title="Редактировать отсутствие" @submit.prevent="selectStudent">
+            <b-form @submit.prevent="selectStudent">
               <b-modal id="editStudentsList" v-model="showStudentModal" title='Редактировать список учащихся класса'>
-                <div>
-                  <b-alert show v-if="isSuccessEditStudList && isUserSentEditStudList" variant="success">
-                    Список класса успешно обновлён
-                  </b-alert>
-                  <b-alert show v-else-if="!isSuccessEditStudList && isUserSentEditStudList" variant="danger">
-                    Что-то пошло не так :( Пожалуйста, свяжитесь с нами
-                  </b-alert>
-                </div>
                 <b-table
                     :items="editedStudents"
                     :fields="[
                       {
                         label: 'Учащийся',
-                        key: 'name'
+                        key: 'name',
+                        sortable: true
                       },
                       {
                         label: 'Бесплатник?',
@@ -72,7 +67,10 @@
                 <b-modal v-model="showEditModal" size="sm" title="Переименовать ученика">
                   <b-form @submit.prevent="renameStudent">
                     <b-form-group label="Имя ученика" label-for="edit-student-name">
-                      <b-form-input id="edit-student-name" v-model="newStudentName" autofocus required></b-form-input>
+                      <h5>
+                         {{selectedEditStudent.name}} -> {{newStudentName}}
+                      </h5>
+                      <b-form-input id="edit-student-name" placeholder="Введите новое имя ученика" v-model="newStudentName" autofocus required></b-form-input>
                     </b-form-group>
                   </b-form>
                   <template #modal-footer>
@@ -82,14 +80,36 @@
                 </b-modal>
 
                 <template #modal-footer>
+                  <div>
+                    <b-alert
+                        show
+                        v-if="isSuccessEditStudList && isUserSentEditStudList"
+                        variant="success">
+                      Список класса успешно обновлён
+                    </b-alert>
+                    <b-alert
+                        show
+                        v-else-if="!isSuccessEditStudList && isUserSentEditStudList"
+                        variant="danger">
+                      Что-то пошло не так :( Пожалуйста, свяжитесь с нами
+                    </b-alert>
+                    <b-alert
+                        show
+                        v-if="isNewStudListHasDuplicates"
+                        variant="warning"
+                    >
+                      Текущий список имеет повторяющиеся элементы, пожалуйста, исправьте это
+                    </b-alert>
+                  </div>
                   <b-button @click.prevent="editedStudents = getStudents()" variant="warning">Восстановить</b-button>
                   <b-button @click.prevent="showStudentModal = false" variant="secondary">Вернуться</b-button>
-                  <b-button @click.prevent="saveNewStudents" variant="primary"> Подтвердить изменения </b-button>
+                  <b-button @click.prevent="saveNewStudents" variant="primary" :disabled="isNewStudListHasDuplicates"> Подтвердить изменения </b-button>
+
                 </template>
               </b-modal>
 
 
-              <h4>
+              <h4 class="text-center">
                 Класс: <b>{{ chosenClass.name }}</b>
                 <b-button variant="link" v-b-modal.editStudentsList>
                   <b-icon variant="dark" icon="pencil"/>
@@ -102,28 +122,29 @@
                 <!-- Dropdown for selecting students -->
                 <b-dropdown
                     class="mb-3"
-                    size="sm"
                     variant="outline-secondary"
                     block
-                    menu-class="w-100"
+                    menu-class="w-100 dropdownMenu"
+                    lazy
                 >
                   <template #button-content>
-                    <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
+                    <span>
+                      <b-icon icon="person-fill"></b-icon>
+                      {{ selectedStudentText }}
+                    </span>
                   </template>
 
                   <b-dropdown-form>
                     <b-form-group
                         label="Поиск ученика:"
                         label-for="student-search-input"
-                        label-cols-md="auto"
+                        label-cols-sm="auto"
                         class="mb-0"
-                        label-size="sm"
                     >
                       <b-form-input
                           v-model="searchQuery"
                           id="student-search-input"
                           type="search"
-                          size="sm"
                           autocomplete="off"
                           autofocus
                           placeholder="Введите имя или фамилию ученика"
@@ -136,15 +157,15 @@
                       :key="student.value"
                       :disabled="student.disabled"
                       @click="!student.disabled && selectStudent(student.value)"
-                      class="text-wrap"
+                      class="d-flex align-items-center p-2 border"
+                      role="button"
                   >
-                    <div class="text-wrap border-bottom">
-                      {{ student.text }}
-                      <span v-if="student.disabled" class="text-muted">
-                        (Уже в списке {{ student.list }})
-                      </span>
-                      <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
-                    </div>
+                    {{ student.text }}
+                    <span v-if="student.disabled" class="text-muted ml-2">
+      (Уже в списке {{ student.list }})
+    </span>
+                    <br>
+                    <span v-if="student.fstudent" class="text-warning ml-2">(Бесплатник)</span>
                   </b-dropdown-item>
                 </b-dropdown>
 
@@ -212,9 +233,16 @@
                   <b-alert show variant="warning" v-if="isUserWereEditingStudList && !showStudentModal">
                     У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
                   </b-alert>
-
+                  <b-alert
+                      show
+                      v-if="isNewStudListHasDuplicates"
+                      variant="warning"
+                  >
+                    Текущий список учащихся имеет повторяющиеся элементы, пожалуйста, исправьте это
+                  </b-alert>
                   <div class="border-top d-flex justify-content-end">
-                    <b-button block variant="primary" @click="submitForm">
+
+                    <b-button block variant="primary" :disabled="isNewStudListHasDuplicates" @click="submitForm">
                       Отправить
                     </b-button>
                   </div>
@@ -324,6 +352,10 @@ export default {
       // If all student objects are the same, return false
       return false;
     },
+    isNewStudListHasDuplicates() {
+      const uniqStuds = new Set(this.editedStudents.filter(stud => !stud.isDeleted).map(stud => stud.name));
+      return uniqStuds.size !== this.editedStudents.filter(stud => !stud.isDeleted).length;
+    },
   },
   methods: {
     getStudents() {
@@ -399,7 +431,7 @@ export default {
       const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.chosenClass.id + '/data', 'PUT', {
         absent: {...this.chosenClass.absent}
       });
-      this.$root.$callNotificationEvent(status === 203);
+      this.$root.$callNotificationEvent(status === 204);
     },
     selectStudent(student) {
       this.selectedStudent = student;
@@ -448,5 +480,20 @@ export default {
 .dropdown-scrollable {
   max-height: 300px;
   overflow-y: auto;
+}
+.returnIcon {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+}
+.returnIcon :hover {
+  color: var(--danger);
+  transition: all 200ms ease-in-out 100ms;
+  font-size: 20px
+}
+.dropdownMenu {
+  max-height: 230px;
+  overflow-y: auto;
+  min-width: auto;
 }
 </style>

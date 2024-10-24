@@ -7,12 +7,13 @@ import HelloWorld from '@/components/HelloWorld.vue'
 import loginPage from '@/views/LoginView.vue'
 import signupInvite from "@/views/SignupInvite.vue";
 
-import UserView from "@/views/Roles/UserView.vue";
 import userForm from '@/components/user/form.vue'
 import AdminView from "@/views/Roles/AdminView.vue";
 
 import NotFound from "@/views/NotFound.vue";
 import axios from "axios";
+// import choseClass from "@/components/user/choseClass.vue";
+import InterfaceLocker from "@/views/locker.vue";
 // Lazy-loaded components
 const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
 
@@ -55,22 +56,26 @@ const routes = [
     {
         path: '/user',
         name: 'Кл. рук.',
-        component: UserView
-    },
-    {
-        path: '/org',
-        name: 'Управление учреждением',
-        component: AdminView
+        component: InterfaceLocker,
+        props: () => ({compType: 'choseClass'})
     },
     {
         path: '/form/:classID',
         name: 'Заполнение данных кл. рук.',
-        component: userForm,
+        component: InterfaceLocker,
+        props: () => ({compType: 'userForm'})
     },
     {
-      path: '/org/:section',
-      name: 'Управление учреждением с разделом',
-      component: AdminView
+        path: '/org',
+        name: 'Управление учреждением',
+        component: InterfaceLocker,
+        props: () => ({compType: 'AdminView'})
+    },
+    {
+        path: '/org/:section',
+        name: 'Управление учреждением с разделом',
+        component: InterfaceLocker,
+        props: () => ({compType: 'AdminView'})
     },
     //! Should be latest
     {

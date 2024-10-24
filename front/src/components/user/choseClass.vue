@@ -1,4 +1,6 @@
 <script>
+import router from "@/router";
+
 export default {
   name: 'choseClass',
   data() {
@@ -18,17 +20,23 @@ export default {
   },
   methods: {
     chooseClass(classt) {
-      this.selectedClass = classt; // Update selected class
-      this.$root.$emit('class:select', this.selectedClass);
+      this.selectedClassUUID = classt; // Update selected class
+
+      router.push('/form/' + this.selectedClassUUID.id);
     },
     isActive(classt) {
-      return this.selectedClass === classt; // Check if the class is active
+      return this.selectedClassUUID === classt; // Check if the class is active
     }
   }
 }
 </script>
 
 <template>
+  <div
+      style="min-height: 90vh"
+    class="d-flex align-items-center justify-content-center"
+  >
+  <b-card title="Выберите класс">
       <b-overlay :show="loadingClasses">
         <b-list-group >
           <b-list-group-item
@@ -45,6 +53,8 @@ export default {
           </b-list-group-item>
         </b-list-group>
       </b-overlay>
+    </b-card>
+  </div>
 </template>
 
 <style scoped></style>

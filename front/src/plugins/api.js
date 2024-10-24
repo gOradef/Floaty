@@ -54,15 +54,14 @@ export default {
                                 // Retry the request after refreshing the token
                                 return this.$makeApiRequest(url, method, data);
                             } else {
-                                console.error('Ключ доступа истёк, пожалуйста, войдите снова');
+                                console.warn('Ключ доступа истёк, пожалуйста, войдите снова');
                                 // await router.push('/login');
                             }
                         } catch (refreshError) {
-                            console.error('Unexpected error from api server:', refreshError)
+                            console.warn('Unexpected error from api server:', refreshError)
                             // await router.push('/login'); // Redirect if unable to refresh
                         }
                     } else {
-                        console.log('API Error:', error);
                         throw error; // Rethrow error to let the caller handle it
                     }
                 }
