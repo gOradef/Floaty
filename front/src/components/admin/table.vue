@@ -3,7 +3,7 @@
     <div v-if="!isDataExists">
       <h4>Данные отсутствуют.</h4>
       <b> Журнал ещё никто не заполнил</b> <br>
-      <i><b-link @click.prevent="genDataForToday">Сгененрировать данные самостоятельно?</b-link></i>
+      <i><b-link @click.prevent="genDataForToday">Сгенерировать данные самостоятельно?</b-link></i>
     </div>
     <div v-else>
       <div v-if="isDataLoaded && activeSection === 'data'" class="mt-2">
