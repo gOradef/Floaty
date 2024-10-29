@@ -1,0 +1,14 @@
+[Unit]
+Description=Vue Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/Floaty
+ExecStart=/usr/sbin/nginx -c /Floaty/nginx.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

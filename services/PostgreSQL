@@ -1,0 +1,15 @@
+[Unit]
+Description=PostgreSQL Service
+After=network.target
+
+[Service]
+Type=forking
+User=postgres
+Group=postgres
+PIDFile=/var/lib/postgresql/16/main/postmaster.pid
+ExecStart=/usr/bin/pg_ctl start -D /var/lib/postgresql/16/main
+ExecStop=/usr/bin/pg_ctl stop -D /var/lib/postgresql/16/main
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

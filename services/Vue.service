@@ -1,0 +1,14 @@
+[Unit]
+Description=Floaty Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/Floaty
+ExecStart=serve -s ./dist
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

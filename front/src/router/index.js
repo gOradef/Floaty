@@ -7,9 +7,6 @@ import HelloWorld from '@/components/HelloWorld.vue'
 import loginPage from '@/views/LoginView.vue'
 import signupInvite from "@/views/SignupInvite.vue";
 
-import userForm from '@/components/user/form.vue'
-import AdminView from "@/views/Roles/AdminView.vue";
-
 import NotFound from "@/views/NotFound.vue";
 import axios from "axios";
 // import choseClass from "@/components/user/choseClass.vue";

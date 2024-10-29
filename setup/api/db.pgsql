@@ -2023,11 +2023,14 @@ BEGIN
 		return;
 	end if;
 
-        school_refs := (select DISTINCT school_id from users where id = _userRef);
+        SELECT array_agg(DISTINCT school_id) INTO school_refs
+		  FROM users
+		  WHERE id = _userRef;
+		  
         FOREACH school in array school_refs LOOP
-        update schools_classes_ownerhip set user_id = uuid_nil()
+        update schools_classes_ownership set user_id = uuid_nil()
                 where school_id = school
-                and teacher_id = _userRef;
+                and user_id = _userRef;
         END LOOP;
         delete from users_salts where user_id = _userRef;
         delete from users where id = _userRef;
@@ -2395,7 +2398,7 @@ COPY public.result (jsonb_object_agg) FROM stdin;
 --
 
 COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
-64e40f2f-2bba-484f-bf95-00ae047ca171	МБОУ "Гимназия №125"	116	Казань	Советский район	test@gmail.com	{"6657cbe7-0d5c-4592-8cc7-997e26bb143b": {"roles": ["admin", "teacher", "dev"], "classes": []}, "a58e750a-63ca-47f5-837e-502c8d6c227c": {"roles": [], "classes": []}, "bd10f251-db64-4092-b0b1-2f2fbfc5f768": {"roles": ["dev", "teacher"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd"]}, "c419f7f6-ac38-432a-a4b0-54a315f835b2": {"roles": ["admin", "teacher", "dev"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd", "e7a2c4e3-525c-4433-b5d7-9e085d43d661"]}}
+64e40f2f-2bba-484f-bf95-00ae047ca171	МБОУ "Гимназия №125"	116	Казань	Советский район	test@gmail.com	{"6657cbe7-0d5c-4592-8cc7-997e26bb143b": {"roles": ["admin", "teacher", "dev"], "classes": []}, "96ff9707-cdee-46e9-a0d3-e30e772cf416": {"roles": [], "classes": []}, "a58e750a-63ca-47f5-837e-502c8d6c227c": {"roles": [], "classes": []}, "bd10f251-db64-4092-b0b1-2f2fbfc5f768": {"roles": ["dev", "teacher"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd"]}, "c419f7f6-ac38-432a-a4b0-54a315f835b2": {"roles": ["admin", "teacher", "dev"], "classes": ["c9195fac-94f1-4cf1-b687-7fcf8abccbbd", "e7a2c4e3-525c-4433-b5d7-9e085d43d661"]}}
 00000000-0000-0000-0000-000000000000	nil	nil	nil	nil	nil	{"82b4b650-1f1d-4868-be93-0bc98b1c5190": {"roles": [], "classes": []}, "934ced4e-ee81-4b21-96c7-fd6a67aaf19f": {"roles": ["teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ac7d9df6-9141-461b-bd12-f59370fb9826": {"roles": ["tester", "teacher", "admin"], "classes": []}, "c7bf75c9-2426-42e0-9cc0-47b8eb1d34d5": {"roles": ["apitest1", "teacher"], "classes": ["e3ec4a16-365a-4b6d-ac3f-79182df83701"]}, "ff856428-37b2-4c21-a1d7-ed647b514e27": {"roles": [], "classes": []}}
 \.
 
@@ -2405,14 +2408,9 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
-00000000-0000-0000-0000-000000000000	3fb6418a-50d5-4e0d-8c6d-b65aae5a2417	{"name": "4_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	62e4c1af-29b7-4d6d-861e-2b18b6e2d8c6	{"name": "4А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	c02c7d4b-f98e-498c-80e2-9e120387ac16	{"name": "4Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	68a35172-ad26-4a93-ab66-49d647c67ef7	{"name": "10Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	e0ffe1e4-febc-41c6-953e-3b5efa6151b7	{"name": "1_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["ыегв1", "stud2", "stud32"], "fstudents": ["stud32"]}
-00000000-0000-0000-0000-000000000000	b1f991d6-db76-4271-9d65-0fd918a78cd6	{"name": "5_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["123", "321", "512"], "fstudents": []}
-00000000-0000-0000-0000-000000000000	27341434-81a3-4fb9-9ef0-5ea700595e06	{"name": "10А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["3124", "124", "431"], "fstudents": []}
-00000000-0000-0000-0000-000000000000	49648214-0209-4525-8b18-01c42f7a5a1c	{"name": "8_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["1"], "fstudents": []}
+00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["1111", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["1111"]}
+00000000-0000-0000-0000-000000000000	21f50302-c5a3-49c6-8777-77a59dc1303a	{"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
+64e40f2f-2bba-484f-bf95-00ae047ca171	39f58698-a861-477a-b06d-56c31aa69624	{"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
 \.
 
 
@@ -2421,7 +2419,7 @@ COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
 --
 
 COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
-00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	27341434-81a3-4fb9-9ef0-5ea700595e06
+00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	19baa673-b8bd-4af1-af51-20c618007060
 \.
 
 
@@ -2469,6 +2467,11 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 00000000-0000-0000-0000-000000000000	2024-09-14	{"4f9ab221-bd07-4fc9-9baa-8c49853a645c": {"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Tester", "Tester2"], "fstudents": ["Tester"], "isClassDataFilled": false}, "bace629b-6b03-4505-9403-a87b5df7e926": {"name": "removeAmountClass", "absent": {"ORVI": [], "global": ["123"], "fstudents": [], "respectful": [], "not_respectful": ["123"]}, "owners": [], "students": ["123"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-09-26	{"27341434-81a3-4fb9-9ef0-5ea700595e06": {"name": "10А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["3124", "124", "431"], "fstudents": [], "isClassDataFilled": false}, "3fb6418a-50d5-4e0d-8c6d-b65aae5a2417": {"name": "4_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "49648214-0209-4525-8b18-01c42f7a5a1c": {"name": "8_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["1"], "fstudents": [], "isClassDataFilled": false}, "62e4c1af-29b7-4d6d-861e-2b18b6e2d8c6": {"name": "4А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "68a35172-ad26-4a93-ab66-49d647c67ef7": {"name": "10Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "b1f991d6-db76-4271-9d65-0fd918a78cd6": {"name": "5_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "321", "512"], "fstudents": [], "isClassDataFilled": false}, "c02c7d4b-f98e-498c-80e2-9e120387ac16": {"name": "4Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "e0ffe1e4-febc-41c6-953e-3b5efa6151b7": {"name": "1_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["ыегв1", "stud2", "stud32"], "fstudents": ["stud32"], "isClassDataFilled": false}}
 00000000-0000-0000-0000-000000000000	2024-09-22	{"27341434-81a3-4fb9-9ef0-5ea700595e06": {"name": "10А", "absent": {"ORVI": [], "global": ["124"], "fstudents": [], "respectful": ["124"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["3124", "124", "431"], "fstudents": [], "isClassDataFilled": true}, "49648214-0209-4525-8b18-01c42f7a5a1c": {"name": "8_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["1"], "fstudents": [], "isClassDataFilled": false}, "b1f991d6-db76-4271-9d65-0fd918a78cd6": {"name": "5_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "321", "512"], "fstudents": [], "isClassDataFilled": false}, "e0ffe1e4-febc-41c6-953e-3b5efa6151b7": {"name": "1_А", "absent": {"ORVI": ["ыегв1"], "global": ["ыегв1"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["ыегв1", "stud2", "stud32"], "fstudents": ["stud32"], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-10-13	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Красавица :heart"], "global": ["Красавица :heart"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Красавица :heart"], "fstudents": ["Красавица :heart"], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-10-19	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Красавица :heart"], "fstudents": ["Красавица :heart"], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-10-04	{"27341434-81a3-4fb9-9ef0-5ea700595e06": {"name": "10А", "absent": {"ORVI": ["3124", "124"], "global": ["124", "431", "3124"], "fstudents": [], "respectful": ["431"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["3124", "124", "431"], "fstudents": [], "isClassDataFilled": true}, "3fb6418a-50d5-4e0d-8c6d-b65aae5a2417": {"name": "4_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "49648214-0209-4525-8b18-01c42f7a5a1c": {"name": "8_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["1"], "fstudents": [], "isClassDataFilled": false}, "62e4c1af-29b7-4d6d-861e-2b18b6e2d8c6": {"name": "4А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "68a35172-ad26-4a93-ab66-49d647c67ef7": {"name": "10Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "b1f991d6-db76-4271-9d65-0fd918a78cd6": {"name": "5_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "321", "512"], "fstudents": [], "isClassDataFilled": false}, "c02c7d4b-f98e-498c-80e2-9e120387ac16": {"name": "4Б", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "e0ffe1e4-febc-41c6-953e-3b5efa6151b7": {"name": "1_А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["ыегв1", "stud2", "stud32"], "fstudents": ["stud32"], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-10-20	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["123", "0000"], "fstudents": [], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-10-23	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["1111", "втвтч"], "global": ["втвтч", "1111"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["0000", "123", "312312", "123", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["0000"], "isClassDataFilled": true}}
 \.
 
 
@@ -2477,8 +2480,7 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 --
 
 COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin;
-00000000-0000-0000-0000-000000000000	4	435	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
-00000000-0000-0000-0000-000000000000	5	9618	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}
+00000000-0000-0000-0000-000000000000	752284	5011	{"name": "testUserInvite", "roles": ["teacher", "admin"], "classes": [{"id": "21f50302-c5a3-49c6-8777-77a59dc1303a", "name": "forbiddenClass"}]}
 \.
 
 
@@ -2489,6 +2491,8 @@ COPY public.schools_invites (school_id, req_id, req_secret, req_body) FROM stdin
 COPY public.schools_invites_archived (school_id, req_id, req_secret, req_body, use_time) FROM stdin;
 00000000-0000-0000-0000-000000000000	3	860	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}	2024-09-27 20:40:22.848867
 00000000-0000-0000-0000-000000000000	206988	5848	{"name": "test", "roles": ["teacher", "admin"], "classes": []}	2024-09-27 20:53:59.600002
+00000000-0000-0000-0000-000000000000	5	9618	{"name": "api-test", "roles": ["teacher"], "classes": [{"id": "e3ec4a16-365a-4b6d-ac3f-79182df83701", "name": "test2"}]}	2024-10-04 12:33:09.085989
+00000000-0000-0000-0000-000000000000	229655	3907	{"name": "Я приглашение", "roles": ["teacher", "admin"], "classes": [{"id": "68a35172-ad26-4a93-ab66-49d647c67ef7", "name": "10Б"}]}	2024-10-04 12:50:12.402713
 \.
 
 
@@ -2507,13 +2511,9 @@ COPY public.schools_template_classes (school_id, template_body) FROM stdin;
 --
 
 COPY public.schools_users (school_id, user_id, roles) FROM stdin;
-00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	{1,teacher,admin,test}
-00000000-0000-0000-0000-000000000000	82ef00ca-96bc-48b2-8eac-d0768a4ece81	{teacher,admin}
-00000000-0000-0000-0000-000000000000	934ced4e-ee81-4b21-96c7-fd6a67aaf19f	{teacher,admin}
+00000000-0000-0000-0000-000000000000	3932ba1d-6a69-4390-adae-36a58ab2732b	{teacher}
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{teacher,admin}
-00000000-0000-0000-0000-000000000000	0e5fe7b3-8002-48be-80a8-e62bd32aefb9	{teacher}
-00000000-0000-0000-0000-000000000000	626de5e5-2d13-4f66-80be-402641a05265	{teacher}
-00000000-0000-0000-0000-000000000000	a3d33e99-d3d9-43ab-a068-c4196cc6c94c	{teacher,admin}
+64e40f2f-2bba-484f-bf95-00ae047ca171	96ff9707-cdee-46e9-a0d3-e30e772cf416	{teacher,admin}
 \.
 
 
@@ -2522,18 +2522,9 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 --
 
 COPY public.users (id, school_id, login, password, name) FROM stdin;
-6c041382-180d-4e37-a858-e7a5c2b1c2a6	64e40f2f-2bba-484f-bf95-00ae047ca171	f82578ee7624ea0a1b7a266d33d79095795e5557abaa189076241d3ce9fdd47b	$2a$06$9YNV4M2Wq/hoTYA/dQycrexzOunkahXxugrEKKhpwIxfPefF7n8AG	
-00000000-0000-0000-0000-000000000000	00000000-0000-0000-0000-000000000000	nil	nil	nil
-c419f7f6-ac38-432a-a4b0-54a315f835b2	64e40f2f-2bba-484f-bf95-00ae047ca171	297581d6cd198a6e6df740f13288cb13a1e76cebe3f0ebc3fe259977addfd646	$2a$06$3a8y1eugKcQkTc9lIN9yWuWd71XJxXqCErxDN76sbDntvUcOR9m4W	Alexandr
-fd696e3f-fdac-48ad-922e-5164fa50c3a7	64e40f2f-2bba-484f-bf95-00ae047ca171	1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014	$2a$06$TCiKE7hFIVo5bbKdHgYShOn/5bd6P9T4tITmZ4Sy1/vgrR5nPSeUm	I am the test :)
 ac7d9df6-9141-461b-bd12-f59370fb9826	00000000-0000-0000-0000-000000000000	2d8c6239b1c794eb508bcee1ecce75eb8c32ff05d23e611c8fc67c35c6df5719	$2a$06$L6lwzXIDBBUXTCmQC4a44e50xg8mtjf9COw/i0ZfgIqbN9KVKSIuK	Tester Floatyev Ivanich
-ff856428-37b2-4c21-a1d7-ed647b514e27	00000000-0000-0000-0000-000000000000	811f1895d782af1ef9bf4d42d1710878ff47b2ba6768e914ca7c8220c97f2572	$2a$06$F7QFfmA.70gde5jf/GlMQ.Fzq86CaZIZVyP7PosiuxdNrKNToFnfW	Victorovich
-934ced4e-ee81-4b21-96c7-fd6a67aaf19f	00000000-0000-0000-0000-000000000000	7117476ce4f850bfa18c365922a07b7e4347eef8057c3bbaf14442cc3b1e625d	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.6yYyOJf39PCwq.YeDs4ISmqKZjLTo2q	api-test
-82b4b650-1f1d-4868-be93-0bc98b1c5190	00000000-0000-0000-0000-000000000000	123	$2a$06$IqR5XqMqT9bu4n6wWNeR1.PwJnMnI/.1ECjCFR7oCaEny5/4O3M96	123
-82ef00ca-96bc-48b2-8eac-d0768a4ece81	00000000-0000-0000-0000-000000000000	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$6s3yGfIcbfKE/bQenSOuaOnFfI3CwQv8jQhG/5SM3L5Bv1Ii65Iz2	Юлия Александровна
-0e5fe7b3-8002-48be-80a8-e62bd32aefb9	00000000-0000-0000-0000-000000000000	932f3c1b56257ce8539ac269d7aab42550dacf8818d075f0bdf1990562aae3ef	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtOFsrkbvbT6lxZsFnBK0TJVItsnVslCmy	api-test
-626de5e5-2d13-4f66-80be-402641a05265	00000000-0000-0000-0000-000000000000	96cae35ce8a9b0244178bf28e4966c2ce1b8385723a96a6b838858cdd6ca0a1e	$2a$06$DtbVi4uikMb4beNC3.1Vv.2w198tyTTbXdyPhDByvXCfV0jqkfw5q	api-test
-a3d33e99-d3d9-43ab-a068-c4196cc6c94c	00000000-0000-0000-0000-000000000000	5f88134474eb05a9a3907d21b6263f85d63157bb4bfe6643f02b46f6a7c5b50b	$2a$06$tMHcyuHPtblDLpYfeDNoXefPQWEJBn8g/sbRLpGR37hpKxjZgcvem	test
+3932ba1d-6a69-4390-adae-36a58ab2732b	00000000-0000-0000-0000-000000000000	d86f064c86b3ceaa3ab2a755618d61ad378f77b57568635742c49aa810c306ba	$2a$06$LpoRQUZu.YTgMQvkaQAQruDkIu34b59/F.pbta8ExXrwaWp6hGj8q	api-test
+96ff9707-cdee-46e9-a0d3-e30e772cf416	64e40f2f-2bba-484f-bf95-00ae047ca171	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$JLnrBveP8DJKIeASUlt.nOtXNf5oI4K5esv4iafD8zjL0I/dkDkFm	Юлия Александровна
 \.
 
 
@@ -2542,20 +2533,12 @@ a3d33e99-d3d9-43ab-a068-c4196cc6c94c	00000000-0000-0000-0000-000000000000	5f8813
 --
 
 COPY public.users_salts (user_id, salt) FROM stdin;
-6c041382-180d-4e37-a858-e7a5c2b1c2a6	$2a$06$9YNV4M2Wq/hoTYA/dQycre
 bd10f251-db64-4092-b0b1-2f2fbfc5f768	$2a$06$NVsMVg7xwVYFaSc14Lznxu
 6657cbe7-0d5c-4592-8cc7-997e26bb143b	$2a$06$ilqHggpKZ9S4cb.ZEWxFy.
-c419f7f6-ac38-432a-a4b0-54a315f835b2	$2a$06$3a8y1eugKcQkTc9lIN9yWu
 a58e750a-63ca-47f5-837e-502c8d6c227c	$2a$06$fJ4D6iPjuQJBVXwYAwxgCO
-fd696e3f-fdac-48ad-922e-5164fa50c3a7	$2a$06$TCiKE7hFIVo5bbKdHgYShO
 ac7d9df6-9141-461b-bd12-f59370fb9826	$2a$06$L6lwzXIDBBUXTCmQC4a44e
-ff856428-37b2-4c21-a1d7-ed647b514e27	$2a$06$F7QFfmA.70gde5jf/GlMQ.
-934ced4e-ee81-4b21-96c7-fd6a67aaf19f	$2a$06$Y.kwOC7gCZAtlcgqMPGRC.
-82b4b650-1f1d-4868-be93-0bc98b1c5190	$2a$06$IqR5XqMqT9bu4n6wWNeR1.
-82ef00ca-96bc-48b2-8eac-d0768a4ece81	$2a$06$6s3yGfIcbfKE/bQenSOuaO
-0e5fe7b3-8002-48be-80a8-e62bd32aefb9	$2a$06$bJ5ZMKGsmNFtBN2h5MkJtO
-626de5e5-2d13-4f66-80be-402641a05265	$2a$06$DtbVi4uikMb4beNC3.1Vv.
-a3d33e99-d3d9-43ab-a068-c4196cc6c94c	$2a$06$tMHcyuHPtblDLpYfeDNoXe
+3932ba1d-6a69-4390-adae-36a58ab2732b	$2a$06$LpoRQUZu.YTgMQvkaQAQru
+96ff9707-cdee-46e9-a0d3-e30e772cf416	$2a$06$JLnrBveP8DJKIeASUlt.nO
 \.
 
 
