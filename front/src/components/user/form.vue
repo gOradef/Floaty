@@ -1,4 +1,5 @@
 <template>
+  <b-overlay :show="!isClassValid">
   <b-container class="vh-100 p-5">
     <b-card>
       <span @click.stop="$router.push('/user')" class="returnIcon">
@@ -109,12 +110,15 @@
               </b-modal>
 
 
-              <h4 class="text-center">
-                Класс: <b>{{ chosenClass.name }}</b>
+              <h4 class="text-center mb-0">
+                Класс: <b>{{ currentClassBody.name }}</b>
                 <b-button variant="link" v-b-modal.editStudentsList>
                   <b-icon variant="dark" icon="pencil"/>
                 </b-button>
               </h4>
+              <div v-if="isClassDataWasFilledForToday" class="mb-2 text-center ">
+                Данные за сегодня уже были внесены. <a @click.stop="setTodayClassBody" href="#lists"> Просмотреть? </a>
+              </div>
 
 
               <b-container fluid>
@@ -169,13 +173,14 @@
                   </b-dropdown-item>
                 </b-dropdown>
 
-                <b-row class="g-3">
-                  <!-- ORVI -->
+                <b-row class="g-3" id="lists">
+
+                  <!--                  ORVI -->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список ОРВИ учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                        v-for="(tag, index) in chosenClass.absent.ORVI"
+                        v-for="(tag, index) in currentClassBody.absent.ORVI"
                         :key="index"
                         class="d-flex justify-content-between align-items-center"
                       >
@@ -190,11 +195,12 @@
                     </b-list-group>
                   </b-col>
 
+                  <!--                  Resp cause-->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список уваж. прич. учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                        v-for="(tag, index) in chosenClass.absent.respectful"
+                        v-for="(tag, index) in currentClassBody.absent.respectful"
                         :key="index"
                         class="d-flex justify-content-between align-items-center"
                       >
@@ -209,11 +215,12 @@
                     </b-list-group>
                   </b-col>
 
+                  <!--                  NotResp. cause-->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список неуваж. прич. учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                        v-for="(tag, index) in chosenClass.absent.not_respectful"
+                        v-for="(tag, index) in currentClassBody.absent.not_respectful"
                         :key="index"
                         class="d-flex justify-content-between align-items-center"
                       >
@@ -261,6 +268,7 @@
       </b-card-body>
     </b-card>
   </b-container>
+  </b-overlay>
 </template>
 
 <script>
@@ -272,8 +280,10 @@ export default {
   data() {
     return {
       classID: '' ,
+      isClassDataWasFilledForToday: false,
       isClassValid: true,
-      chosenClass: { //Absent data fill only
+      todayClassBody: { }, // {ORVI, respectful, not_respectful}
+      currentClassBody: { //Absent data fill only
         absent: {
           ORVI: [],
           respectful: [],
@@ -288,6 +298,7 @@ export default {
       showStudentModal: false, //Edit stud list modal
       showAddModal: false,
       showEditModal: false,
+
       isUserSentEditStudList: false, //is user sent new list
       isSuccessEditStudList: null, //is data applied on server
 
@@ -301,11 +312,19 @@ export default {
     this.classID = this.$route.params.classID;
 
     try {
-      this.chosenClass = {
+      this.currentClassBody = {
         ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
         absent: { ORVI: [], respectful: [], not_respectful: [] }
       };
       this.isClassValid = true;
+
+      const res = await this.$root.$makeApiRequest('/api/user/classes/' + this.classID + '/data');
+
+      if (res.data.absent !== null
+          && res.data.isClassDataFilled === true) {
+        this.isClassDataWasFilledForToday = true;
+        this.todayClassBody = res.data.absent;
+      }
     }
     catch (err) {
       // console.log('this class is not exits');
@@ -316,15 +335,15 @@ export default {
   computed: {
     availableStudents() {
       const absentStudents = {
-        ORVI: new Set(this.chosenClass.absent.ORVI),
-        respectful: new Set(this.chosenClass.absent.respectful),
-        not_respectful: new Set(this.chosenClass.absent.not_respectful),
-        fstudents: new Set(this.chosenClass.fstudents),
+        ORVI: new Set(this.currentClassBody.absent.ORVI),
+        respectful: new Set(this.currentClassBody.absent.respectful),
+        not_respectful: new Set(this.currentClassBody.absent.not_respectful),
+        fstudents: new Set(this.currentClassBody.fstudents),
       };
 
-      if (this.chosenClass.students) {
+      if (this.currentClassBody.students) {
 
-      return this.chosenClass.students.map((student) => {
+      return this.currentClassBody.students.map((student) => {
         const inORVI = absentStudents.ORVI.has(student);
         const inRespectful = absentStudents.respectful.has(student);
         const inNotRespectful = absentStudents.not_respectful.has(student);
@@ -372,9 +391,13 @@ export default {
     },
   },
   methods: {
+    setTodayClassBody() {
+      this.currentClassBody.absent = this.todayClassBody;
+    },
+
     getStudents() {
-      const students = this.chosenClass.students || [];
-      const fstudents = this.chosenClass.fstudents || [];
+      const students = this.currentClassBody.students || [];
+      const fstudents = this.currentClassBody.fstudents || [];
 
       return students.map(student => ({
         name: student,
@@ -395,26 +418,11 @@ export default {
       this.showAddModal = false; // Закрыть модальное окно
     },
 
-    toggleDeleteStudent(student) {
-      const index = this.editedStudents.indexOf(student);
-      if (index !== -1) {
-        this.editedStudents[index].isDeleted = !this.editedStudents[index].isDeleted; // Удалить ученика из локального массива
-      }
-    },
-
     openEditModal(student) {
       this.selectedEditStudent = { ...student }; // Создаем копию выбранного ученика
       this.showEditModal = true;
     },
 
-    renameStudent() {
-      const index = this.editedStudents.findIndex(s => s.name === this.selectedEditStudent.name);
-      if (index !== -1 && this.selectedEditStudent.name !== '') {
-        this.editedStudents[index].name = this.newStudentName;
-      }
-      this.newStudentName = '';
-      this.showEditModal = false;
-    },
     async saveNewStudents() {
       this.isUserSentEditStudList = false;
 
@@ -430,7 +438,7 @@ export default {
         this.isSuccessEditStudList = (status === 204);
 
         if (this.isSuccessEditStudList) {
-          this.chosenClass = {
+          this.currentClassBody = {
             ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
             absent: { ORVI: [], respectful: [], not_respectful: [] }
           };
@@ -442,49 +450,65 @@ export default {
       }
     },
     async submitForm() {
-      const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.chosenClass.id + '/data', 'PUT', {
-        absent: {...this.chosenClass.absent}
+      const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.currentClassBody.id + '/data', 'PUT', {
+        absent: {...this.currentClassBody.absent}
       });
       this.$root.$callNotificationEvent(status === 204);
     },
     selectStudent(student) {
       this.selectedStudent = student;
     },
+    renameStudent() {
+      const index = this.editedStudents.findIndex(s => s.name === this.selectedEditStudent.name);
+      if (index !== -1 && this.selectedEditStudent.name !== '') {
+        this.editedStudents[index].name = this.newStudentName;
+      }
+      this.newStudentName = '';
+      this.showEditModal = false;
+    },
+    toggleDeleteStudent(student) {
+      const index = this.editedStudents.indexOf(student);
+      if (index !== -1) {
+        this.editedStudents[index].isDeleted = !this.editedStudents[index].isDeleted; // Удалить ученика из локального массива
+      }
+    },
     isStudentFree() {
       return (this.selectedStudent &&
-        !this.chosenClass.absent.ORVI.includes(this.selectedStudent) &&
-        !this.chosenClass.absent.respectful.includes(this.selectedStudent) &&
-        !this.chosenClass.absent.not_respectful.includes(this.selectedStudent));
+        !this.currentClassBody.absent.ORVI.includes(this.selectedStudent) &&
+        !this.currentClassBody.absent.respectful.includes(this.selectedStudent) &&
+        !this.currentClassBody.absent.not_respectful.includes(this.selectedStudent));
     },
+
     addORVIStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.ORVI.push(this.selectedStudent);
+        this.currentClassBody.absent.ORVI.push(this.selectedStudent);
         this.selectedStudent = '';
         this.searchQuery = '';
       }
     },
     addRespStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.respectful.push(this.selectedStudent);
+        this.currentClassBody.absent.respectful.push(this.selectedStudent);
         this.selectedStudent = '';
         this.searchQuery = '';
       }
     },
     addNotRespStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.not_respectful.push(this.selectedStudent);
+        this.currentClassBody.absent.not_respectful.push(this.selectedStudent);
         this.selectedStudent = '';
         this.searchQuery = '';
       }
     },
+
     removeORVITag(index) {
-      this.chosenClass.absent.ORVI.splice(index, 1);
+      this.currentClassBody.absent.ORVI.splice(index, 1);
     },
     removeRespTag(index) {
-      this.chosenClass.absent.respectful.splice(index, 1);
+      this.currentClassBody.absent.respectful.splice(index, 1);
     },
     removeNotRespTag(index) {
-      this.chosenClass.absent.not_respectful.splice(index, 1);
+      this.currentClassBody.absent.not_respectful.splice(index, 1);
     },
   },
 };
