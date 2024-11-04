@@ -1,4 +1,5 @@
 <template>
+  <b-overlay :show="!isClassValid">
   <b-container class="vh-100 p-5">
     <b-card>
       <span @click.stop="$router.push('/user')" class="returnIcon">
@@ -261,6 +262,7 @@
       </b-card-body>
     </b-card>
   </b-container>
+  </b-overlay>
 </template>
 
 <script>
