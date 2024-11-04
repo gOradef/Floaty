@@ -7,7 +7,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/Floaty
-ExecStart=./FloatyAPI
+ExecStart=./Floaty
 Restart=always
 
 [Install]
