@@ -100,7 +100,7 @@ crow::json::wvalue classHandler::getInsertedDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
     auto res = readTransaction.exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, nullptr);
     crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
-    std::cout << json.dump();
+    //! std::cout << json.dump();
     return json;
 }
 crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date) {
