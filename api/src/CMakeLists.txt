@@ -25,18 +25,18 @@ target_link_libraries(Floaty PUBLIC
 #        pqxx
         pq
         c
-        com_err
+#        com_err
         gcc
 
-        gssapi_krb5
-        keyutils
-        k5crypto
-        krb5
-        krb5support
-        lber
-        ldap
+#        gssapi_krb5
+#        keyutils
+#        k5crypto
+#        krb5
+#        krb5support
+#        lber
+#        ldap
         resolv
-        sasl2
+#        sasl2
         stdc++
         crypto
         ssl
