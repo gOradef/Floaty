@@ -5,11 +5,9 @@
       <span @click.stop="$router.push('/user')" class="returnIcon">
         <b-icon icon="arrow-left-circle" scale="1.6"/>
       </span>
-      <b-card-body>
+      <b-card-body class="pt-1 pb-0">
         <b-row class="justify-content-center">
           <b-col v-if="isClassValid">
-            <notificationsForm/>
-
             <b-form @submit.prevent="selectStudent">
               <b-modal id="editStudentsList" v-model="showStudentModal" title='Редактировать список учащихся класса'>
                 <b-table
@@ -116,6 +114,19 @@
                   <b-icon variant="dark" icon="pencil"/>
                 </b-button>
               </h4>
+              <div class="mt-1">
+                <b-alert
+                    show
+                    v-if="isNewStudListHasDuplicates"
+                    variant="warning"
+                >
+                  Текущий список учащихся имеет повторяющиеся элементы, пожалуйста, исправьте это
+                </b-alert>
+                <b-alert variant="warning" :show="isUserWereEditingStudList">
+                  У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
+                </b-alert>
+              </div>
+
               <div v-if="isClassDataWasFilledForToday" class="mb-2 text-center ">
                 Данные за сегодня уже были внесены. <a @click.stop="setTodayClassBody" href="#lists"> Просмотреть? </a>
               </div>
@@ -133,7 +144,7 @@
                 >
                   <template #button-content>
                     <span class="text-wrap">
-                      <b-icon icon="person-fill"></b-icon>
+                      <b-icon icon="person-fill" scale="1"></b-icon>
                       {{ selectedStudentText }}
                     </span>
                   </template>
@@ -143,7 +154,7 @@
                         label="Поиск ученика:"
                         label-for="student-search-input"
                         label-cols-sm="auto"
-                        class="mb-0"
+                        class="mb-2"
                     >
                       <b-form-input
                           v-model="searchQuery"
@@ -161,13 +172,13 @@
                       :key="student.value"
                       :disabled="student.disabled"
                       @click="!student.disabled && selectStudent(student.value)"
-                      class="d-flex align-items-center p-2 border"
+                      class="d-flex align-items-center p-2 border text-wrap"
                       role="button"
                   >
                     {{ student.text }}
                     <span v-if="student.disabled" class="text-muted ml-2">
-      (Уже в списке {{ student.list }})
-    </span>
+                      (Уже в списке {{ student.list }})
+                    </span>
                     <br>
                     <span v-if="student.fstudent" class="text-warning ml-2">(Бесплатник)</span>
                   </b-dropdown-item>
@@ -237,22 +248,12 @@
                 </b-row>
 
                 <b-row class=" mt-3 justify-content-end">
-                  <b-alert show variant="warning" v-if="isUserWereEditingStudList && !showStudentModal">
-                    У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
-                  </b-alert>
-                  <b-alert
-                      show
-                      v-if="isNewStudListHasDuplicates"
-                      variant="warning"
-                  >
-                    Текущий список учащихся имеет повторяющиеся элементы, пожалуйста, исправьте это
-                  </b-alert>
-                  <div class="border-top d-flex justify-content-end">
-
+                  <div class="mb-2 border-top d-flex justify-content-end">
                     <b-button block variant="primary" :disabled="isNewStudListHasDuplicates" @click="submitForm">
                       Отправить
                     </b-button>
                   </div>
+                  <notificationsForm class="mb-0"/>
                 </b-row>
               </b-container>
 
@@ -361,10 +362,13 @@ export default {
       return {}
     },
     selectedStudentText() {
-      return this.selectedStudent || 'Выберите ученика';
+      return this.selectedStudent || 'Выберите отсутствующего ученика';
     },
     isUserWereEditingStudList() {
       const firstData = this.getStudents();
+
+      if (this.editedStudents.length === 0)
+        return false;
 
       // Check if the lengths of the arrays are different
       if (firstData.length !== this.editedStudents.length) {
@@ -533,5 +537,8 @@ export default {
   max-height: 230px;
   overflow-y: auto;
   min-width: auto;
+}
+.dropdown-item {
+  text-wrap: auto;
 }
 </style>
