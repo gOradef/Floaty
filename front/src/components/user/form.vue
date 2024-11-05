@@ -128,11 +128,11 @@
                     class="mb-3"
                     variant="outline-secondary"
                     block
-                    menu-class="w-100 dropdownMenu"
+                    menu-class="dropdownMenu"
                     lazy
                 >
                   <template #button-content>
-                    <span>
+                    <span class="text-wrap">
                       <b-icon icon="person-fill"></b-icon>
                       {{ selectedStudentText }}
                     </span>
