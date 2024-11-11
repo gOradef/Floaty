@@ -115,7 +115,7 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
 }
 /**
  * @brief Sets input students into class list, depending onto params.
- * @param changes - json.
+ * @param studentsBranch - json.
  * @code
  *  [f]students: {
  *      "add": [],
@@ -124,30 +124,11 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
  *  @endcode
  * @throws std::runtime_error exception
  */
-    void classHandler::updateClassStudents(const std::string &changes) {
-
-        crow::json::rvalue root = crow::json::load(changes);
-
-        if (!root)
-            throw api::exceptions::wrongRequest("Cant parse changes of user. Is it valid?");
+    void classHandler::updateClassStudents(const std::string &studentsBranch) {
 
         pqxx::work work(*_connection);
 
-        for (const auto& stud_type : _stud_types) {
-            for (const auto& action : _actions) {
-                if (root.has(stud_type) && root[stud_type].has(action)) {
-                    std::vector<std::string> vec;
-                    for (const auto& fio : root[stud_type][action]) {
-                        vec.emplace_back(fio);
-                    }
-                    work.exec_prepared("class_" + stud_type + "_" += action, this->_org_id,
-                                       this->_user_id,
-                                       this->_class_id,
-                                       vec);
-                }
-            }
-        }
-
+        work.exec_prepared(psqlMethods::schoolManager::classes::updateStudentList, _org_id, this->_class_id, studentsBranch);
         work.commit();
 }
 

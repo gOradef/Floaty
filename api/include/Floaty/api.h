@@ -152,7 +152,7 @@ public:
     crow::json::wvalue getClassStudents();
     crow::json::wvalue getInsertedDataForToday();
     crow::json::wvalue getInsertedDataForDate(const std::string& date);
-    void updateClassStudents(const std::string& changes);
+    void updateClassStudents(const std::string& studentsBranch);
     void insertData(const std::string& changes);
 };
 

@@ -368,6 +368,7 @@ void Server::routes_classHandler::insertStudents(const crow::request& req, crow:
     auto f = [&](const crow::request& req, crow::response& res) {
         classHandler user(_connectionPool, req, classID);
         user.updateClassStudents(req.body);
+        res.code = 204;
     };
     return verifier(req, res, f);
 }

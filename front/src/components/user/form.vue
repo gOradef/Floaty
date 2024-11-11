@@ -436,7 +436,7 @@ export default {
       };
 
       try {
-        const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.classID + '/students', 'PUT', dataToSend);
+        const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.classID + '/students', 'PUT', dataToSend);
 
         this.isUserSentEditStudList = true;
         this.isSuccessEditStudList = (status === 204);
