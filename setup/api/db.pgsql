@@ -227,6 +227,107 @@ END;
 $$;
 
 
+CREATE OR REPLACE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
+ LANGUAGE plpgsql
+AS $procedure$DECLARE
+    class_body_keys text[];
+    key text;
+    class_body jsonb;
+    object_name text;
+    absent_global jsonb;
+BEGIN
+    IF (SELECT 1 FROM schools_data
+        WHERE school_id = _schoolID
+        AND date = CURRENT_DATE) THEN
+        -- Данные существуют, ничего не делаем
+    ELSE
+        RAISE NOTICE 'Data does not exist for school: %. Generating', _schoolID;
+        CALL school_data_gen(_schoolID);
+    END IF;
+
+    class_body := (SELECT data -> _classID::text FROM schools_data
+        WHERE school_id = _schoolID
+        AND date = CURRENT_DATE);
+
+    IF NOT (class_body IS NULL) THEN
+        object_name := 'absent';
+        absent_global := '[]'::jsonb;
+
+        -- Итерация по ключам (cause_type)
+        FOR key IN
+            SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
+        LOOP
+            IF (_input -> object_name ? key) THEN
+                -- Установка значения из входных данных в массив
+                class_body := jsonb_set(
+                    class_body,
+                    ('{' || object_name || ',' || key || '}')::text[], -- Путь для установки значения
+                    _input -> object_name -> key -- Значение из входных данных
+                );
+
+                -- Объединение существующих глобальных значений с текущими значениями из _input
+                absent_global := (
+                    WITH data AS (
+                        SELECT
+                            (absent_global)::jsonb AS array1,
+                            (_input -> object_name -> key)::jsonb AS array2
+                    ),
+                    merged AS (
+                        SELECT DISTINCT
+                            jsonb_array_elements(array1) AS elem
+                        FROM data
+                        UNION
+                        SELECT
+                            jsonb_array_elements(array2)
+                        FROM data
+                    )
+                    SELECT
+                        jsonb_agg(elem) AS unique_merged_array
+                    FROM merged
+                );
+            ELSE
+                RAISE NOTICE 'Key doesn''t exist in list-input: %', key;
+            END IF;
+        END LOOP;
+
+        -- Установка в объединенный финальный массив
+        IF jsonb_array_length(absent_global) > 0 THEN
+            class_body := jsonb_set(
+                class_body,
+                ('{' || object_name || ', global}')::text[], -- Путь к глобальному значению
+                absent_global
+            );
+        ELSE
+            class_body := jsonb_set(
+                class_body,
+                ('{' || object_name || ', global}')::text[],
+                '[]'::jsonb -- Установка в null, если массив пуст
+            );
+        END IF;
+
+        -- Установка isClassDataFilled в true
+        class_body := jsonb_set(
+            class_body,
+            '{isClassDataFilled}'::text[], -- Путь для установки isClassDataFilled
+            'true'::jsonb, -- Новое значение
+            true -- Перезаписать, если существует
+        );
+
+        -- УСТАНОВКА В ТАБЛИЦУ
+        UPDATE schools_data SET data = jsonb_set(
+            data,
+            ('{'::text || _classID::text || '}'::text)::text[],
+            class_body
+        )
+        WHERE school_id = _schoolID
+        AND date = CURRENT_DATE;
+
+        RAISE NOTICE '[BODY]: %', class_body;
+    ELSE
+        RAISE NOTICE 'Cannot read class_body for class: %. Does it exist?', _classID;
+    END IF;
+END;$procedure$
+
 ALTER FUNCTION public.class_data_get(_schoolid uuid, _classid uuid, _date date) OWNER TO postgres;
 
 --
