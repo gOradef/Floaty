@@ -257,9 +257,6 @@ export default {
         isFree: fstudents.includes(student), // Помечаем как бесплатник
         isDeleted: false,
       }));
-
-      // Локальный массив бесплатников для обновлений
-      this.localFstudents = new Set(fstudents); // Добавим в сет для удобства
     },
     async getOwners() {
       this.raw_data = await this.$root.$makeApiRequest('/api/org/users');
@@ -284,19 +281,10 @@ export default {
       this.newClass.owner = owner.id;
     },
     //Region edit students
-    toggleFreeStudent(student) {
-      // Если студент стал бесплатником, добавляем его в локальный массив, иначе удаляем
-      if (student.isFree) {
-        this.localFstudents.add(student.name);
-      } else {
-        this.localFstudents.delete(student.name);
-      }
-    },
     async addStudent() {
       if (this.newStudentName.trim() === '') return;
 
       this.editedStudents.push({ name: this.newStudentName, isFree: false });
-      this.localFstudents.delete(this.newStudentName); // По умолчанию не бесплатник
       this.newStudentName = ''; // Сбросить поле ввода
       this.showAddModal = false; // Закрыть модальное окно
     },
@@ -338,7 +326,7 @@ export default {
         alert('Новый список содержит дупликаты. Пожалуйста, исправьте это')
         return;
       }
-      const fstudents = Array.from(this.localFstudents);
+      const fstudents = this.editedStudents.filter(fstud => fstud.isFree).map(stud => stud.name);
 
       const dataToSend = {
         students: this.editedStudents.filter(student => !student.isDeleted).map(student => student.name),
