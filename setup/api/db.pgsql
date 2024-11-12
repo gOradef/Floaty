@@ -227,9 +227,15 @@ END;
 $$;
 
 
-CREATE OR REPLACE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
- LANGUAGE plpgsql
-AS $procedure$DECLARE
+ALTER FUNCTION public.class_data_get(_schoolid uuid, _classid uuid, _date date) OWNER TO postgres;
+
+--
+-- Name: class_data_insert(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
+    LANGUAGE plpgsql
+    AS $$DECLARE
     class_body_keys text[];
     key text;
     class_body jsonb;
@@ -245,7 +251,7 @@ BEGIN
         CALL school_data_gen(_schoolID);
     END IF;
 
-    class_body := (SELECT data -> _classID::text FROM schools_data
+    class_body := (SELECT data -> _classID::text FROM schools_data 
         WHERE school_id = _schoolID
         AND date = CURRENT_DATE);
 
@@ -320,111 +326,6 @@ BEGIN
             class_body
         )
         WHERE school_id = _schoolID
-        AND date = CURRENT_DATE;
-
-        RAISE NOTICE '[BODY]: %', class_body;
-    ELSE
-        RAISE NOTICE 'Cannot read class_body for class: %. Does it exist?', _classID;
-    END IF;
-END;$procedure$
-
-ALTER FUNCTION public.class_data_get(_schoolid uuid, _classid uuid, _date date) OWNER TO postgres;
-
---
--- Name: class_data_insert(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
-    LANGUAGE plpgsql
-    AS $$DECLARE
-    class_body_keys text[];
-    key text;
-    class_body jsonb;
-    object_name text;
-    absent_global jsonb;
-BEGIN
-    IF (SELECT 1 FROM schools_data 
-        WHERE school_id = _schoolID
-        AND date = CURRENT_DATE) THEN
-        -- Данные существуют, ничего не делаем
-    ELSE
-        RAISE NOTICE 'Data does not exist for school: %. Generating', _schoolID;
-        CALL school_data_gen(_schoolID);
-    END IF;
-
-    class_body := (SELECT data -> _classID::text FROM schools_data WHERE date = CURRENT_DATE);
-    
-    IF NOT (class_body IS NULL) THEN
-        object_name := 'absent';
-        absent_global := '[]'::jsonb;
-
-        -- Итерация по ключам (cause_type)
-        FOR key IN 
-            SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
-        LOOP
-            IF (_input -> object_name ? key) THEN
-                -- Установка значения из входных данных в массив
-                class_body := jsonb_set(
-                    class_body, 
-                    ('{' || object_name || ',' || key || '}')::text[], -- Путь для установки значения
-                    _input -> object_name -> key -- Значение из входных данных
-                );
-
-                -- Объединение существующих глобальных значений с текущими значениями из _input
-                absent_global := (
-                    WITH data AS (
-                        SELECT 
-                            (absent_global)::jsonb AS array1,
-                            (_input -> object_name -> key)::jsonb AS array2
-                    ),
-                    merged AS (
-                        SELECT DISTINCT
-                            jsonb_array_elements(array1) AS elem
-                        FROM data
-                        UNION
-                        SELECT
-                            jsonb_array_elements(array2)
-                        FROM data
-                    )
-                    SELECT
-                        jsonb_agg(elem) AS unique_merged_array
-                    FROM merged
-                );
-            ELSE 
-                RAISE NOTICE 'Key doesn''t exist in list-input: %', key;
-            END IF;
-        END LOOP;
-
-        -- Установка в объединенный финальный массив
-        IF jsonb_array_length(absent_global) > 0 THEN
-            class_body := jsonb_set(
-                class_body,
-                ('{' || object_name || ', global}')::text[], -- Путь к глобальному значению
-                absent_global
-            );
-        ELSE
-            class_body := jsonb_set(
-                class_body,
-                ('{' || object_name || ', global}')::text[],
-                '[]'::jsonb -- Установка в null, если массив пуст
-            );
-        END IF;
-        
-        -- Установка isClassDataFilled в true
-        class_body := jsonb_set(
-            class_body, 
-            '{isClassDataFilled}'::text[], -- Путь для установки isClassDataFilled
-            'true'::jsonb, -- Новое значение
-            true -- Перезаписать, если существует
-        );
-
-        -- УСТАНОВКА В ТАБЛИЦУ
-        UPDATE schools_data SET data = jsonb_set(
-            data,
-            ('{'::text || _classID::text || '}'::text)::text[],
-            class_body
-        ) 
-        WHERE school_id = _schoolID 
         AND date = CURRENT_DATE;
 
         RAISE NOTICE '[BODY]: %', class_body;
@@ -2510,9 +2411,9 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
-00000000-0000-0000-0000-000000000000	21f50302-c5a3-49c6-8777-77a59dc1303a	{"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"]}
 64e40f2f-2bba-484f-bf95-00ae047ca171	39f58698-a861-477a-b06d-56c31aa69624	{"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": []}
+00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"]}
+00000000-0000-0000-0000-000000000000	21f50302-c5a3-49c6-8777-77a59dc1303a	{"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["123", "321"], "fstudents": []}
 \.
 
 
@@ -2523,6 +2424,7 @@ COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
 COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	19baa673-b8bd-4af1-af51-20c618007060
 64e40f2f-2bba-484f-bf95-00ae047ca171	96ff9707-cdee-46e9-a0d3-e30e772cf416	39f58698-a861-477a-b06d-56c31aa69624
+00000000-0000-0000-0000-000000000000	70ad236e-9894-489a-93e7-f64fcb8cb60d	21f50302-c5a3-49c6-8777-77a59dc1303a
 \.
 
 
@@ -2575,6 +2477,7 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 64e40f2f-2bba-484f-bf95-00ae047ca171	2024-11-05	{"39f58698-a861-477a-b06d-56c31aa69624": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "96ff9707-cdee-46e9-a0d3-e30e772cf416", "name": "Юлия Александровна"}], "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-20	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["123", "0000"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-23	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["1111", "втвтч"], "global": ["втвтч", "1111"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["0000", "123", "312312", "123", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["0000"], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": ["123"], "fstudents": [], "respectful": [], "not_respectful": ["123"]}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
 \.
 
 
@@ -2617,6 +2520,7 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	3932ba1d-6a69-4390-adae-36a58ab2732b	{teacher}
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{teacher,admin}
 64e40f2f-2bba-484f-bf95-00ae047ca171	96ff9707-cdee-46e9-a0d3-e30e772cf416	{teacher,admin}
+00000000-0000-0000-0000-000000000000	70ad236e-9894-489a-93e7-f64fcb8cb60d	{teacher}
 \.
 
 
@@ -2628,6 +2532,7 @@ COPY public.users (id, school_id, login, password, name) FROM stdin;
 ac7d9df6-9141-461b-bd12-f59370fb9826	00000000-0000-0000-0000-000000000000	2d8c6239b1c794eb508bcee1ecce75eb8c32ff05d23e611c8fc67c35c6df5719	$2a$06$L6lwzXIDBBUXTCmQC4a44e50xg8mtjf9COw/i0ZfgIqbN9KVKSIuK	Tester Floatyev Ivanich
 3932ba1d-6a69-4390-adae-36a58ab2732b	00000000-0000-0000-0000-000000000000	d86f064c86b3ceaa3ab2a755618d61ad378f77b57568635742c49aa810c306ba	$2a$06$LpoRQUZu.YTgMQvkaQAQruDkIu34b59/F.pbta8ExXrwaWp6hGj8q	api-test
 96ff9707-cdee-46e9-a0d3-e30e772cf416	64e40f2f-2bba-484f-bf95-00ae047ca171	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$JLnrBveP8DJKIeASUlt.nOtXNf5oI4K5esv4iafD8zjL0I/dkDkFm	Юлия Александровна
+70ad236e-9894-489a-93e7-f64fcb8cb60d	00000000-0000-0000-0000-000000000000	9bba5c53a0545e0c80184b946153c9f58387e3bd1d4ee35740f29ac2e718b019	$2a$06$6d/jrcSvzaqGtcseiGwo8uVCKQXwKstsEGwEKUda0TqBDiLRPf96a	testerBugUser
 \.
 
 
@@ -2642,6 +2547,7 @@ a58e750a-63ca-47f5-837e-502c8d6c227c	$2a$06$fJ4D6iPjuQJBVXwYAwxgCO
 ac7d9df6-9141-461b-bd12-f59370fb9826	$2a$06$L6lwzXIDBBUXTCmQC4a44e
 3932ba1d-6a69-4390-adae-36a58ab2732b	$2a$06$LpoRQUZu.YTgMQvkaQAQru
 96ff9707-cdee-46e9-a0d3-e30e772cf416	$2a$06$JLnrBveP8DJKIeASUlt.nO
+70ad236e-9894-489a-93e7-f64fcb8cb60d	$2a$06$6d/jrcSvzaqGtcseiGwo8u
 \.
 
 
