@@ -60,7 +60,10 @@
                   <b-list-group-item >{{row.item.absent.ORVI.length}} </b-list-group-item>
                   <b-list-group-item >{{row.item.absent.respectful.length}} </b-list-group-item>
                   <b-list-group-item >{{row.item.absent.not_respectful.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.fstudents.length}} </b-list-group-item>
+                  <b-list-group-item >{{ row.item.absent.global.filter(student =>
+                      row.item.fstudents.includes(student)
+                  ).length
+                    }} </b-list-group-item>
                 </b-list-group>
                 <b-list-group class="b-list-group-lists">
                   <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
@@ -68,7 +71,7 @@
                   <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
                   <b-list-group-item>
                     {{ row.item.absent.global.filter(student =>
-                          row.item.absent.fstudents.includes(student)
+                          row.item.fstudents.includes(student)
                       ).join(', ') || '-'
                     }}
                   </b-list-group-item>
