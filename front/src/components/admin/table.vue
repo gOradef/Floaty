@@ -346,7 +346,7 @@ export default {
         const month = String(date.getMonth() + 1).padStart(2, '0'); // +1, потому что месяцы считаются от 0
         const day = String(date.getDate()).padStart(2, '0');
 
-        return `${year}-${month}-${day}`;
+        return `${day}-${month}-${year}`;
     },
     async getData(date = null, date_2 = null) {
       let url = '/api/org/data';
@@ -489,10 +489,10 @@ export default {
         const groupName = group[0];
         const startIndex = groupName === '1-4 классы'? 2 : groupName === '5-11 классы'? firstFiveIndex + 2 : 2;
         const endIndex = groupName === '1-4 классы'? firstFiveIndex + 1 : groupName === '5-11 классы'? sortedData.length + 1 : sortedData.length + 1;
-        const orvi = `=TEXTJOIN(", ", TRUE, D${startIndex}:D${endIndex})`;
-        const respectful = `=TEXTJOIN(", ", TRUE, E${startIndex}:E${endIndex})`;
-        const notRespectful = `=TEXTJOIN(", ", TRUE, F${startIndex}:F${endIndex})`;
-        const fstudents = `=TEXTJOIN(", ", TRUE, G${startIndex}:G${endIndex})`;
+        const orvi = `=TEXTJOIN(", "; TRUE; D${startIndex}:D${endIndex})`;
+        const respectful = `=TEXTJOIN(", "; TRUE; E${startIndex}:E${endIndex})`;
+        const notRespectful = `=TEXTJOIN(", "; TRUE; F${startIndex}:F${endIndex})`;
+        const fstudents = `=TEXTJOIN(", "; TRUE; G${startIndex}:G${endIndex})`;
         absentFormulas.push([...group.slice(0, 3), orvi, respectful, notRespectful, fstudents]);
       }
       const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
