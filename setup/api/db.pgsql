@@ -45,114 +45,6 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
--- Name: class_absent_amount_drop(uuid, uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_absent_amount_drop(IN _orgref uuid, IN _userref uuid, IN _classref uuid)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	update schools_classes set class_body = jsonb_set(
-		class_body,
-		'{absent_amount}'::text[],
-		to_jsonb(0::integer)
-	)
-	where school_id = _orgRef
-	and teacher_id = _userRef
-	and class_id = _classRef;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_absent_amount_drop(IN _orgref uuid, IN _userref uuid, IN _classref uuid) OWNER TO postgres;
-
---
--- Name: class_absent_amount_set(uuid, uuid, uuid, integer); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_absent_amount_set(IN _orgref uuid, IN _userref uuid, IN _classref uuid, IN _new_absent_amount integer)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	update schools_classes set class_body = jsonb_set(
-		class_body,
-		'{absent_amount}'::text[],
-		to_jsonb(_new_absent_amount::integer)
-	)
-	where school_id = _orgRef
-	and teacher_id = _userRef
-	and class_id = _classRef;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_absent_amount_set(IN _orgref uuid, IN _userref uuid, IN _classref uuid, IN _new_absent_amount integer) OWNER TO postgres;
-
---
--- Name: class_amount_drop(uuid, uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_amount_drop(IN _orgref uuid, IN _userref uuid, IN _classref uuid)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	update schools_classes set class_body = jsonb_set(
-		class_body,
-		'{amount}'::text[],
-		to_jsonb(0::integer)
-	)
-	where school_id = _orgRef
-	and teacher_id = _userRef
-	and class_id = _classRef;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_amount_drop(IN _orgref uuid, IN _userref uuid, IN _classref uuid) OWNER TO postgres;
-
---
--- Name: class_amount_get(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.class_amount_get(_orgref uuid, _userref uuid, _classref uuid) RETURNS integer
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	return (
-		select class_body->>'amount' from schools_classes 
-		where school_id = _orgRef
-		and teacher_id = _userRef
-		and class_id = _classRef
-	)::integer;
-END;
-$$;
-
-
-ALTER FUNCTION public.class_amount_get(_orgref uuid, _userref uuid, _classref uuid) OWNER TO postgres;
-
---
--- Name: class_amount_set(uuid, uuid, uuid, integer); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_amount_set(IN _orgref uuid, IN _userref uuid, IN _classref uuid, IN _new_amount integer)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	update schools_classes set class_body = jsonb_set(
-		class_body,
-		'{amount}'::text[],
-		to_jsonb(_new_amount::integer)
-	)
-	where school_id = _orgRef
-	and teacher_id = _userRef
-	and class_id = _classRef;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_amount_set(IN _orgref uuid, IN _userref uuid, IN _classref uuid, IN _new_amount integer) OWNER TO postgres;
-
---
 -- Name: class_create(uuid, uuid, text); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
@@ -239,7 +131,7 @@ CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, I
     class_body_keys text[];
     key text;
     class_body jsonb;
-    object_name text;
+    absentPath text;
     absent_global jsonb;
 BEGIN
     IF (SELECT 1 FROM schools_data
@@ -256,19 +148,19 @@ BEGIN
         AND date = CURRENT_DATE);
 
     IF NOT (class_body IS NULL) THEN
-        object_name := 'absent';
+        absentPath := 'absent';
         absent_global := '[]'::jsonb;
 
         -- Итерация по ключам (cause_type)
         FOR key IN
             SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
         LOOP
-            IF (_input -> object_name ? key) THEN
+            IF (_input -> absentPath ? key) THEN
                 -- Установка значения из входных данных в массив
                 class_body := jsonb_set(
                     class_body,
-                    ('{' || object_name || ',' || key || '}')::text[], -- Путь для установки значения
-                    _input -> object_name -> key -- Значение из входных данных
+                    ('{' || absentPath || ',' || key || '}')::text[], -- Путь для установки значения
+                    _input -> absentPath -> key -- Значение из входных данных
                 );
 
                 -- Объединение существующих глобальных значений с текущими значениями из _input
@@ -276,7 +168,7 @@ BEGIN
                     WITH data AS (
                         SELECT
                             (absent_global)::jsonb AS array1,
-                            (_input -> object_name -> key)::jsonb AS array2
+                            (_input -> absentPath -> key)::jsonb AS array2
                     ),
                     merged AS (
                         SELECT DISTINCT
@@ -300,13 +192,13 @@ BEGIN
         IF jsonb_array_length(absent_global) > 0 THEN
             class_body := jsonb_set(
                 class_body,
-                ('{' || object_name || ', global}')::text[], -- Путь к глобальному значению
+                ('{' || absentPath || ', global}')::text[], -- Путь к глобальному значению
                 absent_global
             );
         ELSE
             class_body := jsonb_set(
                 class_body,
-                ('{' || object_name || ', global}')::text[],
+                ('{' || absentPath || ', global}')::text[],
                 '[]'::jsonb -- Установка в null, если массив пуст
             );
         END IF;
@@ -316,6 +208,21 @@ BEGIN
             class_body,
             '{isClassDataFilled}'::text[], -- Путь для установки isClassDataFilled
             'true'::jsonb, -- Новое значение
+            true -- Перезаписать, если существует
+        );
+
+		-- Установка absent.fstudents
+		class_body := jsonb_set(
+            class_body,
+            ('{' || absentPath || ', fstudents}')::text[],
+            (
+				SELECT jsonb_agg(
+                    absentStud
+                )
+                FROM jsonb_array_elements_text(class_body -> absentPath -> 'global') AS absentStud,
+                    jsonb_array_elements_text(class_body->'fstudents') as fstud
+                WHERE absentStud = fstud
+			), -- Новое значение
             true -- Перезаписать, если существует
         );
 
@@ -476,190 +383,6 @@ $$;
 ALTER PROCEDURE public.class_drop(IN _orgref uuid, IN _class_id uuid) OWNER TO postgres;
 
 --
--- Name: class_fstudents_add(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_fstudents_add(IN _orgref uuid, IN _teacherref uuid, IN _class_id uuid, IN fstudents text[])
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    existing_fstudents jsonb;
-    new_fstudents jsonb;
-    updated_fstudents jsonb;
-BEGIN
-    IF (SELECT 1 FROM schools_classes
-			WHERE school_id = _orgRef
-			AND user_id = _userRef
-			AND class_id = _class_id) THEN
-        -- Get the existing fstudents array
-        SELECT class_body->'list_fstudents' INTO existing_fstudents
-        FROM schools_classes
-        WHERE school_id = _orgRef AND user_id = _userRef AND class_id = _class_id;
-
-        -- Convert the new fstudents array to jsonb
-        new_fstudents := to_jsonb(fstudents);
-
-        -- Combine and deduplicate the arrays
-        SELECT jsonb_agg(DISTINCT elem) INTO updated_fstudents
-        FROM (
-            SELECT jsonb_array_elements(existing_fstudents) AS elem
-            UNION
-            SELECT jsonb_array_elements(new_fstudents) AS elem
-        ) combined_elements;
-
-        -- Update the array in the table
-        UPDATE schools_classes
-        SET class_body = jsonb_set(class_body, '{list_fstudents}', updated_fstudents)
-        WHERE school_id = _orgRef AND user_id = _userRef AND class_id = _class_id;
-    ELSE
-        RAISE NOTICE 'No such class :(';
-    END IF;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_fstudents_add(IN _orgref uuid, IN _teacherref uuid, IN _class_id uuid, IN fstudents text[]) OWNER TO postgres;
-
---
--- Name: class_fstudents_drop(uuid, uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_fstudents_drop(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	IF (select 1 from schools_classes 
-		where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef) 
-	THEN
-		update schools_classes set class_body = jsonb_set(
-			class_body,
-			'{list_fstudents}'::text[],
-			'[]'::jsonb
-		) where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef;
-	ELSE
-		RAISE notice 'No such class for school: %, user: %, class: %', 
-			_orgRef, 
-			_teacherRef, 
-			_classRef;
-	END IF;
-
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_fstudents_drop(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid) OWNER TO postgres;
-
---
--- Name: class_fstudents_get(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.class_fstudents_get(_orgref uuid, _teacherref uuid, _classref uuid) RETURNS SETOF text
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	return QUERY select jsonb_array_elements_text(class_body->'list_fstudents') from schools_classes 
-		where school_id = _orgRef AND user_id = _teacherRef and class_id = _classRef;
-END;
-$$;
-
-
-ALTER FUNCTION public.class_fstudents_get(_orgref uuid, _teacherref uuid, _classref uuid) OWNER TO postgres;
-
---
--- Name: class_fstudents_remove(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_fstudents_remove(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _fstudents text[])
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	IF (select 1 from schools_classes
-		where school_id = _orgRef
-		AND user_id = _teacherRef
-		AND class_id = _classRef)
-	THEN
-		update schools_classes set class_body = jsonb_set(
-			class_body,
-			'{list_fstudents}'::text[],
-			(
-				SELECT CASE
-                WHEN jsonb_agg(TStudent) IS NULL THEN '[]'::jsonb
-                ELSE jsonb_agg(TStudent)
-                END
-            FROM jsonb_array_elements_text(class_body->'list_fstudents') AS TStudent
-            WHERE TStudent != ALL (_fstudents)
-			)
-		) where school_id = _orgRef
-		AND user_id = _teacherRef
-		AND class_id = _classRef;
-	ELSE
-		RAISE notice 'No such class for school: %, user: %, class: %',
-			_orgRef,
-			_teacherRef,
-			_classRef;
-	END IF;
-
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_fstudents_remove(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _fstudents text[]) OWNER TO postgres;
-
---
--- Name: class_fstudents_set(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_fstudents_set(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _fstudents text[])
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	IF (select 1 from schools_classes 
-		where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef) 
-	THEN
-		update schools_classes set class_body = jsonb_set(
-			class_body,
-			'{list_fstudents}'::text[],
-			to_jsonb(_fstudents)
-		) where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef;
-	ELSE
-		RAISE notice 'No such class for school: %, user: %, class: %', 
-			_orgRef, 
-			_teacherRef, 
-			_classRef;
-	END IF;
-
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_fstudents_set(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _fstudents text[]) OWNER TO postgres;
-
---
--- Name: class_name_get(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.class_name_get(_orgref uuid, _teacherref uuid, _classref uuid) RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	return (select class_name from schools_classes where school_id = _orgRef 
-				AND teacher_id = _teacherRef
-				AND class_id = _classRef);
-END;
-$$;
-
-
-ALTER FUNCTION public.class_name_get(_orgref uuid, _teacherref uuid, _classref uuid) OWNER TO postgres;
-
---
 -- Name: class_props_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -714,77 +437,6 @@ $$;
 ALTER PROCEDURE public.class_rename(IN _orgref uuid, IN _class_id uuid, IN _new_classname text) OWNER TO postgres;
 
 --
--- Name: class_students_add(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_students_add(IN _orgref uuid, IN _teacherref uuid, IN _class_id uuid, IN students text[])
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    existing_students jsonb;
-    new_students jsonb;
-    updated_students jsonb;
-BEGIN
-        -- Get the existing students array
-        SELECT class_body->'list_students' INTO existing_students
-        FROM schools_classes_ownership_view
-        WHERE school_id = _orgRef AND user_id = _teacherRef AND class_id = _class_id;
-
-        -- Convert the new students array to jsonb
-        new_students := to_jsonb(students);
-
-        -- Combine and deduplicate the arrays
-        SELECT jsonb_agg(DISTINCT elem) INTO updated_students
-        FROM (
-            SELECT jsonb_array_elements(existing_students) AS elem
-            UNION
-            SELECT jsonb_array_elements(new_students) AS elem
-        ) combined_elements;
-
-        -- Update the array in the table
-        UPDATE schools_classes
-        SET class_body = jsonb_set(class_body, '{list_students}', updated_students)
-        WHERE school_id = _orgRef AND class_id = _class_id;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_students_add(IN _orgref uuid, IN _teacherref uuid, IN _class_id uuid, IN students text[]) OWNER TO postgres;
-
---
--- Name: class_students_drop(uuid, uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_students_drop(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid)
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	IF (select 1 from schools_classes 
-		where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef) 
-	THEN
-		update schools_classes set class_body = jsonb_set(
-			class_body,
-			'{list_students}'::text[],
-			'[]'::jsonb
-		) where school_id = _orgRef 
-		AND teacher_id = _teacherRef
-		AND class_id = _classRef;
-	ELSE
-		RAISE notice 'No such class for school: %, user: %, class: %', 
-			_orgRef, 
-			_teacherRef, 
-			_classRef;
-	END IF;
-
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_students_drop(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid) OWNER TO postgres;
-
---
 -- Name: class_students_get(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -805,33 +457,6 @@ $$;
 
 
 ALTER FUNCTION public.class_students_get(_school_id uuid, _user_id uuid, _class_id uuid) OWNER TO postgres;
-
---
--- Name: class_students_remove(uuid, uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_students_remove(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _students text[])
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	update schools_classes set class_body = jsonb_set(
-		class_body,
-		'{list_students}'::text[],
-		(
-			SELECT CASE
-			WHEN jsonb_agg(TStudent) IS NULL THEN '[]'::jsonb
-			ELSE jsonb_agg(TStudent)
-			END
-		FROM jsonb_array_elements_text(class_body->'list_students') AS TStudent
-		WHERE TStudent != ALL (_students)
-		)
-	) where school_id = _orgRef
-	AND class_id = _classRef;
-END;
-$$;
-
-
-ALTER PROCEDURE public.class_students_remove(IN _orgref uuid, IN _teacherref uuid, IN _classref uuid, IN _students text[]) OWNER TO postgres;
 
 --
 -- Name: class_students_set(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1694,21 +1319,6 @@ $$;
 ALTER FUNCTION public.school_req_get(_school_id uuid) OWNER TO postgres;
 
 --
--- Name: school_title_get(uuid); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.school_title_get(_orgref uuid) RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-	return title from schools where id = _orgRef;
-END;
-$$;
-
-
-ALTER FUNCTION public.school_title_get(_orgref uuid) OWNER TO postgres;
-
---
 -- Name: school_user_classes_set(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
@@ -1835,25 +1445,6 @@ $$;
 
 
 ALTER FUNCTION public.school_users_get(_orgid uuid) OWNER TO postgres;
-
---
--- Name: schools_data_get(uuid); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.schools_data_get(_orgid uuid) RETURNS jsonb
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-
-	if (select exists (select 1 from schools_data where school_id = _orgID and date = current_date)) then
-		return (select data from schools_data where school_id = _orgID and date = current_date);
-	END IF;
-	return null;
-END;
-$$;
-
-
-ALTER FUNCTION public.schools_data_get(_orgid uuid) OWNER TO postgres;
 
 --
 -- Name: user_classes_drop(uuid, uuid); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1994,38 +1585,6 @@ END IF;
 ALTER PROCEDURE public.user_create_with_context(IN _orgref uuid, IN _login text, IN _password text, IN _name text, IN _roles text[], IN _classes text[]) OWNER TO postgres;
 
 --
--- Name: user_create_with_roles(uuid, text, text, text, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.user_create_with_roles(IN _orgref uuid, IN _login text, IN _password text, IN _name text, IN _roles text[])
-    LANGUAGE plpgsql
-    AS $$
-       DECLARE
-           v_user_id UUID;
-           v_salt TEXT;
-       BEGIN
-          v_user_id := uuid_generate_v4();
-          -- Generate a random salt
-          v_salt := gen_salt('bf');
-
-          -- Insert user record into users table
-          INSERT INTO public.users(id, login, password, school_id, name)
-          VALUES(v_user_id, _login, crypt(_password, v_salt), _orgRef, _name);
-
-     	  -- Insert the generated salt into user_salts table
-          INSERT INTO public.users_salts(user_id, salt)
-          VALUES(v_user_id, v_salt);
-
-		  INSERT INTO public.schools_users(school_id, user_id, roles)
-		  VALUES(_orgRef, v_user_id, _roles);
-		  
-      END;
-      $$;
-
-
-ALTER PROCEDURE public.user_create_with_roles(IN _orgref uuid, IN _login text, IN _password text, IN _name text, IN _roles text[]) OWNER TO postgres;
-
---
 -- Name: user_drop(uuid); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
@@ -2090,40 +1649,6 @@ $$;
 ALTER PROCEDURE public.user_insert_in_school(IN _orgref uuid, IN _userid uuid, IN _roles text[], IN _classes text[]) OWNER TO postgres;
 
 --
--- Name: user_roles_add(uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.user_roles_add(IN _orgref uuid, IN _userid uuid, IN _roles text[])
-    LANGUAGE plpgsql
-    AS $$
-       BEGIN
-
-       -- Insert user's data in schools(members)
-       IF (select true from public.users where school_id = _orgRef and id = _userID)
-       	AND (select true from public.schools where members ? _userID::text) THEN
-       	UPDATE public.schools set members = jsonb_set(
-       		members,
-       		('{' || _userID || ', roles}')::text[],
-      			(
-      			select jsonb_agg(DISTINCT elem) FROM
-      				(
-      				select jsonb_array_elements(members->_userID::text->'roles') as elem
-      					UNION
-      				select jsonb_array_elements(to_jsonb(_roles)) as elem
-      				)
-      			)
-      		)
-      	where id = _orgRef;
-      ELSE
-      	RAISE INFO 'No such user. Is it in schools AND users tables? ID: %', _userID;
-      END IF;
-      END;
-      $$;
-
-
-ALTER PROCEDURE public.user_roles_add(IN _orgref uuid, IN _userid uuid, IN _roles text[]) OWNER TO postgres;
-
---
 -- Name: user_roles_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -2152,40 +1677,6 @@ $$;
 
 
 ALTER FUNCTION public.user_roles_get(_schoolref uuid, _userid uuid) OWNER TO postgres;
-
---
--- Name: user_roles_remove(uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.user_roles_remove(IN _orgref uuid, IN _userid uuid, IN _roles text[])
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-
--- Insert user's data in schools(members)
-IF (select true from public.users where school_id = _orgRef and id = _userID)
-	AND (select true from public.schools where members ? _userID::text) THEN
-	UPDATE public.schools set members = jsonb_set(
-		members,
-		('{' || _userID || ', roles}')::text[],
-			(
-				SELECT CASE
-                WHEN jsonb_agg(role) IS NULL THEN '[]'::jsonb
-                	ELSE jsonb_agg(role)
-                END
-	            FROM jsonb_array_elements_text(members->_userID::text->'roles') AS role
-	            WHERE role != ALL (_roles)
-			)
-	)
-	where id = _orgRef;
-ELSE
-	RAISE INFO 'No such user. Is it in schools AND users? ID: %', _userID;
-END IF;
-END;
-$$;
-
-
-ALTER PROCEDURE public.user_roles_remove(IN _orgref uuid, IN _userid uuid, IN _roles text[]) OWNER TO postgres;
 
 --
 -- Name: user_roles_set(uuid, uuid, text[]); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -2492,7 +1983,8 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 00000000-0000-0000-0000-000000000000	2024-10-20	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["123", "0000"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-23	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["1111", "втвтч"], "global": ["втвтч", "1111"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["0000", "123", "312312", "123", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["0000"], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
-00000000-0000-0000-0000-000000000000	2024-11-12	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович", "3124"], "global": ["туцть", "Иванов Иван Иванович", "3124"], "fstudents": ["туцть", "Иванов Иван Иванович"], "respectful": ["туцть"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-11-13	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": ["Иванов Иван Иванович"], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-11-12	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["3124", "Иванов Иван Иванович"], "global": ["туцть", "Иванов Иван Иванович", "3124"], "fstudents": ["туцть", "Иванов Иван Иванович"], "respectful": ["туцть"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
 \.
 
 

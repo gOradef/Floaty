@@ -46,19 +46,11 @@ namespace psqlMethods {
     };
 
     namespace classes {
-        namespace checks {
-            inline str isOwned = "is_class_owned";
-            inline str isExists = "is_class_exists";
-        }
+            namespace checks {
+                inline str isOwned = "is_class_owned";
+                inline str isExists = "is_class_exists";
+            }
 
-        ///@param school, user, class, [vector of users]
-        namespace students {
-            inline str add = "class_students_add";
-            inline str remove = "class_students_remove";
-
-            inline str add_f = "class_fstudents_add";
-            inline str remove_f = "class_fstudents_remove";
-        }
             namespace data {
             inline str getInsertedData = "class_data_get";
             inline str insertData = "class_data_insert";

@@ -23,9 +23,9 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
 
         //* Invites
-        c->prepare(psqlMethods::invites::getAll, "select school_invite_get($1::uuid)");
         c->prepare(psqlMethods::invites::isValid, "select is_invite_valid($1::uuid, $2, $3)");
         c->prepare(psqlMethods::invites::isExists, "select is_invite_exists($1::uuid, $2);");
+        c->prepare(psqlMethods::invites::getAll, "select school_invite_get($1::uuid)");
         c->prepare(psqlMethods::invites::create, "call school_invite_create($1::uuid, $2::jsonb)");
         c->prepare(psqlMethods::invites::drop, "delete from schools_invites "
                                                   "where school_id = $1::uuid "
@@ -49,33 +49,6 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::classes::checks::isOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
         c->prepare(psqlMethods::classes::checks::isExists, "select is_class_exists($1::uuid, uuid_or_null($2))");
 
-
-        //set [add, remove] students
-        {
-        c->prepare(psqlMethods::classes::students::add, "call class_students_add("
-                                              "$1::uuid, "
-                                              "$2::uuid, "
-                                              "$3::uuid, "
-                                              "$4::text[]"
-                                              ")");
-        c->prepare(psqlMethods::classes::students::remove, "call class_students_remove("
-                                                 "$1::uuid, "
-                                                 "$2::uuid, "
-                                                 "$3::uuid, "
-                                                 "$4::text[]"
-                                                 ")");
-
-        }
-
-        //set [add, remove] fstudents
-        {
-            c->prepare(psqlMethods::classes::students::add_f, "call class_fstudents_add("
-                                              "$1::uuid, $2::uuid, "
-                                              "$3::uuid, $4::text[])");
-            c->prepare(psqlMethods::classes::students::remove_f, "call class_fstudents_remove("
-                                                     "$1::uuid, $2::uuid, "
-                                                     "$3::uuid, $4::text[])");
-        }
 
         //Includes check on existing data. If data in null -> generates by self
         c->prepare(psqlMethods::classes::data::getInsertedData, "select class_data_get($1::uuid,$2::uuid,$3::date)");
@@ -111,8 +84,6 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
 
         //* Grant roles to user
-        // c->prepare(psqlMethods::schoolManager::users::grantRoles, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
-        // c->prepare(psqlMethods::schoolManager::users::degrantRoles, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
         c->prepare(psqlMethods::schoolManager::users::setRoles, "call user_roles_set($1::uuid, $2::uuid, $3::text[])");
         //Region data
 
