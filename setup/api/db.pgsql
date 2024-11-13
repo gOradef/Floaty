@@ -347,7 +347,7 @@ CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, I
     class_body_keys text[];
     key text;
     class_body jsonb;
-    object_name text;
+    absentPath text;
     absent_global jsonb;
 BEGIN
     IF (SELECT 1 FROM schools_data
@@ -361,28 +361,27 @@ BEGIN
     class_body := (SELECT data -> _classID::text FROM schools_data WHERE date = _date);
 
     IF NOT (class_body IS NULL) THEN
-        object_name := 'absent';
+        absentPath := 'absent';
         absent_global := '[]'::jsonb;
 
         -- Итерация по ключам (cause_type)
         FOR key IN
             SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
         LOOP
-            IF (_input -> object_name ? key) THEN
+            IF (_input -> absentPath ? key) THEN
                 -- Установка значения из входных данных в массив
                 class_body := jsonb_set(
                     class_body,
-                    ('{' || object_name || ',' || key || '}')::text[], -- Путь для установки значения
-                    _input -> object_name -> key -- Значение из входных данных
+                    ('{' || absentPath || ',' || key || '}')::text[], -- Путь для установки значения
+                    _input -> absentPath -> key -- Установка значения из input
                 );
 
-			-- 
-                -- Объединение существующих глобальных значений с текущими значениями из _input 
+                -- Объединение существующих глобальных значений с текущими значениями из _input
                 absent_global := (
                     WITH data AS (
                         SELECT
                             (absent_global)::jsonb AS array1,
-                            (_input -> object_name -> key)::jsonb AS array2
+                            (_input -> absentPath -> key)::jsonb AS array2
                     ),
                     merged AS (
                         SELECT DISTINCT
@@ -406,13 +405,14 @@ BEGIN
         IF jsonb_array_length(absent_global) > 0 THEN
             class_body := jsonb_set(
                 class_body,
-                ('{' || object_name || ', global}')::text[], -- Путь к глобальному значению
+                ('{' || absentPath || ', global}')::text[], -- Путь к глобальному значению
                 absent_global
             );
+			
         ELSE
             class_body := jsonb_set(
                 class_body,
-                ('{' || object_name || ', global}')::text[],
+                ('{' || absentPath || ', global}')::text[],
                 '[]'::jsonb -- Установка в null, если массив пуст
             );
         END IF;
@@ -425,6 +425,20 @@ BEGIN
             true -- Перезаписать, если существует
         );
 
+		-- Установка absent.fstudents
+		class_body := jsonb_set(
+            class_body,
+            ('{' || absentPath || ', fstudents}')::text[],
+            (
+				SELECT jsonb_agg(
+                    absentStud
+                )
+                FROM jsonb_array_elements_text(class_body -> absentPath -> 'global') AS absentStud,
+                    jsonb_array_elements_text(class_body->'fstudents') as fstud
+                WHERE absentStud = fstud
+			), -- Новое значение
+            true -- Перезаписать, если существует
+        );
         -- УСТАНОВКА В ТАБЛИЦУ
         UPDATE schools_data SET data = jsonb_set(
             data,
@@ -1417,57 +1431,57 @@ BEGIN
             sa.key, --id
             ae.k, --cause type
             jae.e as v -- cause array
-        FROM 
-            summed_amounts sa
+        FROM
+            summed_amounts as sa
             JOIN jsonb_each(sa.absent_list) AS ae(k, v) ON TRUE
             LEFT JOIN jsonb_array_elements_text(v) AS jae(e) ON TRUE
     ),
     merged_absent AS (
-        SELECT 
+        SELECT
             key,
             k,
             jsonb_agg(v ORDER BY v) AS v
-        FROM 
+        FROM
             absent_elements
         WHERE
             v IS NOT NULL
         GROUP BY key, k
     ),
     final_absent AS (
-        SELECT 
+        SELECT
             key,
             jsonb_object_agg(k, COALESCE(v, '[]'::jsonb)) AS absent
-        FROM 
+        FROM
             (
-                SELECT 
+                SELECT
                     key,
                     k,
                     v
-                FROM 
+                FROM
                     merged_absent
                 UNION ALL
-                SELECT 
+                SELECT
                     sa.key,
                     k,
                     '[]'::jsonb
-                FROM 
+                FROM
                     summed_amounts sa
-                CROSS JOIN 
+                CROSS JOIN
                     jsonb_each(sa.absent_list) AS ae(k, v)
-                WHERE 
+                WHERE
                     (sa.key, ae.k) NOT IN (SELECT key, k FROM merged_absent)
             ) AS subquery
         GROUP BY key
     )
-    SELECT 
+    SELECT
         jsonb_object_agg(s.key, jsonb_build_object(
             'name', s.class_name,
             'amount', s.total_amount,
-            'absent', fa.absent,  -- include the absent_lists
+            'absent', fa.absent,
            'students', s.students,
             'owners', s.owners
         )) into result
-    FROM 
+    FROM
         summed_amounts s
         JOIN final_absent fa ON s.key = fa.key;
     RETURN query (select key, value from jsonb_each(result));
@@ -2411,8 +2425,8 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
+00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"]}
 64e40f2f-2bba-484f-bf95-00ae047ca171	39f58698-a861-477a-b06d-56c31aa69624	{"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": []}
-00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"]}
 00000000-0000-0000-0000-000000000000	21f50302-c5a3-49c6-8777-77a59dc1303a	{"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["123", "321"], "fstudents": []}
 \.
 
@@ -2477,7 +2491,8 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 64e40f2f-2bba-484f-bf95-00ae047ca171	2024-11-05	{"39f58698-a861-477a-b06d-56c31aa69624": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "96ff9707-cdee-46e9-a0d3-e30e772cf416", "name": "Юлия Александровна"}], "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-20	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["123", "0000"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-23	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["1111", "втвтч"], "global": ["втвтч", "1111"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["0000", "123", "312312", "123", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["0000"], "isClassDataFilled": true}}
-00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": ["123"], "fstudents": [], "respectful": [], "not_respectful": ["123"]}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
+00000000-0000-0000-0000-000000000000	2024-11-12	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович", "3124"], "global": ["туцть", "Иванов Иван Иванович", "3124"], "fstudents": ["туцть", "Иванов Иван Иванович"], "respectful": ["туцть"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
 \.
 
 
