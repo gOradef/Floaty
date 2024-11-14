@@ -122,146 +122,29 @@ $$;
 ALTER FUNCTION public.class_data_get(_schoolid uuid, _classid uuid, _date date) OWNER TO postgres;
 
 --
--- Name: class_data_insert(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
---
-
-CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb)
-    LANGUAGE plpgsql
-    AS $$DECLARE
-    class_body_keys text[];
-    key text;
-    class_body jsonb;
-    absentPath text;
-    absent_global jsonb;
-BEGIN
-    IF (SELECT 1 FROM schools_data
-        WHERE school_id = _schoolID
-        AND date = CURRENT_DATE) THEN
-        -- Данные существуют, ничего не делаем
-    ELSE
-        RAISE NOTICE 'Data does not exist for school: %. Generating', _schoolID;
-        CALL school_data_gen(_schoolID);
-    END IF;
-
-    class_body := (SELECT data -> _classID::text FROM schools_data 
-        WHERE school_id = _schoolID
-        AND date = CURRENT_DATE);
-
-    IF NOT (class_body IS NULL) THEN
-        absentPath := 'absent';
-        absent_global := '[]'::jsonb;
-
-        -- Итерация по ключам (cause_type)
-        FOR key IN
-            SELECT jsonb_array_elements_text('["ORVI", "respectful", "not_respectful"]')
-        LOOP
-            IF (_input -> absentPath ? key) THEN
-                -- Установка значения из входных данных в массив
-                class_body := jsonb_set(
-                    class_body,
-                    ('{' || absentPath || ',' || key || '}')::text[], -- Путь для установки значения
-                    _input -> absentPath -> key -- Значение из входных данных
-                );
-
-                -- Объединение существующих глобальных значений с текущими значениями из _input
-                absent_global := (
-                    WITH data AS (
-                        SELECT
-                            (absent_global)::jsonb AS array1,
-                            (_input -> absentPath -> key)::jsonb AS array2
-                    ),
-                    merged AS (
-                        SELECT DISTINCT
-                            jsonb_array_elements(array1) AS elem
-                        FROM data
-                        UNION
-                        SELECT
-                            jsonb_array_elements(array2)
-                        FROM data
-                    )
-                    SELECT
-                        jsonb_agg(elem) AS unique_merged_array
-                    FROM merged
-                );
-            ELSE
-                RAISE NOTICE 'Key doesn''t exist in list-input: %', key;
-            END IF;
-        END LOOP;
-
-        -- Установка в объединенный финальный массив
-        IF jsonb_array_length(absent_global) > 0 THEN
-            class_body := jsonb_set(
-                class_body,
-                ('{' || absentPath || ', global}')::text[], -- Путь к глобальному значению
-                absent_global
-            );
-        ELSE
-            class_body := jsonb_set(
-                class_body,
-                ('{' || absentPath || ', global}')::text[],
-                '[]'::jsonb -- Установка в null, если массив пуст
-            );
-        END IF;
-
-        -- Установка isClassDataFilled в true
-        class_body := jsonb_set(
-            class_body,
-            '{isClassDataFilled}'::text[], -- Путь для установки isClassDataFilled
-            'true'::jsonb, -- Новое значение
-            true -- Перезаписать, если существует
-        );
-
-		-- Установка absent.fstudents
-		class_body := jsonb_set(
-            class_body,
-            ('{' || absentPath || ', fstudents}')::text[],
-            (
-				SELECT jsonb_agg(
-                    absentStud
-                )
-                FROM jsonb_array_elements_text(class_body -> absentPath -> 'global') AS absentStud,
-                    jsonb_array_elements_text(class_body->'fstudents') as fstud
-                WHERE absentStud = fstud
-			), -- Новое значение
-            true -- Перезаписать, если существует
-        );
-
-        -- УСТАНОВКА В ТАБЛИЦУ
-        UPDATE schools_data SET data = jsonb_set(
-            data,
-            ('{'::text || _classID::text || '}'::text)::text[],
-            class_body
-        )
-        WHERE school_id = _schoolID
-        AND date = CURRENT_DATE;
-
-        RAISE NOTICE '[BODY]: %', class_body;
-    ELSE
-        RAISE NOTICE 'Cannot read class_body for class: %. Does it exist?', _classID;
-    END IF;
-END;$$;
-
-
-ALTER PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb) OWNER TO postgres;
-
---
 -- Name: class_data_insert(uuid, uuid, jsonb, date); Type: PROCEDURE; Schema: public; Owner: postgres
 --
 
 CREATE PROCEDURE public.class_data_insert(IN _schoolid uuid, IN _classid uuid, IN _input jsonb, IN _date date)
     LANGUAGE plpgsql
-    AS $$DECLARE
+    AS $$
+DECLARE
     class_body_keys text[];
     key text;
     class_body jsonb;
     absentPath text;
     absent_global jsonb;
 BEGIN
+	IF (_date is null) then
+		_date := current_date;
+	END IF;
+
     IF (SELECT 1 FROM schools_data
         WHERE school_id = _schoolID
         AND date = _date) THEN
         -- Данные существуют, ничего не делаем
     ELSE
+		RAISE NOTICE 'Data is not exists';
 		RETURN;
     END IF;
 
@@ -315,13 +198,29 @@ BEGIN
                 ('{' || absentPath || ', global}')::text[], -- Путь к глобальному значению
                 absent_global
             );
-			
+			-- Установка absent.fstudents
+			class_body := jsonb_set(
+	            class_body,
+	            ('{' || absentPath || ', fstudents}')::text[],
+	            (
+					SELECT COALESCE(jsonb_agg(absentStud), '[]'::jsonb)
+					FROM jsonb_array_elements_text(class_body -> absentPath -> 'global') AS absentStud
+					INNER JOIN jsonb_array_elements_text(class_body->'fstudents') AS fstud ON absentStud = fstud
+				), -- Новое значение
+	            true -- Перезаписать, если существует
+	        );
         ELSE
             class_body := jsonb_set(
                 class_body,
                 ('{' || absentPath || ', global}')::text[],
                 '[]'::jsonb -- Установка в null, если массив пуст
             );
+			-- Установка absent.fstudents
+			class_body := jsonb_set(
+	            class_body,
+	            ('{' || absentPath || ', fstudents}')::text[],
+	            '[]'::jsonb
+	        );
         END IF;
 
         -- Установка isClassDataFilled в true
@@ -332,20 +231,6 @@ BEGIN
             true -- Перезаписать, если существует
         );
 
-		-- Установка absent.fstudents
-		class_body := jsonb_set(
-            class_body,
-            ('{' || absentPath || ', fstudents}')::text[],
-            (
-				SELECT jsonb_agg(
-                    absentStud
-                )
-                FROM jsonb_array_elements_text(class_body -> absentPath -> 'global') AS absentStud,
-                    jsonb_array_elements_text(class_body->'fstudents') as fstud
-                WHERE absentStud = fstud
-			), -- Новое значение
-            true -- Перезаписать, если существует
-        );
         -- УСТАНОВКА В ТАБЛИЦУ
         UPDATE schools_data SET data = jsonb_set(
             data,
@@ -1982,9 +1867,9 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 64e40f2f-2bba-484f-bf95-00ae047ca171	2024-11-05	{"39f58698-a861-477a-b06d-56c31aa69624": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "96ff9707-cdee-46e9-a0d3-e30e772cf416", "name": "Юлия Александровна"}], "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-20	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["123", "0000"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-10-23	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["1111", "втвтч"], "global": ["втвтч", "1111"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["0000", "123", "312312", "123", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["0000"], "isClassDataFilled": true}}
-00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
-00000000-0000-0000-0000-000000000000	2024-11-13	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": ["Иванов Иван Иванович"], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-11-14	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович", "3124"], "global": ["Иванов Иван Иванович", "3124"], "fstudents": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
 00000000-0000-0000-0000-000000000000	2024-11-12	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["3124", "Иванов Иван Иванович"], "global": ["туцть", "Иванов Иван Иванович", "3124"], "fstudents": ["туцть", "Иванов Иван Иванович"], "respectful": ["туцть"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2024-11-11	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": ["Иванов Иван Иванович"], "fstudents": [], "respectful": ["Иванов Иван Иванович"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": true}}
 \.
 
 
