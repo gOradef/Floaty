@@ -137,7 +137,7 @@ export default {
         ORVI: new Set(this.updatedClass.absent.ORVI),
         respectful: new Set(this.updatedClass.absent.respectful),
         not_respectful: new Set(this.updatedClass.absent.not_respectful),
-        fstudents: new Set(this.updatedClass.absent.fstudents),
+        fstudents: new Set(this.updatedClass.fstudents),
       };
 
       return this.students.map((student) => {
