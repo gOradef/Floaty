@@ -1,3 +1,5 @@
 build/
 front/dist/
-#.idea
+.idea
+deploy.tar.gz
+setup/backup - *
