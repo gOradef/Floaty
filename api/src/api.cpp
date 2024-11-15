@@ -578,15 +578,6 @@ void schoolManager::inviteDrop(const std::string& reqID) {
     work.exec_prepared(psqlMethods::invites::drop, _org_id, reqID);
     work.commit();
 }
-//todo add route to drop invte and drop user password
-/*
- * 1. Name psql method
- * 2. Add it to connectionPool
- * 3. create api function
- * 4. create function in interface
- * 5. route it
- *
- */
 
 /**
  * @param classID - id of class
