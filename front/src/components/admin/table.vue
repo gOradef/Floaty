@@ -486,8 +486,7 @@ export default {
         const endIndex = groupName === '1-4 классы' ? firstFiveIndex + 1 : groupName === '5-11 классы' ? sortedData.length + 1 : sortedData.length + 1;
 
         const generateFormulaForLetter = (letter) => {
-          return `=IF(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}) = ""; 0;
-            LEN(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}); ","; ""))+1)`;
+          return `=IF(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}) = ""; 0; LEN(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}); ","; ""))+1)`;
         };
 
         // Получение кол-ва элементов, разделенных ", "
