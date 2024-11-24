@@ -486,9 +486,9 @@ export default {
         const endIndex = groupName === '1-4 классы' ? firstFiveIndex + 1 : groupName === '5-11 классы' ? sortedData.length + 1 : sortedData.length + 1;
 
         const generateFormulaForLetter = (letter) => {
-          return `=IF(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}) = "", 0,
-            LEN(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}), ",", ""))+1)`;
-        } ;
+          return `=IF(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}) = ""; 0;
+            LEN(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}); ","; ""))+1)`;
+        };
 
         // Получение кол-ва элементов, разделенных ", "
         const orvi = generateFormulaForLetter('D');
@@ -500,7 +500,7 @@ export default {
       }
       const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
         if (typeof cell ==='string' && cell.startsWith('=')) {
-          return { f: cell, v: 'Обновите ячейку'};
+          return { f: cell.slice(1), v: 'Обновите ячейку'};
         }
         return cell;
       }))]);
