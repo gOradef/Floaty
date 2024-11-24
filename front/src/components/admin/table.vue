@@ -456,9 +456,9 @@ export default {
         item.owners.map(owner => owner.name).join(', ') || '',
       ]);
 
-      const firstFiveIndex = sortedData.findIndex(item => {
-        const match = item.name.match(/\d+/);
-        return match && parseInt(match[0]) === 5;
+      let firstFiveIndex = sortedData.findIndex(item => {
+        const match = item.name.match(/\d+/) | 0; //return 0 if null
+        return match && match > 5;
       });
 
       const header = [
@@ -482,12 +482,20 @@ export default {
       const absentFormulas = [];
       for (const group of formulas) {
         const groupName = group[0];
-        const startIndex = groupName === '1-4 классы'? 2 : groupName === '5-11 классы'? firstFiveIndex + 2 : 2;
-        const endIndex = groupName === '1-4 классы'? firstFiveIndex + 1 : groupName === '5-11 классы'? sortedData.length + 1 : sortedData.length + 1;
-        const orvi = `=TEXTJOIN(", "; TRUE; D${startIndex}:D${endIndex})`;
-        const respectful = `=TEXTJOIN(", "; TRUE; E${startIndex}:E${endIndex})`;
-        const notRespectful = `=TEXTJOIN(", "; TRUE; F${startIndex}:F${endIndex})`;
-        const fstudents = `=TEXTJOIN(", "; TRUE; G${startIndex}:G${endIndex})`;
+        const startIndex = groupName === '1-4 классы' ? 2 : groupName === '5-11 классы' ? firstFiveIndex + 2 : 2;
+        const endIndex = groupName === '1-4 классы' ? firstFiveIndex + 1 : groupName === '5-11 классы' ? sortedData.length + 1 : sortedData.length + 1;
+
+        const generateFormulaForLetter = (letter) => {
+          return `=IF(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}) = "", 0,
+            LEN(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; TRUE; ${letter}${startIndex}:${letter}${endIndex}), ",", ""))+1)`;
+        } ;
+
+        // Получение кол-ва элементов, разделенных ", "
+        const orvi = generateFormulaForLetter('D');
+        const respectful = generateFormulaForLetter('E');
+        const notRespectful = generateFormulaForLetter('F')
+        const fstudents = generateFormulaForLetter('G');
+
         absentFormulas.push([...group.slice(0, 3), orvi, respectful, notRespectful, fstudents]);
       }
       const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
