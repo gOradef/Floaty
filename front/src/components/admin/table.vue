@@ -458,7 +458,7 @@ export default {
 
       let firstFiveIndex = sortedData.findIndex(item => {
         const match = item.name.match(/\d+/) | 0; //return 0 if null
-        return match && match > 5;
+        return match && match >= 5;
       });
 
       const header = [
@@ -486,7 +486,8 @@ export default {
         const endIndex = groupName === '1-4 классы' ? firstFiveIndex + 1 : groupName === '5-11 классы' ? sortedData.length + 1 : sortedData.length + 1;
 
         const generateFormulaForLetter = (letter) => {
-          return `=IF(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}) = ""; 0; LEN(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}))-LEN(SUBSTITUTE(TEXTJOIN(", "; 1; ${letter}${startIndex}:${letter}${endIndex}); ","; ""))+1)`;
+          const diapazon = `${letter}${startIndex}:${letter}${endIndex}`;
+          return `=IF(TEXTJOIN(", "; 1; ${diapazon}) = ""; 0; LEN(TEXTJOIN(", "; 1; ${diapazon}))-LEN(SUBSTITUTE(TEXTJOIN(", "; 1; ${diapazon}); ","; ""))+1)`;
         };
 
         // Получение кол-ва элементов, разделенных ", "
@@ -499,7 +500,7 @@ export default {
       }
       const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
         if (typeof cell ==='string' && cell.startsWith('=')) {
-          return { f: cell.slice(1), v: 'Обновите ячейку'};
+          return { t: 'n', f: cell.slice(1)};
         }
         return cell;
       }))]);
@@ -527,8 +528,9 @@ table.b-table[aria-busy='true'] {
 }
 
 .list-group-item {
-  max-height: 35px;
-  //min-width: 220px;
+/* max-height: 35px;
+  min-width: 220px;
+  */
   padding: 0 12px 0 12px;
 
   align-self: center;
