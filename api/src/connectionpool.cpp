@@ -82,7 +82,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         // c->prepare(psqlMethods::schoolManager::users::degrantClasses, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
         c->prepare(psqlMethods::schoolManager::users::setClasses, "call school_user_classes_set($1::uuid, $2::uuid, $3::uuid[])");
 
-
+        c->prepare(psqlMethods::schoolManager::users::setName, "call school_user_name_set($1::uuid, $2::uuid, $3::text)");
         //* Grant roles to user
         c->prepare(psqlMethods::schoolManager::users::setRoles, "call user_roles_set($1::uuid, $2::uuid, $3::text[])");
         //Region data

@@ -514,6 +514,12 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
         }
         work.exec_prepared(psqlMethods::schoolManager::users::setClasses, _org_id, userID, classes);
     }
+    if (userBody.has("name") &&
+        userBody["name"].t() == crow::json::type::String &&
+        userBody["name"].s() != "") {
+        const std::string& newUserName = userBody["name"].s();
+        work.exec_prepared(psqlMethods::schoolManager::users::setName, _org_id, userID, newUserName);
+    }
     work.commit();
 }
 

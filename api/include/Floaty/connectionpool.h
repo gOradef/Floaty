@@ -76,8 +76,8 @@ namespace psqlMethods {
             inline str drop = "school_user_drop"; //school_id, user_id
             inline str resetPassword = "school_user_password_reset"; //school_id, user_id, newPassword
 
+            inline str setName = "school_user_name_set";
             inline str setRoles = "school_user_roles_set";
-
             inline str setClasses = "school_user_classes_set";
         }
         namespace data
