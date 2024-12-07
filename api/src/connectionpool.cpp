@@ -89,7 +89,8 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
         c->prepare(psqlMethods::schoolManager::data::isExists, "select is_school_data_exists($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::genNewForToday, "call school_data_gen($1::uuid)");
-        c->prepare(psqlMethods::schoolManager::data::get, "select * from school_data_get($1::uuid, $2::date)");
+        c->prepare(psqlMethods::schoolManager::data::getForToday, "select * from school_data_get($1::uuid, current_date)");
+        c->prepare(psqlMethods::schoolManager::data::getForDate, "select * from school_data_get($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
         connections.push_back(std::move(c)); // Move ownership to the vector

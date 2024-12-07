@@ -76,19 +76,16 @@ namespace psqlMethods {
             inline str drop = "school_user_drop"; //school_id, user_id
             inline str resetPassword = "school_user_password_reset"; //school_id, user_id, newPassword
 
-            // inline str grantRoles = "school_user_roles_grant";
-            // inline str degrantRoles = "school_user_roles_degrant";
             inline str setRoles = "school_user_roles_set";
 
-            // inline str grantClasses = "school_user_class_grant";
-            // inline str degrantClasses = "school_user_class_degrant";
             inline str setClasses = "school_user_classes_set";
         }
         namespace data
         {
             inline str isExists = "is_school_data_exists";
             inline str genNewForToday = "school_data_gen";
-            inline str get = "school_data_get";
+            inline str getForToday = "school_data_get_today";
+            inline str getForDate = "school_data_get_for_date";
             inline str getSummarized = "school_data_summarized_get";
         }
 

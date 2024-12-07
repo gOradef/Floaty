@@ -248,7 +248,7 @@ void schoolManager::genDataForToday() {
 crow::json::wvalue schoolManager::getDataForToday() {
     pqxx::read_transaction readTransaction(*_connection);
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, nullptr);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getForToday, _org_id);
 
     // Prepare JSON result
     crow::json::wvalue root;
@@ -272,7 +272,7 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
     if (!readTransaction.exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
         return nullptr;
 
-    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::get, _org_id, date);
+    auto res = readTransaction.exec_prepared(psqlMethods::schoolManager::data::getForDate, _org_id, date);
 
     // Prepare JSON result
     crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
