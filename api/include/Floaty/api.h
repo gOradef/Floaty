@@ -101,6 +101,7 @@ protected:
     // connection to Postgres
     ConnectionPool* _connectionPool;
     pqxx::connection* _connection;
+    pqxx::transaction_base* work;
 
     // attributes of any user
     std::string _org_id;
@@ -125,6 +126,10 @@ protected:
                                                                            :
         throw api::exceptions::wrongRequest("Input date is not valid format");
     };
+    void priviliageWorkerToWrite() {
+        delete this->work;
+        this->work = new pqxx::work(*_connection);
+    }
 
 public:
     Request(ConnectionPool *connectionPool, const crow::request &req);

@@ -785,16 +785,16 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
         return true;
     }
     catch (jwt::error::signature_verification_error& e) {
-        std::cerr << "Signature verif. err: " << e;
+        std::cerr << "Signature verif. err: " << e << '\n';
     }
     catch (jwt::error::token_verification_error& e) {
-        std::cerr << "Signature verif. err: " << e;
+        std::cerr << "Signature verif. err: " << e << '\n';
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Exception. Data may changed. Err: " << e.what() << '\n';
     }
     catch (std::exception &e) {
-        std::cerr << "Excp. is: " << e.what();
+        std::cerr << "Excp. is: " << e.what() << '\n';
     }
     _connectionPool->releaseConnection(c);
     return false;
