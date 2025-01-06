@@ -6,13 +6,14 @@ import HelloWorld from '@/components/HelloWorld.vue'
 
 import loginPage from '@/views/LoginView.vue'
 import signupInvite from "@/views/SignupInvite.vue";
+import ReleaseNotes from "@/views/ReleaseNotes.vue";
 
 import NotFound from "@/views/NotFound.vue";
 import axios from "axios";
 // import choseClass from "@/components/user/choseClass.vue";
 import InterfaceLocker from "@/views/locker.vue";
 // Lazy-loaded components
-const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+// const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
 
 
 Vue.use(VueRouter)
@@ -46,10 +47,15 @@ const routes = [
         props: (route) => ({ orgID: route.params.orgID })
     },
     {
-        path: '/about',
-        name: 'О нас',
-        component: AboutView
+      path: '/release-notes',
+      name: 'Обновления',
+      component: ReleaseNotes
     },
+    // {
+    //     path: '/about',
+    //     name: 'О нас',
+    //     component: AboutView
+    // },
     {
         path: '/user',
         name: 'Кл. рук.',
