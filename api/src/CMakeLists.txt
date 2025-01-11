@@ -6,6 +6,7 @@ set(LIBS_DIR ${CMAKE_SOURCE_DIR}/lib)
 set(INCLUDES ${CMAKE_SOURCE_DIR}/include)
 
 list(APPEND SOURCES
+        ConfigParser.cpp
         connectionpool.cpp
         api.cpp
         server.cpp
