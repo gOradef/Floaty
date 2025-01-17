@@ -20,7 +20,6 @@ ConfigParser::ConfigParser() {
 
         web.isMultithreaded = config["CONFIG"]["WEB"]["isMultithreaded"].b();
         web.isRunAsync = config["CONFIG"]["WEB"]["isRunAsync"].b();
-        web.isUseSSL = config["CONFIG"]["WEB"]["isUseSSL"].b();
 
         postgresql.connection_amount = config["CONFIG"]["POSTGRES"]["connections_amount"].i();
     }

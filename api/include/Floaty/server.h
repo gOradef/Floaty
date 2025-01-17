@@ -193,8 +193,5 @@ public:
 
     static void initRoutes();
 
-    [[maybe_unused]]
-    static void useSSL();
-
     static void run();
 };

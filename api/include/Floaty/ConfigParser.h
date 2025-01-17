@@ -25,7 +25,6 @@ public:
     struct web {
         bool isMultithreaded;
         bool isRunAsync;
-        bool isUseSSL;
     };
 
     struct postgresql {
@@ -34,7 +33,7 @@ public:
 
     jwt_secrets jwt_secrets{};
     web web{};
-    postgresql postgresql;
+    postgresql postgresql{};
 };
 
 #endif // CONFIGPARSER_H
