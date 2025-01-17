@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <b-container class="d-flex flex-column">
     <div
       id="versionContainer"
       v-for="(versionData, versionKey) in versions"
       :key="versionKey"
     >
-      <b-card style="width: 90%; font-size: 0.93rem" class="border-0">
+      <b-card style="width: 90%; font-size: 0.93rem; border: none; border-top: 1px solid rgba(0,0,0,0.25);" class="mt-4 pt-4">
         <h4 class="mb-0 pb-0">
           <b> Изменения для {{ versionKey }} 🎉 </b>
         </h4>
@@ -126,7 +126,7 @@
         </b-card-body>
       </b-card>
     </div>
-  </div>
+  </b-container>
 </template>
 
 <script>
@@ -135,11 +135,11 @@ export default {
   data() {
     return {
       versions: {
-        "1.3.0-b": {
-          date: "3 января, 2024",
-          description: "Добавлен логгер.",
-          features: ["Добавлен логгер."],
-        },
+        // "1.3.0-b": {
+        //   date: "3 января, 2024",
+        //   description: "Добавлен логгер.",
+        //   features: ["Добавлен логгер."],
+        // },
         "1.2.1": {
           date: "29 декабря, 2024",
           description:
@@ -283,5 +283,9 @@ export default {
 .collapses > div > .collapse {
   color: gray;
   font-size: 0.85rem;
+}
+.collapses div div a {
+  text-decoration: none;
+  color: #267fec;
 }
 </style>
