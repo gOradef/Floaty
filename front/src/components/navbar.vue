@@ -21,6 +21,9 @@ export default {
 
 <style scoped>
   .navbar {
-    background-color: #eaf1f8 !important ;
+    background-color: #eaf1f8 !important;
+    height: 5vh;
+    min-height: 60px;
+    max-height: 60px;
   }
 </style>

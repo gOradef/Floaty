@@ -19,4 +19,7 @@ export default {
     text-decoration: none;
     color: #2b91ef;
   }
+  .card-footer {
+    height: auto;
+  }
 </style>

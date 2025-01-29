@@ -131,7 +131,6 @@
                 Данные за сегодня уже были внесены. <a @click.stop="setTodayClassBody" href="#lists"> Просмотреть? </a>
               </div>
 
-
               <b-container fluid>
 
                 <!-- Dropdown for selecting students -->
@@ -148,7 +147,6 @@
                       {{ selectedStudentText }}
                     </span>
                   </template>
-
                   <b-dropdown-form>
                     <b-form-group
                         label="Поиск ученика:"
@@ -186,7 +184,7 @@
 
                 <b-row class="g-3" id="lists">
 
-                  <!--                  ORVI -->
+                  <!-- ORVI -->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список ОРВИ учеников:</h6>
                     <b-list-group>
@@ -528,12 +526,13 @@ export default {
   width: 30px;
   height: 30px;
 }
-.returnIcon :hover {
-  color: var(--danger);
-  transition: all 200ms ease-in-out 100ms;
-  font-size: 20px
+.dropdown {
+  display: flex;
+  flex-direction: column;
 }
 .dropdownMenu {
+  transform: translate3d(0px, 0px, 0px) !important;
+  position: relative !important;
   max-height: 230px;
   overflow-y: auto;
   min-width: auto;
