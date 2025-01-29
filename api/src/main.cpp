@@ -27,7 +27,8 @@ int main() {
         << "Multithreaded: " << (config_parser.web.isMultithreaded ? "Enabled" : "Disabled") << "\n"
         << "Async: " << (config_parser.web.isRunAsync ? "Enabled" : "Disabled") << "\n"
         << "# Postgresql #\n"
-        << "Connections: " << config_parser.postgresql.connection_amount << "\n";
+        << "Connections: " << config_parser.postgresql.connection_amount << "\n"
+        << "==================\n";
 
     const std::string status = oss.str();
     std::cout << status;
