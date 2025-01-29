@@ -98,16 +98,28 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 }
 
 pqxx::connection* ConnectionPool::getConnection() {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock lock(mtx);
+
+    if (connections.empty())
+        cv.wait(lock);
+
     if (connections.empty()) {
-        return nullptr; // Return nullptr if no connections available
+        // This should not happen due to the condition variable wait, but let's be defensive
+        throw std::runtime_error("Connection pool is empty after wait.");
     }
-    pqxx::connection* conn = connections.back().release(); // Release ownership
+
+    // Directly move the unique_ptr to a raw pointer to maintain ownership semantics
+    pqxx::connection* conn = connections.back().release();
     connections.pop_back();
+    lock.unlock(); // Unlock before returning to minimize lock hold duration
     return conn;
 }
 
 void ConnectionPool::releaseConnection(pqxx::connection* conn) {
-    std::lock_guard<std::mutex> lock(mtx);
-    connections.emplace_back(conn); // Wrap the raw pointer in a unique_ptr
+    mtx.lock();
+
+    connections.emplace_back(conn);
+
+    mtx.unlock();
+    cv.notify_one(); // Notify any waiting threads that a connection is now available
 }

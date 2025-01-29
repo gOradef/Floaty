@@ -7,6 +7,7 @@
 
 #include "pqxx/pqxx"
 #include "mutex"
+#include <condition_variable>
 
 namespace psqlMethods {
     using str = std::string;
@@ -103,6 +104,7 @@ public:
 private:
     std::vector<std::unique_ptr<pqxx::connection>> connections; // Use smart pointers
     std::mutex mtx;
+    std::condition_variable cv;
 };
 
 #endif //FLOATYROOTSERVICE_CONNECTIONPOOL_H
