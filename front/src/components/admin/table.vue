@@ -13,127 +13,132 @@
         </b>
         </h5>
       </div>
-      <b-table
-        :items="table.items"
-        :fields="table.fields"
-        @export="exportExcel"
+      <div>
 
-        :busy="!isDataLoaded"
+      </div>
+        <div class="tableClassParent">
+          <b-table
+          :items="table.items"
+          :fields="table.fields"
+          @export="exportExcel"
 
-        selectable
-        select-mode="single"
-        @row-selected="onRowSelected"
+          :busy="!isDataLoaded"
 
-        hover
-        striped
-        head-variant="dark"
-        bordered
-        no-border-collapse
+          selectable
+          select-mode="single"
+          @row-selected="onRowSelected"
 
-        class="h-100"
-        :row-class="rowClass"
-      >
-        <!--  Absent lists -->
-        <template #cell(absent)="row">
-          <div>
-            <p
-              style="margin-bottom: 8px"
+          hover
+          striped
+          head-variant="dark"
+          bordered
+          no-border-collapse
+
+          class="h-100 tableClass"
+          :row-class="rowClass"
+        >
+          <!--  Absent lists -->
+          <template #cell(absent)="row">
+            <div>
+              <p
+                style="margin-bottom: 8px"
+              >
+                {{ row.item.absent.global.join(', ') || '-'}}
+                ({{ row.item.absent.global.length || '0'}})
+                  <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
+                  <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
+              </p>
+              <b-collapse
+                visible
+                v-if="isRowExpanded(row.item.id)"
+                style="display: flex; justify-content: flex-start;"
             >
-              {{ row.item.absent.global.join(', ') || '-'}}
-              ({{ row.item.absent.global.length || '0'}})
-                <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
-                <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
-            </p>
-            <b-collapse
-              visible
-              v-if="isRowExpanded(row.item.id)"
-              style="display: flex; justify-content: flex-start;"
-          >
-                <b-list-group class="b-list-group-causes">
-                  <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Бесплатники: </strong> </b-list-group-item>
-                </b-list-group>
-                <b-list-group class="b-list-group-nums">
-                  <b-list-group-item >{{row.item.absent.ORVI.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.respectful.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.not_respectful.length}} </b-list-group-item>
-                  <b-list-group-item >{{ row.item.absent.fstudents.length }} </b-list-group-item>
-                </b-list-group>
-                <b-list-group class="b-list-group-lists">
-                  <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.respectful.join(", ") || '-'}}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
-                  <b-list-group-item>
-                    {{ row.item.absent.fstudents.join(', ') || '-' }}
-                  </b-list-group-item>
-                </b-list-group>
+                  <b-list-group class="b-list-group-causes">
+                    <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Бесплатники: </strong> </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-nums">
+                    <b-list-group-item >{{row.item.absent.ORVI.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.absent.respectful.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.absent.not_respectful.length}} </b-list-group-item>
+                    <b-list-group-item >{{ row.item.absent.fstudents.length }} </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-lists">
+                    <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.absent.respectful.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
+                    <b-list-group-item>
+                      {{ row.item.absent.fstudents.join(', ') || '-' }}
+                    </b-list-group-item>
+                  </b-list-group>
 
-          </b-collapse>
-          </div>
-        </template>
+            </b-collapse>
+            </div>
+          </template>
 
-        <!--        Check data filled by teachers -->
-        <template #cell(isClassDataFilled)="row">
-          <div>
-            <BIconCheckCircle
-              scale="1.3"
-              style="color: #28a745"
-              v-if="row.item.isClassDataFilled"
-            />
-            <BIconDashCircle scale="1.3" style="color: #dc3545" v-else />
-          </div>
-        </template>
+          <!--        Check data filled by teachers -->
+          <template #cell(isClassDataFilled)="row">
+            <div>
+              <BIconCheckCircle
+                scale="1.3"
+                style="color: #28a745"
+                v-if="row.item.isClassDataFilled"
+              />
+              <BIconDashCircle scale="1.3" style="color: #dc3545" v-else />
+            </div>
+          </template>
 
-        <!--        -->
-        <template #cell(owners)="row">
-          <div v-for="(owner, index) in row.item.owners" :key="index">
-            {{ owner.name }}
-          </div>
-        </template>
+          <!--        -->
+          <template #cell(owners)="row">
+            <div v-for="(owner, index) in row.item.owners" :key="index">
+              {{ owner.name }}
+            </div>
+          </template>
 
-        <template #cell(classes)="row">
-          <div v-for="(owner, index) in row.item.classes" :key="index">
-            {{ owner.name }}
-          </div>
-        </template>
+          <template #cell(classes)="row">
+            <div v-for="(owner, index) in row.item.classes" :key="index">
+              {{ owner.name }}
+            </div>
+          </template>
 
-        <template #cell(students)="row">
-          {{row.item.students.join(", ")}}
-        </template>
-        <template #cell(roles)="row">
-           {{row.item.roles.join(", ")}}
-        </template>
-        <!-- Footer for Global Calculations -->
-        <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
-          <tr>
-            <td><strong>1-4 классы</strong></td>
-            <td> {{table.formulas.data["1_4"].global_amount()}}</td>
-            <td> {{table.formulas.data["1_4"].global_absentAmount()}}</td>
-          </tr>
-          <tr>
-            <td><strong>5-11 классы</strong></td>
-            <td> {{table.formulas.data["5_11"].global_amount()}}</td>
-            <td> {{table.formulas.data["5_11"].global_absentAmount()}}</td>
-          </tr>
-          <tr>
-            <td><strong>Всего</strong></td>
-            <td> {{table.formulas.data["global"].global_amount()}}</td>
-            <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
-          </tr>
-        </template>
-        <template #table-caption v-if="isActiveSectionData() && isDataLoaded">
-          {{ `Данные заполнены для ${table.items.filter(item => item.isClassDataFilled).length} / ${table.items.length} классов (${(table.items.filter(item => item.isClassDataFilled).length / table.items.length * 100).toFixed(2)}%)` }}
-        </template>
+          <template #cell(students)="row">
+            {{row.item.students.join(", ")}}
+          </template>
+          <template #cell(roles)="row">
+             {{row.item.roles.join(", ")}}
+          </template>
+          <!-- Footer for Global Calculations -->
+          <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
+            <tr>
+              <td><strong>1-4 классы</strong></td>
+              <td> {{table.formulas.data["1_4"].global_amount()}}</td>
+              <td> {{table.formulas.data["1_4"].global_absentAmount()}}</td>
+            </tr>
+            <tr>
+              <td><strong>5-11 классы</strong></td>
+              <td> {{table.formulas.data["5_11"].global_amount()}}</td>
+              <td> {{table.formulas.data["5_11"].global_absentAmount()}}</td>
+            </tr>
+            <tr>
+              <td><strong>Всего</strong></td>
+              <td> {{table.formulas.data["global"].global_amount()}}</td>
+              <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
+            </tr>
+          </template>
+          <template #table-caption v-if="isActiveSectionData() && isDataLoaded">
+            {{ `Данные заполнены для ${table.items.filter(item => item.isClassDataFilled).length} / ${table.items.length} классов (${(table.items.filter(item => item.isClassDataFilled).length / table.items.length * 100).toFixed(2)}%)` }}
+          </template>
 
-        <template #table-busy>
-          <div class="text-center my-2">
-            <b-spinner class="align-middle" ></b-spinner>
-            <strong>Loading...</strong>
-          </div>
-        </template>
-      </b-table>
+          <template #table-busy>
+            <div class="text-center my-2">
+              <b-spinner class="align-middle" ></b-spinner>
+              <strong>Loading...</strong>
+            </div>
+          </template>
+        </b-table>
+      </div>
     </div>
   </div>
 </template>
@@ -513,27 +518,24 @@ export default {
   },
 }
 </script>
-<style scoped>
+<style>
 
 /* Busy table styling */
 table.b-table[aria-busy='true'] {
   opacity: 0.6;
 }
 
+.tableClassParent {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 .b-table-sticky-header > .table.b-table > thead > tr > th {
-  position: sticky !important;
+  position: relative !important;
   top: 0;
   z-index: 2;
 }
 
-.list-group-item {
-/* max-height: 35px;
-  min-width: 220px;
-  */
-  padding: 0 12px 0 12px;
-
-  align-self: center;
-}
 .b-list-group-causes > .list-group-item {
   min-width: 150px;
   .list-group-item {
@@ -548,5 +550,24 @@ table.b-table[aria-busy='true'] {
 }
 .b-list-group-lists > .list-group-item {
   min-width: 100px;
+}
+
+.tableClass {
+  /* Existing styles, if any */
+  margin-bottom: 0;
+
+  /* Add this to set the height and enable vertical overflow */
+  height: 540px; /* Sets the height to 60vh */
+  overflow-y: auto; /* Enables vertical scrollbar when content exceeds height */
+}
+
+.tableClass.table.b-table thead {
+  position: sticky; /* Keeps the header at the top */
+  top: 0; /* Ensures it sticks to the top of the container */
+  background-color: white; /* Optional: Keeps header background color when scrolling */
+}
+
+.tableClass.table.b-table tbody {
+  overflow-y: auto; /* Enables scrolling for the tbody */
 }
 </style>

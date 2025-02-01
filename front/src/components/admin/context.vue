@@ -23,7 +23,7 @@
     </b-modal>
 
     <div v-if="showContextOptions">
-      <h3 style="border-bottom: #2c3e50 1px dotted">{{ contextData.name }}</h3>
+      <h3 v-if="isEntitySelected" style="border-bottom: #2c3e50 1px dotted; " class="pt-1">{{ contextData.name }}</h3>
 
       <!--    Button group -->
       <b-button-group vertical class="mt-2">

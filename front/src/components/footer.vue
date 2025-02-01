@@ -1,6 +1,6 @@
 
 <template>
-  <b-card-footer class="d-inline-flex w-100" style="justify-content: space-between;">
+  <b-card-footer class="d-inline-flex w-100" style="justify-content: space-between; bottom: 0; left: 0;">
       <p class="mb-0">Floaty | 2025 </p>
       <div id="useful-links" class="mr-3">
         <a class="link-btn" href="/release-notes">Обновления</a>

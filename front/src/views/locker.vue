@@ -64,6 +64,7 @@ export default {
   <b-overlay :show="firstLoading">
     <b-container
         fluid
+        class="p-1"
     >
       <component v-bind:is="interfaces[compType]" v-if="hasAccess"/>
       <b-col v-if="!hasAccess && !firstLoading" style="min-height: 600px" class=" text-center align-items-center justify-items-center">
