@@ -26,7 +26,6 @@
 
         hover
         striped
-        sticky-header="80vh"
         head-variant="dark"
         bordered
         no-border-collapse
