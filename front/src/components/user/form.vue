@@ -198,7 +198,7 @@
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addORVIStudent" variant="primary" block>
+                      <b-button @click="addORVIStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
@@ -218,7 +218,7 @@
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addRespStudent" variant="primary" block>
+                      <b-button @click="addRespStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
@@ -238,14 +238,14 @@
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addNotRespStudent" variant="primary" block>
+                      <b-button @click="addNotRespStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
                   </b-col>
                 </b-row>
 
-                <b-row class=" mt-3 justify-content-end">
+                <b-row class="mt-3 justify-content-end">
                   <div class="mb-2 border-top d-flex justify-content-end">
                     <b-button block variant="primary" :disabled="isNewStudListHasDuplicates" @click="submitForm">
                       Отправить
@@ -393,10 +393,19 @@ export default {
     },
   },
   methods: {
-    setTodayClassBody() {
-      this.currentClassBody.absent = this.todayClassBody;
+    deepCopy(obj) {
+      if (Object(obj)!== obj) return obj; // primitives
+      if (Array.isArray(obj)) return obj.map(this.deepCopy); // arrays
+      const result = {};
+      for (const key in obj) if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = this.deepCopy(obj[key]);
+      }
+      return result;
     },
-
+    setTodayClassBody() {
+      this.currentClassBody.absent = this.deepCopy(this.todayClassBody);
+      console.log(this.todayClassBody);
+    },
     getStudents() {
       const students = this.currentClassBody.students || [];
       const fstudents = this.currentClassBody.fstudents || [];
