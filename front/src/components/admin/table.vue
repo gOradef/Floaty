@@ -238,7 +238,8 @@ export default {
           },
           {
             key: 'students.length',
-            label: 'Кол-во'
+            label: 'Кол-во',
+            sortable: true
           },
           {
             key: 'students',
@@ -252,21 +253,25 @@ export default {
         users: [
           {
             key: 'name',
-            label: 'Пользователь'
+            label: 'Пользователь',
+            sortable: true
           },
           {
             key: 'roles',
-            label: 'Роли'
+            label: 'Роли',
+            sortable: true
           },
           {
             key: 'classes',
-            label: 'Классы'
+            label: 'Классы',
+            sortable: true
           }
         ],
         invites: [
           {
             key: 'body.name',
-            label: 'Пользователь'
+            label: 'Пользователь',
+            sortable: true
           },
        {
             key: 'id',
