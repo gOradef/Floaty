@@ -123,7 +123,7 @@ export default {
 
     <!--    Region Rename -->
     <b-tab title="Переименовать"> <!--! DISABLED -->
-      <b-form>
+      <div>
         <b-input
           v-model="newUserName"
           placeholder="Введите новое имя пользователя"
@@ -131,7 +131,7 @@ export default {
         <b-card-text class="text-center mt-2">
           {{ entity_buff.name }} <b-icon icon="arrow-right"></b-icon>
           {{ newUserName }}</b-card-text>
-      </b-form>
+      </div>
     </b-tab>
     <!-- Region Classes -->
     <b-tab title="Классы">

@@ -7,7 +7,7 @@
         :title="this.Interface.title.toString()"
         @hide="closeModal"
     >
-      <div>
+      <form @submit.prevent="submitForm">
         <notificationsForm :notifications="notifications"/>
         <component
             v-if="showModal"
@@ -15,7 +15,7 @@
             :action="this.Interface.action"
             :entity="this.contextData"
         />
-      </div>
+      </form>
       <template v-slot:modal-footer>
         <b-button variant="secondary" @click="closeModal">Закрыть</b-button>
         <b-button variant="primary" type="submit" @click="submitForm">Подтвердить</b-button>
@@ -52,6 +52,7 @@ export default {
   components: { NotificationsForm },
   data() {
     return {
+      currentSection: "",
       Interface: {
         type: Object,
         action: String,
@@ -180,6 +181,7 @@ export default {
   mounted() {
     this.$root.$on("context:show", (section, row) => {
       this.showContextOptions = true;
+      this.currentSection = section;
       if (this.template_contextOptions[section]) {
         // Check if section exists and use it
         this.contextOptions = this.template_contextOptions[section];
