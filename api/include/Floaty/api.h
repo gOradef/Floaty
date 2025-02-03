@@ -165,6 +165,7 @@ public:
 class schoolManager : Request {
     void isLoginOccupied(const std::string& login);
     void isUserExists(const std::string& userID);
+    void isUserHasntClassesInOwning(const std::string& userID);
     void isClassExists(const std::string& classID);
     void isInviteExists(const std::string& inviteID);
     void isDataExists(const std::string& date);

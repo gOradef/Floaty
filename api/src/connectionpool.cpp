@@ -48,6 +48,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         // * Class Handler
         c->prepare(psqlMethods::classes::checks::isOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
         c->prepare(psqlMethods::classes::checks::isExists, "select is_class_exists($1::uuid, uuid_or_null($2))");
+        c->prepare(psqlMethods::userChecks::isHasClasses, "select is_user_has_classes($1::uuid, $2::uuid)");
 
 
         //Includes check on existing data. If data in null -> generates by self

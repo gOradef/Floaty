@@ -101,7 +101,13 @@ export default {
       const status = await this.$root.$makeApiRequest(
           '/api/org/users/' + this.entity.id,
       'DELETE');
-      this.$root.$callNotificationEvent(status === 204);
+      if (status === 409) //conflict, so user has classes in owning
+          this.$root.$emit('notification',
+              'warning',
+              "Пользователь имеет классы во владении. Чтобы удалить пользователя, пожалуйста, сначала освобидите его от классов."
+          )
+      else
+        this.$root.$callNotificationEvent(status === 204);
     },
     addClass() {
       const newClass = { id: this.newClassId, name: this.newClassName };

@@ -193,6 +193,13 @@ void schoolManager::isUserExists(const std::string &userID) {
         throw api::exceptions::wrongRequest("No such user: " + userID);
 }
 
+void schoolManager::isUserHasntClassesInOwning(const std::string& userID) {
+    bool isUserHasClassesInOwning = work->exec_prepared(psqlMethods::userChecks::isHasClasses, _org_id, userID).front().front().as<bool>();
+
+    if (isUserHasClassesInOwning)
+        throw api::exceptions::conflict("User has classes in owning. Aborting.");
+}
+
 void schoolManager::isInviteExists(const std::string& inviteID) {
     bool isInviteExists = work->exec_prepared(psqlMethods::invites::isExists, _org_id, inviteID).front().front().as<bool>();
 
@@ -507,6 +514,7 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
 void schoolManager::userDrop(const std::string &userID) {
 
     isUserExists(userID);
+    isUserHasntClassesInOwning(userID);
 
     this->priviliageWorkerToWrite();
 

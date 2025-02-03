@@ -36,6 +36,7 @@ namespace psqlMethods {
         inline str isExists = "is_user_exists";
         inline str isValid = "is_valid_user";
         inline str hasRole = "is_user_has_role";
+        inline str isHasClasses = "is_user_has_classes";
     };
     namespace userData {
         inline str getName = "user_name_get";
