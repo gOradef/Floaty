@@ -1,19 +1,20 @@
 #!/bin/bash
 
-mkdir ../deploy
+mkdir ../.deploy
 
 echo '--- Started Vue prepare'
 cd ../front
 npm run build
 
-cp ./dist ./public ../deploy -r
+cp ./dist ./public ../.deploy -r
 
 echo '--- Started API prepare'
-mkdir ../deploy/api
+mkdir ../.deploy/api
 cd ../api
-cp CMakeLists.txt cmake include lib src ../deploy/api -r
+cp CMakeLists.txt cmake include lib src ../.deploy/api -r
 
 echo '--- Started configs prepare'
 cd ..
-cp run services setup ./deploy -r
+cp run services setup config.json ./.deploy -r
 
+tar -zcvf deploy.tar.gz .deploy/
