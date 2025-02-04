@@ -95,19 +95,19 @@ export default {
           'PATCH',
           {password: this.newUserPassword}
       );
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     },
     async deleteUser() {
       const status = await this.$root.$makeApiRequest(
           '/api/org/users/' + this.entity.id,
       'DELETE');
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
+      if (status === 409) //conflict, so user has classes in owning
+          this.$root.$emit('notification',
+              'warning',
+              "Пользователь имеет классы во владении. Чтобы удалить пользователя, пожалуйста, сначала освобидите его от классов."
+          )
       else
-        this.$root.$emit('notification', 'error');
+        this.$root.$callNotificationEvent(status === 204);
     },
     addClass() {
       const newClass = { id: this.newClassId, name: this.newClassName };

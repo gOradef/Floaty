@@ -3,7 +3,7 @@
     <div v-if="!isDataExists">
       <h4>Данные отсутствуют.</h4>
       <b> Журнал ещё никто не заполнил</b> <br>
-      <i><b-link @click.prevent="genDataForToday">Сгененрировать данные самостоятельно?</b-link></i>
+      <i><b-link @click.prevent="genDataForToday">Сгенерировать данные самостоятельно?</b-link></i>
     </div>
     <div v-else>
       <div v-if="isDataLoaded && activeSection === 'data'" class="mt-2">
@@ -13,131 +13,132 @@
         </b>
         </h5>
       </div>
-      <b-table
-        :items="table.items"
-        :fields="table.fields"
-        @export="exportExcel"
+      <div>
 
-        :busy="!isDataLoaded"
+      </div>
+        <div class="tableClassParent">
+          <b-table
+          :items="table.items"
+          :fields="table.fields"
+          @export="exportExcel"
 
-        selectable
-        select-mode="single"
-        @row-selected="onRowSelected"
+          :busy="!isDataLoaded"
 
-        hover
-        striped
-        sticky-header="80vh"
-        head-variant="dark"
-        bordered
-        no-border-collapse
+          selectable
+          select-mode="single"
+          @row-selected="onRowSelected"
 
-        class="h-100"
-        :row-class="rowClass"
-      >
-        <!--  Absent lists -->
-        <template #cell(absent)="row">
-          <div>
-            <p
-              style="margin-bottom: 8px"
+          hover
+          striped
+          head-variant="dark"
+          bordered
+          no-border-collapse
+
+          class="h-100 tableClass"
+          :row-class="rowClass"
+        >
+          <!--  Absent lists -->
+          <template #cell(absent)="row">
+            <div>
+              <p
+                style="margin-bottom: 8px"
+              >
+                {{ row.item.absent.global.join(', ') || '-'}}
+                ({{ row.item.absent.global.length || '0'}})
+                  <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
+                  <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
+              </p>
+              <b-collapse
+                visible
+                v-if="isRowExpanded(row.item.id)"
+                style="display: flex; justify-content: flex-start;"
             >
-              {{ row.item.absent.global.join(', ') || '-'}}
-              ({{ row.item.absent.global.length || '0'}})
-                <BIconArrowDown v-if="!isRowExpanded(row.item.id)" />
-                <BIconArrowUp v-if="isRowExpanded(row.item.id)" />
-            </p>
-            <b-collapse
-              visible
-              v-if="isRowExpanded(row.item.id)"
-              style="display: flex; justify-content: flex-start;"
-          >
-                <b-list-group class="b-list-group-causes">
-                  <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
-                  <b-list-group-item style="min-width: 140px"><strong> Бесплатники: </strong> </b-list-group-item>
-                </b-list-group>
-                <b-list-group class="b-list-group-nums">
-                  <b-list-group-item >{{row.item.absent.ORVI.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.respectful.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.not_respectful.length}} </b-list-group-item>
-                  <b-list-group-item >{{row.item.absent.fstudents.length}} </b-list-group-item>
-                </b-list-group>
-                <b-list-group class="b-list-group-lists">
-                  <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.respectful.join(", ") || '-'}}</b-list-group-item>
-                  <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
-                  <b-list-group-item>
-                    {{ row.item.absent.global.filter(student =>
-                          row.item.absent.fstudents.includes(student)
-                      ).join(', ') || '-'
-                    }}
-                  </b-list-group-item>
-                </b-list-group>
+                  <b-list-group class="b-list-group-causes">
+                    <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Бесплатники: </strong> </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-nums">
+                    <b-list-group-item >{{row.item.absent.ORVI.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.absent.respectful.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.absent.not_respectful.length}} </b-list-group-item>
+                    <b-list-group-item >{{ row.item.absent.fstudents.length }} </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-lists">
+                    <b-list-group-item>{{ row.item.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.absent.respectful.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
+                    <b-list-group-item>
+                      {{ row.item.absent.fstudents.join(', ') || '-' }}
+                    </b-list-group-item>
+                  </b-list-group>
 
-          </b-collapse>
-          </div>
-        </template>
+            </b-collapse>
+            </div>
+          </template>
 
-        <!--        Check data filled by teachers -->
-        <template #cell(isClassDataFilled)="row">
-          <div>
-            <BIconCheckCircle
-              scale="1.3"
-              style="color: #28a745"
-              v-if="row.item.isClassDataFilled"
-            />
-            <BIconDashCircle scale="1.3" style="color: #dc3545" v-else />
-          </div>
-        </template>
+          <!--        Check data filled by teachers -->
+          <template #cell(isClassDataFilled)="row">
+            <div>
+              <BIconCheckCircle
+                scale="1.3"
+                style="color: #28a745"
+                v-if="row.item.isClassDataFilled"
+              />
+              <BIconDashCircle scale="1.3" style="color: #dc3545" v-else />
+            </div>
+          </template>
 
-        <!--        -->
-        <template #cell(owners)="row">
-          <div v-for="(owner, index) in row.item.owners" :key="index">
-            {{ owner.name }}
-          </div>
-        </template>
+          <!--        -->
+          <template #cell(owners)="row">
+            <div v-for="(owner, index) in row.item.owners" :key="index">
+              {{ owner.name }}
+            </div>
+          </template>
 
-        <template #cell(classes)="row">
-          <div v-for="(owner, index) in row.item.classes" :key="index">
-            {{ owner.name }}
-          </div>
-        </template>
+          <template #cell(classes)="row">
+            <div v-for="(owner, index) in row.item.classes" :key="index">
+              {{ owner.name }}
+            </div>
+          </template>
 
-        <template #cell(students)="row">
-          {{row.item.students.join(", ")}}
-        </template>
-        <template #cell(roles)="row">
-           {{row.item.roles.join(", ")}}
-        </template>
-        <!-- Footer for Global Calculations -->
-        <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
-          <tr>
-            <td><strong>1-4 классы</strong></td>
-            <td> {{table.formulas.data["1_4"].global_amount()}}</td>
-            <td> {{table.formulas.data["1_4"].global_absentAmount()}}</td>
-          </tr>
-          <tr>
-            <td><strong>5-11 классы</strong></td>
-            <td> {{table.formulas.data["5_11"].global_amount()}}</td>
-            <td> {{table.formulas.data["5_11"].global_absentAmount()}}</td>
-          </tr>
-          <tr>
-            <td><strong>Всего</strong></td>
-            <td> {{table.formulas.data["global"].global_amount()}}</td>
-            <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
-          </tr>
-        </template>
-        <template #table-caption v-if="isActiveSectionData() && isDataLoaded">
-          {{ `Данные заполнены для ${table.items.filter(item => item.isClassDataFilled).length} / ${table.items.length} классов (${(table.items.filter(item => item.isClassDataFilled).length / table.items.length * 100).toFixed(2)}%)` }}
-        </template>
+          <template #cell(students)="row">
+            {{row.item.students.join(", ")}}
+          </template>
+          <template #cell(roles)="row">
+             {{row.item.roles.join(", ")}}
+          </template>
+          <!-- Footer for Global Calculations -->
+          <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
+            <tr>
+              <td><strong>1-4 классы</strong></td>
+              <td> {{table.formulas.data["1_4"].global_amount()}}</td>
+              <td> {{table.formulas.data["1_4"].global_absentAmount()}}</td>
+            </tr>
+            <tr>
+              <td><strong>5-11 классы</strong></td>
+              <td> {{table.formulas.data["5_11"].global_amount()}}</td>
+              <td> {{table.formulas.data["5_11"].global_absentAmount()}}</td>
+            </tr>
+            <tr>
+              <td><strong>Всего</strong></td>
+              <td> {{table.formulas.data["global"].global_amount()}}</td>
+              <td> {{table.formulas.data["global"].global_absentAmount()}}</td>
+            </tr>
+          </template>
+          <template #table-caption v-if="isActiveSectionData() && isDataLoaded">
+            {{ `Данные заполнены для ${table.items.filter(item => item.isClassDataFilled).length} / ${table.items.length} классов (${(table.items.filter(item => item.isClassDataFilled).length / table.items.length * 100).toFixed(2)}%)` }}
+          </template>
 
-        <template #table-busy>
-          <div class="text-center my-2">
-            <b-spinner class="align-middle" ></b-spinner>
-            <strong>Loading...</strong>
-          </div>
-        </template>
-      </b-table>
+          <template #table-busy>
+            <div class="text-center my-2">
+              <b-spinner class="align-middle" ></b-spinner>
+              <strong>Loading...</strong>
+            </div>
+          </template>
+        </b-table>
+      </div>
     </div>
   </div>
 </template>
@@ -237,7 +238,8 @@ export default {
           },
           {
             key: 'students.length',
-            label: 'Кол-во'
+            label: 'Кол-во',
+            sortable: true
           },
           {
             key: 'students',
@@ -251,21 +253,25 @@ export default {
         users: [
           {
             key: 'name',
-            label: 'Пользователь'
+            label: 'Пользователь',
+            sortable: true
           },
           {
             key: 'roles',
-            label: 'Роли'
+            label: 'Роли',
+            sortable: true
           },
           {
             key: 'classes',
-            label: 'Классы'
+            label: 'Классы',
+            sortable: true
           }
         ],
         invites: [
           {
             key: 'body.name',
-            label: 'Пользователь'
+            label: 'Пользователь',
+            sortable: true
           },
        {
             key: 'id',
@@ -306,7 +312,7 @@ export default {
       this.isDataLoaded = false;
       this.tableDataDates = '';
 
-      console.log(section, '-', dates);
+      // console.log(section, '-', dates);
 
       if (this.sectionDataMethods[section]) {
         this.raw_data = await this.sectionDataMethods[section](...dates);
@@ -346,7 +352,7 @@ export default {
         const month = String(date.getMonth() + 1).padStart(2, '0'); // +1, потому что месяцы считаются от 0
         const day = String(date.getDate()).padStart(2, '0');
 
-        return `${year}-${month}-${day}`;
+        return `${day}-${month}-${year}`;
     },
     async getData(date = null, date_2 = null) {
       let url = '/api/org/data';
@@ -405,7 +411,7 @@ export default {
     },
 
     onRowSelected(item) {
-      console.log(this.activeSection,' - ', item);
+      // console.log(this.activeSection,' - ', item);
 
 
       if (item.length !== 0) {
@@ -426,8 +432,6 @@ export default {
         'bg-danger text-white': !item.item.isClassDataFilled,
       };
     },
-    // Export
-    // ! COMMMIT
     exportExcel() {
       const sortedData = this.table.items.slice().sort((a, b) => {
         const classA = a.name.replace(/_/g, '').toUpperCase();
@@ -461,9 +465,9 @@ export default {
         item.owners.map(owner => owner.name).join(', ') || '',
       ]);
 
-      const firstFiveIndex = sortedData.findIndex(item => {
-        const match = item.name.match(/\d+/);
-        return match && parseInt(match[0]) === 5;
+      let firstFiveIndex = sortedData.findIndex(item => {
+        const match = item.name.match(/\d+/) | 0; //return 0 if null
+        return match && match >= 5;
       });
 
       const header = [
@@ -487,17 +491,25 @@ export default {
       const absentFormulas = [];
       for (const group of formulas) {
         const groupName = group[0];
-        const startIndex = groupName === '1-4 классы'? 2 : groupName === '5-11 классы'? firstFiveIndex + 2 : 2;
-        const endIndex = groupName === '1-4 классы'? firstFiveIndex + 1 : groupName === '5-11 классы'? sortedData.length + 1 : sortedData.length + 1;
-        const orvi = `=TEXTJOIN(", ", TRUE, D${startIndex}:D${endIndex})`;
-        const respectful = `=TEXTJOIN(", ", TRUE, E${startIndex}:E${endIndex})`;
-        const notRespectful = `=TEXTJOIN(", ", TRUE, F${startIndex}:F${endIndex})`;
-        const fstudents = `=TEXTJOIN(", ", TRUE, G${startIndex}:G${endIndex})`;
+        const startIndex = groupName === '1-4 классы' ? 2 : groupName === '5-11 классы' ? firstFiveIndex + 2 : 2;
+        const endIndex = groupName === '1-4 классы' ? firstFiveIndex + 1 : groupName === '5-11 классы' ? sortedData.length + 1 : sortedData.length + 1;
+
+        const generateFormulaForLetter = (letter) => {
+          const diapazon = `${letter}${startIndex}:${letter}${endIndex}`;
+          return `=IF(TEXTJOIN(", "; 1; ${diapazon}) = ""; 0; LEN(TEXTJOIN(", "; 1; ${diapazon}))-LEN(SUBSTITUTE(TEXTJOIN(", "; 1; ${diapazon}); ","; ""))+1)`;
+        };
+
+        // Получение кол-ва элементов, разделенных ", "
+        const orvi = generateFormulaForLetter('D');
+        const respectful = generateFormulaForLetter('E');
+        const notRespectful = generateFormulaForLetter('F')
+        const fstudents = generateFormulaForLetter('G');
+
         absentFormulas.push([...group.slice(0, 3), orvi, respectful, notRespectful, fstudents]);
       }
       const ws = XLSX.utils.aoa_to_sheet([header,...data,...absentFormulas.map(row => row.map(cell => {
         if (typeof cell ==='string' && cell.startsWith('=')) {
-          return { f: cell, v: 'Обновите ячейку'};
+          return { t: 'n', f: cell.slice(1)};
         }
         return cell;
       }))]);
@@ -511,26 +523,24 @@ export default {
   },
 }
 </script>
-<style scoped>
+<style>
 
 /* Busy table styling */
 table.b-table[aria-busy='true'] {
   opacity: 0.6;
 }
 
+.tableClassParent {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 .b-table-sticky-header > .table.b-table > thead > tr > th {
-  position: sticky !important;
+  position: relative !important;
   top: 0;
   z-index: 2;
 }
 
-.list-group-item {
-  max-height: 35px;
-  //min-width: 220px;
-  padding: 0 12px 0 12px;
-
-  align-self: center;
-}
 .b-list-group-causes > .list-group-item {
   min-width: 150px;
   .list-group-item {
@@ -545,5 +555,24 @@ table.b-table[aria-busy='true'] {
 }
 .b-list-group-lists > .list-group-item {
   min-width: 100px;
+}
+
+.tableClass {
+  /* Existing styles, if any */
+  margin-bottom: 0;
+
+  /* Add this to set the height and enable vertical overflow */
+  height: 540px; /* Sets the height to 60vh */
+  overflow-y: auto; /* Enables vertical scrollbar when content exceeds height */
+}
+
+.tableClass.table.b-table thead {
+  position: sticky; /* Keeps the header at the top */
+  top: 0; /* Ensures it sticks to the top of the container */
+  background-color: white; /* Optional: Keeps header background color when scrolling */
+}
+
+.tableClass.table.b-table tbody {
+  overflow-y: auto; /* Enables scrolling for the tbody */
 }
 </style>

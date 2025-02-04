@@ -46,7 +46,7 @@ export default {
         if (this.isAdmin)
           this.form.roles.push('admin');
 
-        console.log(this.form)
+        // console.log(this.form)
 
         let classes_ids = [];
         this.form.classes.map(classt => {
@@ -107,7 +107,7 @@ export default {
             // Sort by 'disabled': false (no classes) should come before true (has classes)
             return (a.isHasOwners === b.isHasOwners) ? 0 : a.isHasOwners ? 1 : -1;
           });
-      console.log(this.availableClassesList);
+      // console.log(this.availableClassesList);
     },
     removeTag(index) {
       this.form.classes.splice(index, 1);

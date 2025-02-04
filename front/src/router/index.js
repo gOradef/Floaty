@@ -5,15 +5,15 @@ import VueRouter from 'vue-router'
 import HelloWorld from '@/components/HelloWorld.vue'
 
 import loginPage from '@/views/LoginView.vue'
-
-import UserView from "@/views/Roles/UserView.vue";
-import userForm from '@/components/user/form.vue'
-import AdminView from "@/views/Roles/AdminView.vue";
+import signupInvite from "@/views/SignupInvite.vue";
+import ReleaseNotes from "@/views/ReleaseNotes.vue";
 
 import NotFound from "@/views/NotFound.vue";
 import axios from "axios";
+// import choseClass from "@/components/user/choseClass.vue";
+import InterfaceLocker from "@/views/locker.vue";
 // Lazy-loaded components
-const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+// const AboutView = () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
 
 
 Vue.use(VueRouter)
@@ -25,34 +25,60 @@ const routes = [
         component: HelloWorld
     },
     {
+        path: '/home',
+        name: 'home2',
+        component: HelloWorld,
+    },
+    {
       path: '/login',
       name: 'login',
       component: loginPage
     },
     {
-        path: '/about',
-        name: 'О нас',
-        component: AboutView
+        path: '/signup/invite',
+        name: 'signupInvite',
+        component: signupInvite,
+        props: () => ({ orgID: '' })
     },
+    {
+        path: '/signup/invite/:orgID',
+        name: 'signupInviteWithOrgId',
+        component: signupInvite,
+        props: (route) => ({ orgID: route.params.orgID })
+    },
+    {
+      path: '/release-notes',
+      name: 'Обновления',
+      component: ReleaseNotes
+    },
+    // {
+    //     path: '/about',
+    //     name: 'О нас',
+    //     component: AboutView
+    // },
     {
         path: '/user',
         name: 'Кл. рук.',
-        component: UserView
+        component: InterfaceLocker,
+        props: () => ({compType: 'choseClass'})
     },
     {
         path: '/form/:classID',
         name: 'Заполнение данных кл. рук.',
-        component: userForm
+        component: InterfaceLocker,
+        props: () => ({compType: 'userForm'})
     },
     {
         path: '/org',
         name: 'Управление учреждением',
-        component: AdminView
+        component: InterfaceLocker,
+        props: () => ({compType: 'AdminView'})
     },
     {
-      path: '/org/:section',
-      name: 'Управление учреждением с разделом',
-      component: AdminView
+        path: '/org/:section',
+        name: 'Управление учреждением с разделом',
+        component: InterfaceLocker,
+        props: () => ({compType: 'AdminView'})
     },
     //! Should be latest
     {

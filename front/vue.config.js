@@ -21,6 +21,6 @@ module.exports = {
 	},
 	transpileDependencies: true,
 	devServer: {
-		port: 28080
+		port: 3000
 	}
 }

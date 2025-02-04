@@ -64,28 +64,40 @@
     </div>
 <!--    Region edit student list -->
     <div v-if="action === 'edit'">
-      <b-table :items="students" :fields="[
-          {
-            label: 'Имя',
-            key: 'name'
-          },
-          {
-            label: 'Статус',
-            key: 'isFree'
-          }
-      ]">
+      <b-table
+          :items="editedStudents"
+          :fields="[
+                      {
+                        label: 'Учащийся',
+                        key: 'name',
+                        sortable: true
+                      },
+                      {
+                        label: 'Бесплатник?',
+                        key: 'isFree'
+                      },
+                      {
+                        label: '',
+                        key: 'delete'
+                      }
+                  ]"
+          hover>
         <template #cell(name)="data">
-          <span @click="openEditModal(data.item)">{{ data.item.name }}</span>
+                  <span :style="{ color: data.item.isDeleted ? 'red' : '#2d84dc', textDecoration: data.item.isDeleted ? 'line-through' : 'underline' }" @click="openEditModal(data.item)">
+                  {{ data.item.name }}
+                  </span>
         </template>
         <template #cell(isFree)="data">
           <b-form-checkbox
-              v-model="data.item.isFree"
-              @change="toggleFreeStudent(data.item)">
+              v-model="data.item.isFree">
             Бесплатник
           </b-form-checkbox>
         </template>
-        <template #cell(actions)="data">
-          <b-button size="sm" @click.stop="deleteStudent(data.item)">Удалить</b-button>
+        <template #cell(delete)="data">
+          <b-button variant="link" @click.stop="toggleDeleteStudent(data.item)" class="p-0">
+            <b-icon icon="trash" v-if="!data.item.isDeleted"></b-icon>
+            <b-icon icon="arrow-clockwise" v-else></b-icon>
+          </b-button>
         </template>
       </b-table>
 
@@ -105,17 +117,28 @@
       </b-modal>
 
       <!-- Модальное окно редактирования ученика -->
-      <b-modal v-model="showEditModal" title="Редактировать ученика">
-        <b-form @submit.prevent="updateStudent">
+      <b-modal v-model="showEditModal" size="sm" title="Переименовать ученика">
+        <b-form @submit.prevent="renameStudent">
           <b-form-group label="Имя ученика" label-for="edit-student-name">
-            <b-form-input id="edit-student-name" v-model="newStudentName" required></b-form-input>
+            <h5>
+              {{selectedStudent.name}} -> {{newStudentName}}
+            </h5>
+            <b-form-input id="edit-student-name" placeholder="Введите новое имя ученика" v-model="newStudentName" autofocus required></b-form-input>
           </b-form-group>
         </b-form>
         <template #modal-footer>
-          <b-button @click.prevent="updateStudent" variant="primary"> Подтвердить</b-button>
-          <b-button @click="showAddModal = false" variant="secondary">Отмена</b-button>
+          <b-button @click.stop="showEditModal = false" variant="secondary">Отмена</b-button>
+          <b-button @click.prevent="renameStudent" variant="primary"> Переименовать</b-button>
         </template>
+
       </b-modal>
+      <b-alert
+          show
+          v-if="isNewStudListHasDuplicates"
+          variant="warning"
+      >
+        Текущий список имеет повторяющиеся элементы, пожалуйста, исправьте это
+      </b-alert>
     </div>
     <div v-if="action === 'rename'">
       <b-form @submit.prevent="">
@@ -170,7 +193,7 @@ export default {
       availableOwners: [],
 
       //Region edit students
-      students: [],
+      editedStudents: [],
       selectedStudent: '',
       newStudentName: '',
       showEditModal: false,
@@ -214,7 +237,11 @@ export default {
       // Return the selected student's name or the default text
       return this.selectedOwner.name || 'Выберите владельца';
     },
-
+    isNewStudListHasDuplicates() {
+      const uniqStuds = new Set(this.editedStudents.filter(stud => !stud.isDeleted).map(stud => stud.name));
+      // console.log(this.editedStudents);
+      return uniqStuds.size !== this.editedStudents.filter(stud => !stud.isDeleted).length;
+    },
   },
   methods: {
     //Region create class
@@ -225,13 +252,11 @@ export default {
       const { fstudents, students } = this.raw_data;
 
       // Инициализируем локальные массивы
-      this.students = students.map(student => ({
+      this.editedStudents = students.map(student => ({
         name: student,
         isFree: fstudents.includes(student), // Помечаем как бесплатник
+        isDeleted: false,
       }));
-
-      // Локальный массив бесплатников для обновлений
-      this.localFreeStudents = new Set(fstudents); // Добавим в сет для удобства
     },
     async getOwners() {
       this.raw_data = await this.$root.$makeApiRequest('/api/org/users');
@@ -256,34 +281,18 @@ export default {
       this.newClass.owner = owner.id;
     },
     //Region edit students
-    toggleFreeStudent(student) {
-      // Если студент стал бесплатником, добавляем его в локальный массив, иначе удаляем
-      if (student.isFree) {
-        this.localFreeStudents.add(student.name);
-      } else {
-        this.localFreeStudents.delete(student.name);
-      }
-    },
-    // Редактирование ученика
-    editStudent(student) {
-      this.selectedStudent = { ...student };
-      this.showEditModal = true;
-    },
-
     async addStudent() {
       if (this.newStudentName.trim() === '') return;
 
-      this.students.push({ name: this.newStudentName, isFree: false });
-      this.localFreeStudents.delete(this.newStudentName); // По умолчанию не бесплатник
+      this.editedStudents.push({ name: this.newStudentName, isFree: false });
       this.newStudentName = ''; // Сбросить поле ввода
       this.showAddModal = false; // Закрыть модальное окно
     },
 
-    deleteStudent(student) {
-      const index = this.students.indexOf(student);
+    toggleDeleteStudent(student) {
+      const index = this.editedStudents.indexOf(student);
       if (index !== -1) {
-        this.students.splice(index, 1); // Удалить ученика из локального массива
-        this.localFreeStudents.delete(student.name); // Удалить из бесплатников, если он был
+        this.editedStudents[index].isDeleted = !this.editedStudents[index].isDeleted; // Удалить ученика из локального массива
       }
     },
 
@@ -292,10 +301,10 @@ export default {
       this.showEditModal = true;
     },
 
-    async updateStudent() {
-      const index = this.students.findIndex(s => s.name === this.selectedStudent.name);
+    async renameStudent() {
+      const index = this.editedStudents.findIndex(s => s.name === this.selectedStudent.name);
       if (index !== -1) {
-        this.students[index].name = this.newStudentName; // Обновить имя ученика
+        this.editedStudents[index].name = this.newStudentName;
       }
       this.newStudentName = '';
       this.showEditModal = false;
@@ -310,26 +319,23 @@ export default {
       }
 
       const status = await this.$root.$makeApiRequest('/api/org/classes', 'POST', this.newClass)
-      if (status === 204)
-        this.$root.$emit('notification', 'success', '');
-      else
-        this.$root.$emit('notification', 'error', '');
-
+      this.$root.$callNotificationEvent(status === 204);
     },
     async saveNewStudents() {
-      const fstudents = Array.from(this.localFreeStudents);
+      if (this.isNewStudListHasDuplicates) {
+        alert('Новый список содержит дупликаты. Пожалуйста, исправьте это')
+        return;
+      }
+      const fstudents = this.editedStudents.filter(fstud => fstud.isFree).map(stud => stud.name);
 
       const dataToSend = {
-        students: this.students.map(student => student.name),
+        students: this.editedStudents.filter(student => !student.isDeleted).map(student => student.name),
         fstudents: fstudents,
       };
 
       try {
         const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students', 'PUT', dataToSend);
-        if (status === 204)
-          this.$root.$emit('notification', 'success');
-        else
-          this.$root.$emit('notification', 'error');
+        this.$root.$callNotificationEvent(status === 204);
       }
       catch (error) {
         console.error('Ошибка при сохранении изменений:', error);
@@ -342,19 +348,13 @@ export default {
           {
             name: this.newClassName
           });
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     },
     async deleteClass() {
       const status = await this.$root.$makeApiRequest(
           '/api/org/classes/' + this.entity.id,
           'DELETE')
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
+      this.$root.$callNotificationEvent(status === 204);
     }
   },
 

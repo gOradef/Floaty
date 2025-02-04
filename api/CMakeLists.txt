@@ -8,7 +8,5 @@ set(CPACK_PACKAGE_VERSION "1.0")
 set(CPACK_PACKAGE_DESCRIPTION "My project")
 set(CPACK_PACKAGE_VENDOR "My Company")
 
-include(CPack)
-#include_directories(includes/**)
 
 add_subdirectory(src)

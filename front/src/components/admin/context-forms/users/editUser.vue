@@ -29,7 +29,7 @@ export default {
   mounted() {
     this.isTeacher = this.entity_buff.roles.includes('teacher');
     this.isAdmin = this.entity_buff.roles.includes('admin');
-    console.log(this.entity);
+    // console.log(this.entity);
     this.getClasses();
     this.$root.$on('interface:editUser', () => {
       this.handleEditConfirm();
@@ -67,18 +67,28 @@ export default {
         this.roles.push('teacher')
       if (this.isAdmin)
         this.roles.push('admin')
+
       let classes_ids = [];
       this.entity_buff.classes.map(classt => {
         classes_ids.push(classt.id);
       })
 
-      const status = await this.$root.$makeApiRequest('/api/org/users/' + this.entity.id,
-      'PUT',
-          {
-            classes: classes_ids,
-            roles: this.roles
-          }
+      const requestBody = {
+        classes: classes_ids,
+        roles: this.roles,
+      };
+
+      // Add the name field if this.newUserName is not empty
+      if (this.newUserName && this.newUserName.trim() !== '') {
+        requestBody.name = this.newUserName;
+      }
+
+      const status = await this.$root.$makeApiRequest(
+          '/api/org/users/' + this.entity.id,
+          'PUT',
+          requestBody
       );
+
       if (status === 204)
         this.$root.$emit('notification', 'success');
       else
@@ -98,7 +108,7 @@ export default {
             // Sort by 'disabled': false (no classes) should come before true (has classes)
             return (a.isHasOwners === b.isHasOwners) ? 0 : a.isHasOwners ? 1 : -1;
           });
-      console.log(this.availableClassesList);
+      // console.log(this.availableClassesList);
     },
     removeTag(index) {
       this.entity_buff.classes.splice(index, 1);
@@ -112,17 +122,16 @@ export default {
   <b-tabs v-model="currentTabIndex" nav-class="mb-4">
 
     <!--    Region Rename -->
-    <b-tab disabled title="Переименовать"> <!--! DISABLED -->
-      <b-form>
+    <b-tab title="Переименовать"> <!--! DISABLED -->
+      <div>
         <b-input
           v-model="newUserName"
           placeholder="Введите новое имя пользователя"
         ></b-input>
         <b-card-text class="text-center mt-2">
           {{ entity_buff.name }} <b-icon icon="arrow-right"></b-icon>
-          {{ newUserName }}</b-card-text
-        >
-      </b-form>
+          {{ newUserName }}</b-card-text>
+      </div>
     </b-tab>
     <!-- Region Classes -->
     <b-tab title="Классы">

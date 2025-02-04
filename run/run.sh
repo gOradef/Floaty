@@ -2,7 +2,7 @@
 
 echo 'Running NGINX'
 sudo nginx -s stop
-sudo nginx -c "$(pwd)/../nginx.conf" || exit
+sudo nginx -c "$(pwd)/nginx.conf" || exit
 
 echo 'Running API'
 pkill Floaty

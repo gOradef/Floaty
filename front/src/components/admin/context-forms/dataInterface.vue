@@ -137,7 +137,7 @@ export default {
         ORVI: new Set(this.updatedClass.absent.ORVI),
         respectful: new Set(this.updatedClass.absent.respectful),
         not_respectful: new Set(this.updatedClass.absent.not_respectful),
-        fstudents: new Set(this.updatedClass.absent.fstudents),
+        fstudents: new Set(this.updatedClass.fstudents),
       };
 
       return this.students.map((student) => {
@@ -226,7 +226,7 @@ export default {
     this.$root.$on("form:confirm", async () => {
       let msg;
       let url;
-      await this.$root.$emit('calendar:call');
+      this.$root.$emit('calendar:call');
       if (this.isCustomDate) {
         msg = 'Вы уверены? Данные будут изменены для ' + this.calendarDate;
         url = '/api/org/classes/' + this.entity.id + '/data/' + this.calendarDate;
@@ -255,9 +255,6 @@ export default {
 </script>
 
 <style scoped>
-input {
-  placeholder: '';
-}
 .text-danger {
   color: red;
 }

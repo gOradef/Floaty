@@ -3,12 +3,12 @@ include_guard(GLOBAL)
 set(IFLIB_INC_TARGET_NAME iflib-inc)
 
 set(IFLIB_INC_DIRS
-        ../includes
+        ../include
 )
 
 file(GLOB_RECURSE IFLIB_INC_FILES
-        ../includes/*.h
-        ../includes/*.hpp
+        ../include/*.h
+        ../include/*.hpp
 )
 
 #message(STATUS "<------------------ IFLIB_INC_FILES = ${IFLIB_INC_FILES}")

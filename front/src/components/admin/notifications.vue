@@ -31,7 +31,7 @@ export default {
           this.notifications.push({variant: 'success', msg: 'Успешно!'})
           break;
         case "error":
-          this.notifications.push({variant: 'danger', msg: 'Ошибка!'})
+          this.notifications.push({variant: 'danger', msg: msg})
           break;
         case "warning": // Wrong input
           this.notifications.push({variant: 'warning', msg: msg});

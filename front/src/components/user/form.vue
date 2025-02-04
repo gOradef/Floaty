@@ -1,45 +1,165 @@
 <template>
+  <b-overlay :show="!isClassValid">
   <b-container class="vh-100 p-5">
-    <b-card class="">
-      <b-card-body>
-
+    <b-card>
+      <span @click.stop="$router.push('/user')" class="returnIcon">
+        <b-icon icon="arrow-left-circle" scale="1.6"/>
+      </span>
+      <b-card-body class="pt-1 pb-0">
         <b-row class="justify-content-center">
-          <b-col>
-            <notificationsForm/>
+          <b-col v-if="isClassValid">
+            <b-form @submit.prevent="selectStudent">
+              <b-modal id="editStudentsList" v-model="showStudentModal" title='Редактировать список учащихся класса'>
+                <b-table
+                    :items="editedStudents"
+                    :fields="[
+                      {
+                        label: 'Учащийся',
+                        key: 'name',
+                        sortable: true
+                      },
+                      {
+                        label: 'Бесплатник?',
+                        key: 'isFree'
+                      },
+                      {
+                        label: '',
+                        key: 'delete'
+                      }
+                  ]"
+                  hover>
+                  <template #cell(name)="data">
+                  <span :style="{ color: data.item.isDeleted ? 'red' : '#2d84dc', textDecoration: data.item.isDeleted ? 'line-through' : 'underline' }" @click="openEditModal(data.item)">
+                  {{ data.item.name }}
+                  </span>
+                  </template>
+                  <template #cell(isFree)="data">
+                    <b-form-checkbox
+                        v-model="data.item.isFree">
+                      Бесплатник
+                    </b-form-checkbox>
+                  </template>
+                  <template #cell(delete)="data">
+                    <b-button variant="link" @click.stop="toggleDeleteStudent(data.item)" class="p-0">
+                      <b-icon icon="trash" v-if="!data.item.isDeleted"></b-icon>
+                      <b-icon icon="arrow-clockwise" v-else></b-icon>
+                    </b-button>
+                  </template>
+                </b-table>
 
-            <b-form title="Редактировать отсутствие" @submit.prevent="selectStudent">
-              <h4>
-                Класс: <b>{{ chosenClass.name }}</b>
+                <b-button @click="showAddModal = true" variant="primary">Добавить ученика</b-button>
+
+                <!-- Модальное окно добавления ученика -->
+                <b-modal v-model="showAddModal" size="sm" title="Добавить ученика">
+                  <b-form @submit.prevent="addStudent">
+                    <b-form-group label="Имя ученика" label-for="new-student-name">
+                      <b-form-input id="new-student-name" v-model="newStudentName" autofocus required></b-form-input>
+                    </b-form-group>
+                  </b-form>
+                  <template #modal-footer>
+                    <b-button @click="showAddModal = false" variant="secondary">Отмена</b-button>
+                    <b-button @click.prevent="addStudent" variant="primary">Добавить</b-button>
+                  </template>
+                </b-modal>
+
+                <!-- Модальное окно редактирования ученика -->
+                <b-modal v-model="showEditModal" size="sm" title="Переименовать ученика">
+                  <b-form @submit.prevent="renameStudent">
+                    <b-form-group label="Имя ученика" label-for="edit-student-name">
+                      <h5>
+                         {{selectedEditStudent.name}} -> {{newStudentName}}
+                      </h5>
+                      <b-form-input id="edit-student-name" placeholder="Введите новое имя ученика" v-model="newStudentName" autofocus required></b-form-input>
+                    </b-form-group>
+                  </b-form>
+                  <template #modal-footer>
+                    <b-button @click.stop="showEditModal = false" variant="secondary">Отмена</b-button>
+                    <b-button @click.prevent="renameStudent" variant="primary"> Переименовать</b-button>
+                  </template>
+                </b-modal>
+
+                <template #modal-footer>
+                  <div>
+                    <b-alert
+                        show
+                        v-if="isSuccessEditStudList && isUserSentEditStudList"
+                        variant="success">
+                      Список класса успешно обновлён
+                    </b-alert>
+                    <b-alert
+                        show
+                        v-else-if="!isSuccessEditStudList && isUserSentEditStudList"
+                        variant="danger">
+                      Что-то пошло не так :( Пожалуйста, свяжитесь с нами
+                    </b-alert>
+                    <b-alert
+                        show
+                        v-if="isNewStudListHasDuplicates"
+                        variant="warning"
+                    >
+                      Текущий список имеет повторяющиеся элементы, пожалуйста, исправьте это
+                    </b-alert>
+                  </div>
+                  <b-button @click.prevent="editedStudents = getStudents()" variant="warning">Восстановить</b-button>
+                  <b-button @click.prevent="showStudentModal = false" variant="secondary">Вернуться</b-button>
+                  <b-button @click.prevent="saveNewStudents" variant="primary" :disabled="isNewStudListHasDuplicates"> Подтвердить изменения </b-button>
+
+                </template>
+              </b-modal>
+
+
+              <h4 class="text-center mb-0">
+                Класс: <b>{{ currentClassBody.name }}</b>
+                <b-button variant="link" v-b-modal.editStudentsList>
+                  <b-icon variant="dark" icon="pencil"/>
+                </b-button>
               </h4>
+              <div class="mt-1">
+                <b-alert
+                    show
+                    v-if="isNewStudListHasDuplicates"
+                    variant="warning"
+                >
+                  Текущий список учащихся имеет повторяющиеся элементы, пожалуйста, исправьте это
+                </b-alert>
+                <b-alert variant="warning" :show="isUserWereEditingStudList">
+                  У вас есть несохранённые изменения в списке учащихся класса. Пожалуйста, подтвердите новый список, после чего вы сможете выбрать новых учащихся в журнале
+                </b-alert>
+              </div>
+
+              <div v-if="isClassDataWasFilledForToday" class="mb-2 text-center ">
+                Данные за сегодня уже были внесены. <a @click.stop="setTodayClassBody" href="#lists"> Просмотреть? </a>
+              </div>
 
               <b-container fluid>
 
                 <!-- Dropdown for selecting students -->
                 <b-dropdown
                     class="mb-3"
-                    size="sm"
                     variant="outline-secondary"
                     block
-                    menu-class="dropdown-scrollable w-100"
+                    menu-class="dropdownMenu"
+                    lazy
                 >
                   <template #button-content>
-                    <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
+                    <span class="text-wrap">
+                      <b-icon icon="person-fill" scale="1"></b-icon>
+                      {{ selectedStudentText }}
+                    </span>
                   </template>
-
                   <b-dropdown-form>
                     <b-form-group
                         label="Поиск ученика:"
                         label-for="student-search-input"
-                        label-cols-md="auto"
-                        class="mb-0"
-                        label-size="sm"
+                        label-cols-sm="auto"
+                        class="mb-2"
                     >
                       <b-form-input
                           v-model="searchQuery"
                           id="student-search-input"
                           type="search"
-                          size="sm"
                           autocomplete="off"
+                          autofocus
                           placeholder="Введите имя или фамилию ученика"
                       ></b-form-input>
                     </b-form-group>
@@ -50,141 +170,179 @@
                       :key="student.value"
                       :disabled="student.disabled"
                       @click="!student.disabled && selectStudent(student.value)"
-                      :class="{
-                      'text-danger': student.fstudent,
-                      'text-muted': student.disabled,
-                    }"
+                      class="d-flex align-items-center p-2 border text-wrap"
+                      role="button"
                   >
                     {{ student.text }}
-                    <span v-if="student.disabled" class="text-muted">
+                    <span v-if="student.disabled" class="text-muted ml-2">
                       (Уже в списке {{ student.list }})
                     </span>
-                    <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
+                    <br>
+                    <span v-if="student.fstudent" class="text-warning ml-2">(Бесплатник)</span>
                   </b-dropdown-item>
                 </b-dropdown>
 
-                <b-row class="g-3">
+                <b-row class="g-3" id="lists">
 
                   <!-- ORVI -->
-                  <b-col xs="12" md="4">
+                  <b-col xs="12" md="4" class="mt-2">
                     <h6>Список ОРВИ учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                          v-for="(tag, index) in chosenClass.absent.ORVI"
-                          :key="index"
-                          class="d-flex justify-content-between align-items-center"
+                        v-for="(tag, index) in currentClassBody.absent.ORVI"
+                        :key="index"
+                        class="d-flex justify-content-between align-items-center"
                       >
                         {{ tag }}
                         <b-button variant="link" @click="removeORVITag(index)" class="p-0">
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addORVIStudent" variant="primary" block>
+                      <b-button @click="addORVIStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
                   </b-col>
 
+                  <!--                  Resp cause-->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список уваж. прич. учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                          v-for="(tag, index) in chosenClass.absent.respectful"
-                          :key="index"
-                          class="d-flex justify-content-between align-items-center"
+                        v-for="(tag, index) in currentClassBody.absent.respectful"
+                        :key="index"
+                        class="d-flex justify-content-between align-items-center"
                       >
                         {{ tag }}
                         <b-button variant="link" @click="removeRespTag(index)" class="p-0">
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addRespStudent" variant="primary" block>
+                      <b-button @click="addRespStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
                   </b-col>
 
+                  <!--                  NotResp. cause-->
                   <b-col xs="12" md="4" class="mt-2">
                     <h6>Список неуваж. прич. учеников:</h6>
                     <b-list-group>
                       <b-list-group-item
-                          v-for="(tag, index) in chosenClass.absent.not_respectful"
-                          :key="index"
-                          class="d-flex justify-content-between align-items-center"
+                        v-for="(tag, index) in currentClassBody.absent.not_respectful"
+                        :key="index"
+                        class="d-flex justify-content-between align-items-center"
                       >
                         {{ tag }}
                         <b-button variant="link" @click="removeNotRespTag(index)" class="p-0">
                           <b-icon icon="trash"></b-icon>
                         </b-button>
                       </b-list-group-item>
-                      <b-button @click="addNotRespStudent" variant="primary" block>
+                      <b-button @click="addNotRespStudent" :disabled="selectedStudent.length === 0" variant="primary" block>
                         Добавить ученика
                       </b-button>
                     </b-list-group>
                   </b-col>
                 </b-row>
-                <b-row>
-                    <div class="mt-4 border-top" style="justify-content: end">
-                      <b-button block variant="primary" @click="submitForm">
-                        Отправить
-                      </b-button>
-                    </div>
+
+                <b-row class="mt-3 justify-content-end">
+                  <div class="mb-2 border-top d-flex justify-content-end">
+                    <b-button block variant="primary" :disabled="isNewStudListHasDuplicates" @click="submitForm">
+                      Отправить
+                    </b-button>
+                  </div>
+                  <notificationsForm class="mb-0"/>
                 </b-row>
               </b-container>
+
             </b-form>
+          </b-col>
+          <b-col v-else class="text-center">
+            <h4>Доступ запрещён </h4>
+            <p>
+              Данный класс не существует или у текущего пользователя отсутствуют права для его редактирования.
+            </p>
           </b-col>
         </b-row>
       </b-card-body>
     </b-card>
   </b-container>
+  </b-overlay>
 </template>
 
 <script>
 import notificationsForm from "@/components/admin/notifications.vue";
+
 export default {
   name: "userForm",
-  components: {
-    notificationsForm
-  },
+  components: { notificationsForm },
   data() {
     return {
-      classID: '',
-      chosenClass: {
+      classID: '' ,
+      isClassDataWasFilledForToday: false,
+      isClassValid: true,
+      todayClassBody: { }, // {ORVI, respectful, not_respectful}
+      currentClassBody: { //Absent data fill only
         absent: {
           ORVI: [],
           respectful: [],
           not_respectful: []
         },
       },
-      classData: {},
-      students: [],
       selectedStudent: '',
       searchQuery: '',
+
+      newStudentName: '', // New data property for the new student's name
+
+      showStudentModal: false, //Edit stud list modal
+      showAddModal: false,
+      showEditModal: false,
+
+      isUserSentEditStudList: false, //is user sent new list
+      isSuccessEditStudList: null, //is data applied on server
+
+      //Used only for editing class list
+      editedStudents: [],
+      // For editing student in edit modal
+      selectedEditStudent: '',
     };
   },
   async mounted() {
     this.classID = this.$route.params.classID;
 
-    this.chosenClass = {
-      ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
-      absent: {
-        ORVI: [],
-        respectful: [],
-        not_respectful: []
+    try {
+      this.currentClassBody = {
+        ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
+        absent: { ORVI: [], respectful: [], not_respectful: [] }
+      };
+      this.isClassValid = true;
+
+      const res = await this.$root.$makeApiRequest('/api/user/classes/' + this.classID + '/data');
+
+      if (res.data.absent !== null
+          && res.data.isClassDataFilled === true) {
+        this.isClassDataWasFilledForToday = true;
+        this.todayClassBody = res.data.absent;
       }
     }
-    console.log(this.chosenClass);
+    catch (err) {
+      // console.log('this class is not exits');
+      this.isClassValid = false;
+    }
+    this.editedStudents = this.getStudents();
   },
   computed: {
     availableStudents() {
       const absentStudents = {
-        ORVI: new Set(this.chosenClass.absent.ORVI),
-        respectful: new Set(this.chosenClass.absent.respectful),
-        not_respectful: new Set(this.chosenClass.absent.not_respectful),
-        fstudents: new Set(this.chosenClass.absent.fstudents),
+        ORVI: new Set(this.currentClassBody.absent.ORVI),
+        respectful: new Set(this.currentClassBody.absent.respectful),
+        not_respectful: new Set(this.currentClassBody.absent.not_respectful),
+        fstudents: new Set(this.currentClassBody.fstudents),
       };
 
-      return this.chosenClass.students.map((student) => {
+      if (this.currentClassBody.students) {
+
+      return this.currentClassBody.students.map((student) => {
         const inORVI = absentStudents.ORVI.has(student);
         const inRespectful = absentStudents.respectful.has(student);
         const inNotRespectful = absentStudents.not_respectful.has(student);
@@ -194,77 +352,201 @@ export default {
           value: student,
           text: student,
           disabled: inORVI || inRespectful || inNotRespectful,
-          fstudent: inFStudent, // Add property to check if it's a fstudent
-          list: inORVI
-              ? 'ОРВИ'
-              : inRespectful
-                  ? 'Уваж. прич.'
-                  : inNotRespectful
-                      ? 'Неуваж. прич.'
-                      : ''
+          fstudent: inFStudent,
+          list: inORVI ? 'ОРВИ' : inRespectful ? 'Уваж. прич.' : inNotRespectful ? 'Неуваж. прич.' : ''
         };
       }).filter(student => student.text.toLowerCase().includes(this.searchQuery.toLowerCase()));
+      }
+      return {}
     },
     selectedStudentText() {
-      // Return the selected student's name or the default text
-      return this.selectedStudent || 'Выберите ученика';
-    }
+      return this.selectedStudent || 'Выберите отсутствующего ученика';
+    },
+    isUserWereEditingStudList() {
+      const firstData = this.getStudents();
+
+      if (this.editedStudents.length === 0)
+        return false;
+
+      // Check if the lengths of the arrays are different
+      if (firstData.length !== this.editedStudents.length) {
+        return true;
+      }
+
+      // Compare each student object in the arrays
+      for (let i = 0; i < firstData.length; i++) {
+        const student1 = firstData[i];
+        const student2 = this.editedStudents[i];
+
+        // Check if any property of the student objects is different
+        if (student1.name !== student2.name || student1.isFree !== student2.isFree || student1.isDeleted !== student2.isDeleted) {
+          return true;
+        }
+      }
+
+      // If all student objects are the same, return false
+      return false;
+    },
+    isNewStudListHasDuplicates() {
+      const uniqStuds = new Set(this.editedStudents.filter(stud => !stud.isDeleted).map(stud => stud.name));
+      return uniqStuds.size !== this.editedStudents.filter(stud => !stud.isDeleted).length;
+    },
   },
   methods: {
-    async submitForm() {
-      const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.chosenClass.id + '/data', 'PUT',{
-        absent: {...this.chosenClass.absent}
+    deepCopy(obj) {
+      if (Object(obj)!== obj) return obj; // primitives
+      if (Array.isArray(obj)) return obj.map(this.deepCopy); // arrays
+      const result = {};
+      for (const key in obj) if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = this.deepCopy(obj[key]);
+      }
+      return result;
+    },
+    setTodayClassBody() {
+      this.currentClassBody.absent = this.deepCopy(this.todayClassBody);
+      console.log(this.todayClassBody);
+    },
+    getStudents() {
+      const students = this.currentClassBody.students || [];
+      const fstudents = this.currentClassBody.fstudents || [];
+
+      return students.map(student => ({
+        name: student,
+        isFree: fstudents.includes(student),
+        isDeleted: false,
+      }));
+
+    },
+    async addStudent() {
+      if (this.newStudentName.trim() === '') return;
+
+      this.editedStudents.push({
+        name: this.newStudentName,
+        isFree: false,
+        isDeleted: false
       });
-      if (status === 200 || status === 204)
-        this.$root.$emit('notification', 'success')
-      else
-        this.$root.$emit('notification', 'error', 'Что-то пошло не так. Попробуйте позже')
+      this.newStudentName = ''; // Сбросить поле ввода
+      this.showAddModal = false; // Закрыть модальное окно
+    },
+
+    openEditModal(student) {
+      this.selectedEditStudent = { ...student }; // Создаем копию выбранного ученика
+      this.showEditModal = true;
+    },
+
+    async saveNewStudents() {
+      this.isUserSentEditStudList = false;
+
+      const dataToSend = {
+        students: this.editedStudents.filter(student => !student.isDeleted).map(student => student.name),
+        fstudents: this.editedStudents.filter(student => student.isFree && !student.isDeleted).map(student => student.name),
+      };
+
+      try {
+        const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.classID + '/students', 'PUT', dataToSend);
+
+        this.isUserSentEditStudList = true;
+        this.isSuccessEditStudList = (status === 204);
+
+        if (this.isSuccessEditStudList) {
+          this.currentClassBody = {
+            ...await this.$root.$makeApiRequest('/api/user/classes/' + this.classID),
+            absent: { ORVI: [], respectful: [], not_respectful: [] }
+          };
+          this.editedStudents = this.getStudents();
+        }
+      }
+      catch (error) {
+        console.error('Ошибка при сохранении изменений:', error);
+      }
+    },
+    async submitForm() {
+      const status = await this.$root.$makeApiRequest('/api/user/classes/' + this.currentClassBody.id + '/data', 'PUT', {
+        absent: {...this.currentClassBody.absent}
+      });
+      this.$root.$callNotificationEvent(status === 204);
     },
     selectStudent(student) {
       this.selectedStudent = student;
     },
+    renameStudent() {
+      const index = this.editedStudents.findIndex(s => s.name === this.selectedEditStudent.name);
+      if (index !== -1 && this.selectedEditStudent.name !== '') {
+        this.editedStudents[index].name = this.newStudentName;
+      }
+      this.newStudentName = '';
+      this.showEditModal = false;
+    },
+    toggleDeleteStudent(student) {
+      const index = this.editedStudents.indexOf(student);
+      if (index !== -1) {
+        this.editedStudents[index].isDeleted = !this.editedStudents[index].isDeleted; // Удалить ученика из локального массива
+      }
+    },
     isStudentFree() {
       return (this.selectedStudent &&
-          !this.chosenClass.absent.ORVI.includes(this.selectedStudent) &&
-          !this.chosenClass.absent.respectful.includes(this.selectedStudent) &&
-          !this.chosenClass.absent.not_respectful.includes(this.selectedStudent))
+        !this.currentClassBody.absent.ORVI.includes(this.selectedStudent) &&
+        !this.currentClassBody.absent.respectful.includes(this.selectedStudent) &&
+        !this.currentClassBody.absent.not_respectful.includes(this.selectedStudent));
     },
+
     addORVIStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.ORVI.push(this.selectedStudent);
-        this.selectedStudent = ''; // Reset selected student
-        this.searchQuery = ''; // Clear the search query
+        this.currentClassBody.absent.ORVI.push(this.selectedStudent);
+        this.selectedStudent = '';
+        this.searchQuery = '';
       }
     },
     addRespStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.respectful.push(this.selectedStudent);
-        this.selectedStudent = ''; // Reset selected student
-        this.searchQuery = ''; // Clear the search query
+        this.currentClassBody.absent.respectful.push(this.selectedStudent);
+        this.selectedStudent = '';
+        this.searchQuery = '';
       }
     },
     addNotRespStudent() {
       if (this.isStudentFree()) {
-        this.chosenClass.absent.not_respectful.push(this.selectedStudent);
-        this.selectedStudent = ''; // Reset selected student
-        this.searchQuery = ''; // Clear the search query
+        this.currentClassBody.absent.not_respectful.push(this.selectedStudent);
+        this.selectedStudent = '';
+        this.searchQuery = '';
       }
     },
+
     removeORVITag(index) {
-      this.chosenClass.absent.ORVI.splice(index, 1); // Remove student by index
+      this.currentClassBody.absent.ORVI.splice(index, 1);
     },
     removeRespTag(index) {
-      this.chosenClass.absent.respectful.splice(index, 1); // Remove student by index
+      this.currentClassBody.absent.respectful.splice(index, 1);
     },
     removeNotRespTag(index) {
-      this.chosenClass.absent.not_respectful.splice(index, 1); // Remove student by index
-    }
+      this.currentClassBody.absent.not_respectful.splice(index, 1);
+    },
   },
 };
 </script>
+
 <style>
 .dropdown-scrollable {
-  max-height: 300px; /* Задайте нужную высоту */
-  overflow-y: auto; /* Включите вертикальную прокрутку */
+  max-height: 300px;
+  overflow-y: auto;
+}
+.returnIcon {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+}
+.dropdown {
+  display: flex;
+  flex-direction: column;
+}
+.dropdownMenu {
+  transform: translate3d(0px, 0px, 0px) !important;
+  position: relative !important;
+  max-height: 230px;
+  overflow-y: auto;
+  min-width: auto;
+}
+.dropdown-item {
+  text-wrap: auto;
 }
 </style>

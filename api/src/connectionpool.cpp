@@ -23,13 +23,14 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
 
         //* Invites
-        c->prepare(psqlMethods::invites::getAll, "select school_invite_get($1::uuid)");
         c->prepare(psqlMethods::invites::isValid, "select is_invite_valid($1::uuid, $2, $3)");
         c->prepare(psqlMethods::invites::isExists, "select is_invite_exists($1::uuid, $2);");
+        c->prepare(psqlMethods::invites::getAll, "select school_invite_get($1::uuid)");
         c->prepare(psqlMethods::invites::create, "call school_invite_create($1::uuid, $2::jsonb)");
         c->prepare(psqlMethods::invites::drop, "delete from schools_invites "
                                                   "where school_id = $1::uuid "
                                                   "and req_id = $2 ");
+        c->prepare(psqlMethods::invites::archive, "call school_invite_archive($1::uuid, $2::text)");
         c->prepare(psqlMethods::invites::getProperties, "select school_invite_props_get($1::uuid, $2, $3)");
 
         c->prepare(psqlMethods::userData::getName, "select name from users where school_id = $1::uuid"
@@ -42,43 +43,17 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
         // Global
         c->prepare(psqlMethods::isDate, "select is_date($1)");
-
+        c->prepare(psqlMethods::org::getData, "select school_org_data_get($1::text)");
 
         // * Class Handler
         c->prepare(psqlMethods::classes::checks::isOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
         c->prepare(psqlMethods::classes::checks::isExists, "select is_class_exists($1::uuid, uuid_or_null($2))");
+        c->prepare(psqlMethods::userChecks::isHasClasses, "select is_user_has_classes($1::uuid, $2::uuid)");
 
-
-        //set [add, remove] students
-        {
-        c->prepare(psqlMethods::classes::students::add, "call class_students_add("
-                                              "$1::uuid, "
-                                              "$2::uuid, "
-                                              "$3::uuid, "
-                                              "$4::text[]"
-                                              ")");
-        c->prepare(psqlMethods::classes::students::remove, "call class_students_remove("
-                                                 "$1::uuid, "
-                                                 "$2::uuid, "
-                                                 "$3::uuid, "
-                                                 "$4::text[]"
-                                                 ")");
-
-        }
-
-        //set [add, remove] fstudents
-        {
-            c->prepare(psqlMethods::classes::students::add_f, "call class_fstudents_add("
-                                              "$1::uuid, $2::uuid, "
-                                              "$3::uuid, $4::text[])");
-            c->prepare(psqlMethods::classes::students::remove_f, "call class_fstudents_remove("
-                                                     "$1::uuid, $2::uuid, "
-                                                     "$3::uuid, $4::text[])");
-        }
 
         //Includes check on existing data. If data in null -> generates by self
         c->prepare(psqlMethods::classes::data::getInsertedData, "select class_data_get($1::uuid,$2::uuid,$3::date)");
-        c->prepare(psqlMethods::classes::data::insertData, "call class_data_insert($1::uuid,$2::uuid,$3::jsonb)");
+        c->prepare(psqlMethods::classes::data::insertData, "call class_data_insert($1::uuid,$2::uuid,$3::jsonb, current_date)");
         c->prepare(psqlMethods::classes::data::insertDataForDate, "call class_data_insert($1::uuid, $2::uuid, $3::jsonb, $4::date)");
 
 
@@ -108,16 +83,15 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         // c->prepare(psqlMethods::schoolManager::users::degrantClasses, "call school_user_classes_degrant($1::uuid, $2::uuid, $3::uuid[])");
         c->prepare(psqlMethods::schoolManager::users::setClasses, "call school_user_classes_set($1::uuid, $2::uuid, $3::uuid[])");
 
-
+        c->prepare(psqlMethods::schoolManager::users::setName, "call school_user_name_set($1::uuid, $2::uuid, $3::text)");
         //* Grant roles to user
-        // c->prepare(psqlMethods::schoolManager::users::grantRoles, "call user_roles_add($1::uuid, $2::uuid, $3::text[])");
-        // c->prepare(psqlMethods::schoolManager::users::degrantRoles, "call user_roles_remove($1::uuid, $2::uuid, $3::text[])");
         c->prepare(psqlMethods::schoolManager::users::setRoles, "call user_roles_set($1::uuid, $2::uuid, $3::text[])");
         //Region data
 
         c->prepare(psqlMethods::schoolManager::data::isExists, "select is_school_data_exists($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::genNewForToday, "call school_data_gen($1::uuid)");
-        c->prepare(psqlMethods::schoolManager::data::get, "select * from school_data_get($1::uuid, $2::date)");
+        c->prepare(psqlMethods::schoolManager::data::getForToday, "select * from school_data_get($1::uuid, current_date)");
+        c->prepare(psqlMethods::schoolManager::data::getForDate, "select * from school_data_get($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
         connections.push_back(std::move(c)); // Move ownership to the vector
@@ -125,16 +99,28 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 }
 
 pqxx::connection* ConnectionPool::getConnection() {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock lock(mtx);
+
+    if (connections.empty())
+        cv.wait(lock);
+
     if (connections.empty()) {
-        return nullptr; // Return nullptr if no connections available
+        // This should not happen due to the condition variable wait, but let's be defensive
+        throw std::runtime_error("Connection pool is empty after wait.");
     }
-    pqxx::connection* conn = connections.back().release(); // Release ownership
+
+    // Directly move the unique_ptr to a raw pointer to maintain ownership semantics
+    pqxx::connection* conn = connections.back().release();
     connections.pop_back();
+    lock.unlock(); // Unlock before returning to minimize lock hold duration
     return conn;
 }
 
 void ConnectionPool::releaseConnection(pqxx::connection* conn) {
-    std::lock_guard<std::mutex> lock(mtx);
-    connections.emplace_back(conn); // Wrap the raw pointer in a unique_ptr
+    mtx.lock();
+
+    connections.emplace_back(conn);
+
+    mtx.unlock();
+    cv.notify_one(); // Notify any waiting threads that a connection is now available
 }

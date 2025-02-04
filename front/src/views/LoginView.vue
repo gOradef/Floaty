@@ -42,13 +42,7 @@
               {{ alertMessage }}
             </b-alert>
 
-            <div v-if="hasRefreshCookie">
-              <p>
-                А мы вас помним :) <br>
-                <b-button class="mt-1" @click="isShowRoles = true" >Востановить последнюю сессию?</b-button>
-              </p>
-            </div>
-            <b-button type="submit" variant="primary" block :disabled="isShowRoles">Войти</b-button>
+            <b-button type="submit" variant="primary" block>Войти</b-button>
           </b-form>
 
           <div class="text-center mt-2">
@@ -58,12 +52,19 @@
           </div>
         </b-card-body>
 
-        <b-card-body v-if="isShowRoles" class="mt-3">
-          <h5 class="mb-2"> Здравствуйте,
+        <b-card-body class="mt-3">
+          <h5 v-if="isShowRoles && !hasRefreshToken" class="mb-2 text-center"> Здравствуйте, <br>
             {{actualUserName}}
              👋
           </h5>
-          <RoleSelect/>
+          <h5 v-if="hasRefreshToken" class=" mb-2 text-center">
+            С возвращением, <br> {{actualUserName}} 👋
+          </h5>
+          <RoleSelect v-if="hasRefreshToken || isShowRoles"/>
+          <div v-if="isUserDoesntHaveAnyRoles">
+            <h4>Доступ запрещён.</h4>
+            <p>Вы не владеете ни одной ролью в данной организации. Чтобы получить права для заполнения / редактирования данных, обратитесь к администратору организации</p>
+          </div>
         </b-card-body>
       </b-overlay>
     </b-card>
@@ -88,38 +89,64 @@ export default {
       alertMessage: '',
       alertVariant: 'success', // Default to success, can be changed to 'danger' for errors
 
-      hasRefreshCookie: false,
+      hasRefreshToken: false,
       isLoading: false,
 
       isShowLogin: true,
       isShowRoles: false,
       actualUserName: '',
+      isUserDoesntHaveAnyRoles: false,
     };
   },
   async mounted() {
     await this.checkForRefreshToken();
   },
   methods: {
+    getCookie(name) {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+          return cookie.substring(name.length + 1);
+        }
+      }
+      return null;
+    },
     async loginProcess() {
 
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 500));
       this.showAlert = true;
       this.isLoading = false;
       await new Promise(r => setTimeout(r, 400));
 
     },
     async successfulLogin(response) {
-      console.log(response);
+      // console.log(response);
       this.alertMessage = 'Успешно!';
       this.alertVariant = 'success';
 
       await this.loginProcess();
 
-      this.actualUserName = response.data.user.name;
-      this.isShowRoles = true;
+      if (response.data.user.name) {
+        this.actualUserName = response.data.user.name;
+        //Saving name of user
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // Set cookie expiration to 7 days from now
+        document.cookie = `username=${this.actualUserName}; expires=${expirationDate.toUTCString()}; SameSite=Lax; path=/`;
+
+        this.isShowRoles = true;
+      }
+      else
+        this.isUserDoesntHaveAnyRoles = true;
+
     },
     async checkForRefreshToken() {
+      const data = await this.$root.$makeApiRequest('/api/roles');
 
+      if (data) {
+        this.hasRefreshToken = true;
+        this.actualUserName = this.getCookie('username');
+      }
     },
     onSubmit() {
       this.isLoading = true;
