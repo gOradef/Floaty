@@ -112,11 +112,10 @@ protected:
      * @throw api::exceptions::wrongRequest("Input date is not valid format");
      */
     void isInputIsDateType(const std::string& date) {
-        pqxx::read_transaction readTransaction(*_connection);
-        readTransaction.exec_prepared1("is_date", date).front().as<bool>() ?
-        nullptr
-                                                                           :
-        throw api::exceptions::wrongRequest("Input date is not valid format");
+        bool isDate = work->exec_prepared1("is_date", date).front().as<bool>();
+
+        if (!isDate)
+            throw api::exceptions::wrongRequest("Input date is not valid format");
     };
     void priviliageWorkerToWrite() {
         delete this->work;
