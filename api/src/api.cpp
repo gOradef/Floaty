@@ -11,17 +11,23 @@ Request::Request(ConnectionPool *connectionPool, const crow::request &req) {
     jwt::decoded_jwt decodedJwt = jwt::decode(user_token);
 
     this->work = new pqxx::read_transaction(*this->_connection);
-    this->_org_id = work->exec_prepared1(psqlMethods::encoding::decode,decodedJwt.get_payload_claim("aud").as_string()).front().as<std::string>();
-    this->_user_id = work->exec_prepared1(psqlMethods::encoding::decode, decodedJwt.get_subject()).front().as<std::string>();
+    this->_org_id = work->exec(psqlMethods::encoding::decode,decodedJwt.get_payload_claim("aud").as_string()).one_field().as<std::string>();
+    this->_user_id = work->exec(psqlMethods::encoding::decode, decodedJwt.get_subject()).one_field().as<std::string>();
 }
 Request::~Request() {
     delete this->work;
     _connectionPool->releaseConnection(_connection);
 }
+void Request::isInputIsDateType(const std::string& date) {
+    bool isDate = work->exec(psqlMethods::isDate, date).one_field().as<bool>();
+
+    if (!isDate)
+        throw api::exceptions::wrongRequest("Input date is not valid format");
+};
 
 std::vector<std::string> Request::getRoles() {
     std::vector<std::string> roles;
-    auto res = work->exec_prepared(psqlMethods::userData::getRoles, _org_id, _user_id);
+    auto res = work->exec(psqlMethods::userData::getRoles, {_org_id, _user_id});
     for (auto role : res) {
         roles.emplace_back(role.front().as<std::string>());
     }
@@ -40,10 +46,10 @@ std::vector<std::string> Request::getRoles() {
  */
 crow::json::wvalue Request::getAvailibleClasses() {
 
-    auto result = work->exec_prepared(psqlMethods::userData::getClasses, _org_id, _user_id);
-    crow::json::wvalue classes;
-    if (!result.front().front().is_null()) {
-        classes = crow::json::load(result.front().front().as<std::string>());
+    auto result = work->exec(psqlMethods::userData::getClasses,{ _org_id, _user_id});
+
+    if (!result.one_field().is_null()) {
+        crow::json::wvalue classes = crow::json::load(result.one_field().as<std::string>());
         return classes;
     }
     return nullptr;
@@ -56,7 +62,7 @@ classHandler::classHandler(ConnectionPool *connectionPool,
                            const crow::request &req,
                            const std::string& classID) : Request(connectionPool, req) {
 
-    bool isClassOwned = work->exec_prepared1(psqlMethods::classes::checks::isOwned, _org_id, _user_id, classID).front().as<bool>();
+    bool isClassOwned = work->exec(psqlMethods::classes::checks::isOwned,{ _org_id, _user_id, classID}).one_field().as<bool>();
     if (!isClassOwned) {
         throw api::exceptions::wrongRequest("Such class doesnt exists");
     }
@@ -66,11 +72,11 @@ classHandler::classHandler(ConnectionPool *connectionPool,
 
 crow::json::wvalue classHandler::getClassProps() {
 
-    auto classProps = work->exec_prepared(psqlMethods::userData::getClassProps,
+    auto classProps = work->exec(psqlMethods::userData::getClassProps, {
     _org_id,
-    _class_id);
+    _class_id});
 
-    crow::json::wvalue json = crow::json::load(classProps.front().front().as<std::string>());
+    crow::json::wvalue json = crow::json::load(classProps.one_field().as<std::string>());
 
     return json;
 
@@ -81,19 +87,19 @@ crow::json::wvalue classHandler::getClassProps() {
  */
 crow::json::wvalue classHandler::getClassStudents() {
 
-    auto studs = work->exec_prepared(psqlMethods::userData::getClassStudents,
+    auto studs = work->exec(psqlMethods::userData::getClassStudents, {
         _org_id,
         _user_id,
-        _class_id);
+        _class_id});
 
-    crow::json::wvalue json = crow::json::load(studs.front().front().as<std::string>());
+    crow::json::wvalue json = crow::json::load(studs.one_field().as<std::string>());
 
     return json;
 }
 
 crow::json::wvalue classHandler::getInsertedDataForToday() {
-    auto res = work->exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, nullptr);
-    crow::json::wvalue json = crow::json::load(res.front().front().as<std::string>());
+    auto res = work->exec(psqlMethods::classes::data::getInsertedData, {_org_id, _class_id, nullptr});
+    crow::json::wvalue json = crow::json::load(res.one_field().as<std::string>());
     //! std::cout << json.dump();
     return json;
 }
@@ -101,9 +107,8 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
 
     this->isInputIsDateType(date);
 
-    auto res = work->exec_prepared(psqlMethods::classes::data::getInsertedData, _org_id, _class_id, date);
-    crow::json::wvalue json;
-    json = crow::json::load(res.front().front().as<std::string>());
+    auto res = work->exec(psqlMethods::classes::data::getInsertedData, {_org_id, _class_id, date});
+    crow::json::wvalue json = crow::json::load(res.one_field().as<std::string>());
     return json;
 }
 /**
@@ -121,14 +126,14 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
 
         this->priviliageWorkerToWrite();
 
-        work->exec_prepared(psqlMethods::schoolManager::classes::updateStudentList, _org_id, this->_class_id, studentsBranch);
+        work->exec(psqlMethods::schoolManager::classes::updateStudentList,{ _org_id, this->_class_id, studentsBranch});
         work->commit();
 }
 
 /**
  *
  * @param changes - json
- * @example input:
+ * @example
  * @code
  * {
  *   "absent": {
@@ -153,19 +158,19 @@ void classHandler::insertData(const std::string &changes) {
     if (!jsonRoot.has("absent") || jsonRoot["absent"].t() != crow::json::type::Object)
         throw api::exceptions::wrongRequest("Can not read body request. Is is has absent as object?");
 
-    for (auto type : jsonRoot["absent"]) {
+    for (const auto& type : jsonRoot["absent"]) {
         if (type.t() != crow::json::type::List)
             throw api::exceptions::wrongRequest("Can not parse lists. Is key:" + std::string(type.s()) + " list?");
     }
 
     this->priviliageWorkerToWrite();
-    auto res = work->exec_prepared(psqlMethods::classes::data::insertData, _org_id, _class_id, changes);
+    auto res = work->exec(psqlMethods::classes::data::insertData,{ _org_id, _class_id, changes});
 
     work->commit();
 }
 
 schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Request(cp, req) {
-    auto res = work->exec_prepared(psqlMethods::userChecks::hasRole, _org_id, _user_id, "admin").front().front().as<bool>();
+    auto res = work->exec(psqlMethods::userChecks::hasRole,{ _org_id, _user_id, "admin"}).one_field().as<bool>();
 
     if (!res)
         throw std::invalid_argument("User doesnt have needed role. Request access from admin");
@@ -175,40 +180,40 @@ schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Req
 
 void schoolManager::isLoginOccupied(const std::string &login) {
 
-    bool isLoginOccupied = work->exec_prepared(psqlMethods::userChecks::isLoginOccupied, login).front().front().as<bool>();
+    bool isLoginOccupied = work->exec(psqlMethods::userChecks::isLoginOccupied, login).one_field().as<bool>();
     if (isLoginOccupied)
         throw api::exceptions::conflict("Login is already occupied. Please, try another");
 }
 void schoolManager::isClassExists(const std::string &classID) {
-    bool isClassExists = work->exec_prepared1(psqlMethods::classes::checks::isExists, _org_id, classID).front().as<bool>();
+    bool isClassExists = work->exec(psqlMethods::classes::checks::isExists,{ _org_id, classID}).one_field().as<bool>();
 
     if (!isClassExists)
         throw api::exceptions::wrongRequest("No such class: " + classID);
 }
 
 void schoolManager::isUserExists(const std::string &userID) {
-    bool isUserExists = work->exec_prepared(psqlMethods::userChecks::isExists, _org_id, userID).front().front().as<bool>();
+    bool isUserExists = work->exec(psqlMethods::userChecks::isExists, {_org_id, userID}).one_field().as<bool>();
 
     if (!isUserExists)
         throw api::exceptions::wrongRequest("No such user: " + userID);
 }
 
 void schoolManager::isUserHasntClassesInOwning(const std::string& userID) {
-    bool isUserHasClassesInOwning = work->exec_prepared(psqlMethods::userChecks::isHasClasses, _org_id, userID).front().front().as<bool>();
+    bool isUserHasClassesInOwning = work->exec(psqlMethods::userChecks::isHasClasses,{ _org_id, userID}).one_field().as<bool>();
 
     if (isUserHasClassesInOwning)
         throw api::exceptions::conflict("User has classes in owning. Aborting.");
 }
 
 void schoolManager::isInviteExists(const std::string& inviteID) {
-    bool isInviteExists = work->exec_prepared(psqlMethods::invites::isExists, _org_id, inviteID).front().front().as<bool>();
+    bool isInviteExists = work->exec(psqlMethods::invites::isExists,{ _org_id, inviteID}).one_field().as<bool>();
 
     if (!isInviteExists)
         throw api::exceptions::wrongRequest("No such invite: " + inviteID);
 }
 
 void schoolManager::isDataExists(const std::string& date) {
-    bool isDataExists = work->exec_prepared(psqlMethods::schoolManager::data::isExists, _org_id, date).front().front().as<bool>();
+    bool isDataExists = work->exec(psqlMethods::schoolManager::data::isExists, {_org_id, date}).one_field().as<bool>();
 
     if (!isDataExists)
         throw api::exceptions::wrongRequest("No such data for date: " + date);
@@ -220,7 +225,7 @@ void schoolManager::isDataExists(const std::string& date) {
 void schoolManager::genDataForToday() {
     // if (!isDataTodayExists()) {
     this->priviliageWorkerToWrite();
-    work->exec_prepared(psqlMethods::schoolManager::data::genNewForToday, _org_id);
+    work->exec(psqlMethods::schoolManager::data::genNewForToday, _org_id);
     work->commit();
     // }
 }
@@ -228,7 +233,6 @@ void schoolManager::genDataForToday() {
 
 /**
      *
-     * @param date format YYYY-MM-DD or "" for
      * @return
      * @code
      * {
@@ -241,16 +245,16 @@ void schoolManager::genDataForToday() {
  */
 crow::json::wvalue schoolManager::getDataForToday() {
 
-    auto res = work->exec_prepared(psqlMethods::schoolManager::data::getForToday, _org_id);
+    auto res = work->exec(psqlMethods::schoolManager::data::getForToday, _org_id);
 
     // Prepare JSON result
     crow::json::wvalue root;
-    if (res.front().front().is_null()) {
+    if (res.one_field().is_null()) {
         //! std::cout << "IS NULL \n";
         root = nullptr;
         return root;
     }
-    root = crow::json::load(res.front().front().as<std::string>());
+    root = crow::json::load(res.one_field().as<std::string>());
 
     return root;
 }
@@ -261,20 +265,20 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
     isInputIsDateType(date);
 
     // Check if school data doesnt exists for the given date
-    if (!work->exec_prepared1(psqlMethods::schoolManager::data::isExists, _org_id, date).front().as<bool>())
+    if (!work->exec(psqlMethods::schoolManager::data::isExists, {_org_id, date}).one_field().as<bool>())
         return nullptr;
 
-    auto res = work->exec_prepared(psqlMethods::schoolManager::data::getForDate, _org_id, date);
+    auto res = work->exec(psqlMethods::schoolManager::data::getForDate,{ _org_id, date});
 
     // Prepare JSON result
-    crow::json::wvalue root = crow::json::load(res.front().front().as<std::string>());
+    crow::json::wvalue root = crow::json::load(res.one_field().as<std::string>());
 
-    if (res.front().front().is_null()) {
+    if (res.one_field().is_null()) {
         //! std::cout << "IS NULL \n";
         root = nullptr;
         return root;
     }
-    root = crow::json::load(res.front().front().as<std::string>());
+    root = crow::json::load(res.one_field().as<std::string>());
 
     return root;
 }
@@ -282,8 +286,7 @@ crow::json::wvalue schoolManager::getDataForDate(const std::string &date) {
 
 
 crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &startDate, const std::string& endDate) {
-
-    auto res = work->exec_prepared(psqlMethods::schoolManager::data::getSummarized, _org_id, startDate, endDate);
+    auto res = work->exec(psqlMethods::schoolManager::data::getSummarized, {_org_id, startDate, endDate});
 
     crow::json::wvalue json;
     for (auto row : res) {
@@ -314,10 +317,10 @@ crow::json::wvalue schoolManager::getSummaryFromDateToDate(const std::string &st
      */
 crow::json::wvalue schoolManager::getClasses() {
 
-    auto res = work->exec_prepared(psqlMethods::schoolManager::classes::getAll, _org_id);
+    auto res = work->exec(psqlMethods::schoolManager::classes::getAll, _org_id);
     crow::json::wvalue json;
     if (!res[0][0].is_null())
-        json = crow::json::load(res.front().front().as<std::string>());
+        json = crow::json::load(res.one_field().as<std::string>());
     else
         json = crow::json::load("[]");
     return json;
@@ -326,9 +329,8 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 
     isClassExists(classID);
 
-
-    auto res = work->exec_prepared(psqlMethods::schoolManager::classes::getStudents, _org_id, classID);
-
+    auto res = work->exec(psqlMethods::schoolManager::classes::getStudents, {_org_id, classID});
+    pqxx::params p;
     crow::json::wvalue json;
     for (auto row : res) {
         auto class_body = row.front().as<std::string>();
@@ -365,7 +367,7 @@ void schoolManager::classCreate(const crow::json::rvalue &json) {
 
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::schoolManager::classes::create, _org_id, owner_id, class_name);
+    work->exec(psqlMethods::schoolManager::classes::create, {_org_id, owner_id, class_name});
     work->commit();
 }
 
@@ -374,7 +376,7 @@ void schoolManager::classDrop(const std::string& classID) {
     isClassExists(classID);
 
     this->priviliageWorkerToWrite();
-    work->exec_prepared(psqlMethods::schoolManager::classes::drop, _org_id, classID);
+    work->exec(psqlMethods::schoolManager::classes::drop, {_org_id, classID});
     work->commit();
 }
 
@@ -389,7 +391,7 @@ void schoolManager::classRename(const std::string& classID, const std::string& c
 
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::schoolManager::classes::rename, _org_id, classID, className);
+    work->exec(psqlMethods::schoolManager::classes::rename, {_org_id, classID, className});
     work->commit();
 }
 
@@ -408,7 +410,7 @@ void schoolManager::updateClassStudents(const std::string& classID, const std::s
 
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::schoolManager::classes::updateStudentList, _org_id, classID, studentsBranch);
+    work->exec(psqlMethods::schoolManager::classes::updateStudentList, {_org_id, classID, studentsBranch});
     work->commit();
 }
 
@@ -429,10 +431,10 @@ void schoolManager::updateClassStudents(const std::string& classID, const std::s
     * @encdode
     */
 crow::json::wvalue schoolManager::getUsers() {
-    auto res = work->exec_prepared(psqlMethods::schoolManager::users::getAll, _org_id);
+    auto res = work->exec(psqlMethods::schoolManager::users::getAll, _org_id);
     crow::json::wvalue json;
     if (!res[0][0].is_null())
-        json = crow::json::load(res.front().front().as<std::string>());
+        json = crow::json::load(res.one_field().as<std::string>());
     else
         json = crow::json::load("[]");
     return json;
@@ -478,7 +480,7 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
         classes = nullptr;
 
     // Execute the prepared query
-    work->exec_prepared(psqlMethods::schoolManager::users::createWithContext, _org_id, login, pwd, name, roles, classes);
+    work->exec(psqlMethods::schoolManager::users::createWithContext, {_org_id, login, pwd, name, roles, classes});
     work->commit();
 }
 
@@ -492,7 +494,7 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
         for (auto& role : userBody["roles"]) {
             roles.emplace_back(role.s());
         }
-        work->exec_prepared(psqlMethods::schoolManager::users::setRoles, _org_id, userID, roles);
+        work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, roles});
     }
     if (userBody.has("classes") &&
         userBody["classes"].t() == crow::json::type::List) {
@@ -500,13 +502,13 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
         for (auto& classt : userBody["classes"]) {
             classes.emplace_back(classt.s());
         }
-        work->exec_prepared(psqlMethods::schoolManager::users::setClasses, _org_id, userID, classes);
+        work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, classes});
     }
     if (userBody.has("name") &&
         userBody["name"].t() == crow::json::type::String &&
         userBody["name"].s() != "") {
         const std::string& newUserName = userBody["name"].s();
-        work->exec_prepared(psqlMethods::schoolManager::users::setName, _org_id, userID, newUserName);
+        work->exec(psqlMethods::schoolManager::users::setName,{ _org_id, userID, newUserName});
     }
     work->commit();
 }
@@ -518,7 +520,7 @@ void schoolManager::userDrop(const std::string &userID) {
 
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::schoolManager::users::drop, _org_id, userID);
+    work->exec(psqlMethods::schoolManager::users::drop, {_org_id, userID});
     work->commit();
 }
 ///@param userID - uuid of user
@@ -527,9 +529,10 @@ void schoolManager::userResetPassword(const std::string& userID, const std::stri
     isUserExists(userID);
 
     this->priviliageWorkerToWrite();
-    work->exec_prepared(psqlMethods::schoolManager::users::resetPassword, _org_id,
+    work->exec(psqlMethods::schoolManager::users::resetPassword, {
+        _org_id,
         userID,
-        newPassword);
+        newPassword});
 
     work->commit();
 }
@@ -552,15 +555,15 @@ void schoolManager::inviteCreate(const std::string& invite_body) {
     // Check if login is alredy is use
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::invites::create, _org_id, invite_body);
+    work->exec(psqlMethods::invites::create, {_org_id, invite_body});
     work->commit();
 }
 
 crow::json::wvalue schoolManager::getAllInvites() {
-    auto res = work->exec_prepared(psqlMethods::invites::getAll, _org_id);
+    auto res = work->exec(psqlMethods::invites::getAll, _org_id);
     crow::json::wvalue json;
     if (!res[0][0].is_null())
-        json = crow::json::load(res.front().front().as<std::string>());
+        json = crow::json::load(res.one_field().as<std::string>());
     else
         json = crow::json::load("[]");
     return json;
@@ -569,7 +572,7 @@ void schoolManager::inviteDrop(const std::string& reqID) {
     isInviteExists(reqID);
 
     this->priviliageWorkerToWrite();
-    work->exec_prepared(psqlMethods::invites::drop, _org_id, reqID);
+    work->exec(psqlMethods::invites::drop, {_org_id, reqID});
     work->commit();
 }
 
@@ -582,7 +585,7 @@ void schoolManager::dataAbsentUpdate(const std::string& classID,const std::strin
 
     this->priviliageWorkerToWrite();
 
-    work->exec_prepared(psqlMethods::classes::data::insertData, _org_id, classID, changes);
+    work->exec(psqlMethods::classes::data::insertData,{ _org_id, classID, changes});
     work->commit();
 }
 /**
@@ -595,6 +598,6 @@ void schoolManager::dataAbsentUpdateForDate(const std::string& classID, const st
     isDataExists(date);
 
     this->priviliageWorkerToWrite();
-    work->exec_prepared(psqlMethods::classes::data::insertDataForDate, _org_id, classID, changes, date);
+    work->exec(psqlMethods::classes::data::insertDataForDate, {_org_id, classID, changes, date});
     work->commit();
 }

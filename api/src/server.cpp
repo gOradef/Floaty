@@ -40,7 +40,9 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
 
         // std::cout << hashedLogin << '\n' << hashedPassword << '\n';
         //Check if user's creds are valid
-        auto result = readTransaction.exec_prepared(psqlMethods::userChecks::isValid, hashedLogin, hashedPassword).front();
+
+        //! DO NOT EDIT .front()
+        auto result = readTransaction.exec(psqlMethods::userChecks::isValid,{ hashedLogin, hashedPassword}).front();
 
         if (!result[0].as<bool>()) {
             throw api::exceptions::wrongRequest("Invalid login or password");
@@ -50,10 +52,10 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         const std::string& userUUID = result[1].as<std::string>();
 
         // * UUID in postgres
-        const std::string& schoolUUID = readTransaction.exec_prepared1(psqlMethods::userData::getSchoolId, userUUID).front().as<std::string>();
+        const std::string& schoolUUID = readTransaction.exec(psqlMethods::userData::getSchoolId, userUUID).one_field().as<std::string>();
 
         // Get roles from postgres
-        auto roles = readTransaction.exec_prepared(psqlMethods::userData::getRoles, schoolUUID, userUUID);
+        auto roles = readTransaction.exec(psqlMethods::userData::getRoles,{ schoolUUID, userUUID});
         picojson::array available_roles;
         for (auto role : roles) {
             picojson::value role_v(role.front().as<std::string>());
@@ -65,7 +67,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         }
 
         // Get available classes from postgres
-        auto classes = readTransaction.exec_prepared(psqlMethods::userData::getClasses, schoolUUID, userUUID);
+        auto classes = readTransaction.exec(psqlMethods::userData::getClasses, {schoolUUID, userUUID});
         picojson::array available_classes;
         if (!classes.front().front().is_null()) {
             for (auto class_v : classes) {
@@ -76,9 +78,9 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
 
 
         //Get hexadecimal user's creds
-        const std::string& userIdHex = readTransaction.exec_prepared1("encode", userUUID).front().as<std::string>();
+        const std::string& userIdHex = readTransaction.exec(psqlMethods::encoding::encode, userUUID).one_field().as<std::string>();
         //                std::cout << "[INFO] SUB IS: " << user_id << '\n'; //!debug
-        const std::string& schoolIdHex = readTransaction.exec_prepared1("encode", schoolUUID).front().as<std::string>();
+        const std::string& schoolIdHex = readTransaction.exec(psqlMethods::encoding::encode, schoolUUID).one_field().as<std::string>();
         //                std::cout << "[INFO] AUD iS: " << school_id_encoded << '\n'; //!debug
 
 
@@ -109,7 +111,7 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
                           .set_type("RefreshToken")
                           .sign(jwt::algorithm::hs256(_jwtRefreshSecret));
 
-        auto userName = readTransaction.exec_prepared1("user_name_get", schoolUUID, userUUID).front().as<std::string>();
+        auto userName = readTransaction.exec(psqlMethods::userData::getName, {schoolUUID, userUUID}).one_field().as<std::string>();
 
 
         //! Set secure
@@ -198,7 +200,7 @@ void Server::routes_auth::getOrgInformation(const crow::request& req, crow::resp
     auto con = _connectionPool->getConnection();
 
     pqxx::read_transaction rtx(*con);
-    auto pres = rtx.exec_prepared(psqlMethods::org::getData, schoolID);
+    auto pres = rtx.exec(psqlMethods::org::getData, schoolID);
     crow::json::wvalue json;
 
     if (!pres[0][0].is_null()) {
@@ -220,8 +222,9 @@ void Server::routes_auth::getInviteProps(const crow::request& req, crow::respons
     auto con = _connectionPool->getConnection();
     pqxx::read_transaction work(*con);
 
-    auto props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret);
+    auto props = work.exec(psqlMethods::invites::getProperties,{ schoolID, invite_code, invite_secret});
     crow::json::wvalue json;
+    //* 50 / 50 maybe refactor todo
     if (!props[0][0].is_null()) {
         json["invite"] = crow::json::load(props[0][0].as<std::string>());
         json["status"] = 200;
@@ -265,17 +268,17 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
         pqxx::work work(*c);
 
         //* Check if invite creds are valid
-        auto isValidInvite = work.exec_prepared(psqlMethods::invites::isValid, schoolID, invite_code, invite_secret).front().front().as<bool>();
+        auto isValidInvite = work.exec(psqlMethods::invites::isValid,{ schoolID, invite_code, invite_secret}).one_field().as<bool>();
         if (!isValidInvite) {
             throw api::exceptions::wrongRequest("No such invite");
         }
         //* Check if login is alredy is use
-        bool isLoginOccupied = work.exec_prepared(psqlMethods::userChecks::isLoginOccupied, user_loginHashed).front().front().as<bool>();
+        bool isLoginOccupied = work.exec(psqlMethods::userChecks::isLoginOccupied, user_loginHashed).one_field().as<bool>();
         if (isLoginOccupied)
             throw api::exceptions::conflict("Login is already occupied. Please, try another");
 
         //* Get invite_props
-        auto invite_props = work.exec_prepared(psqlMethods::invites::getProperties, schoolID, invite_code, invite_secret).front().front().as<std::string>();
+        auto invite_props = work.exec(psqlMethods::invites::getProperties, {schoolID, invite_code, invite_secret}).one_field().as<std::string>();
 
         crow::json::rvalue json_props = crow::json::load(invite_props);
         if (!json_props) {
@@ -293,15 +296,16 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
         const std::string& name = json_props["name"].s();
 
         //* Create user
-        work.exec_prepared(psqlMethods::schoolManager::users::createWithContext,
+        work.exec(psqlMethods::schoolManager::users::createWithContext,{
                            schoolID,
                            user_loginHashed,
                            user_passwordHashed,
                            name,
                            roles,
                            classes
+        }
         );
-        work.exec_prepared(psqlMethods::invites::archive, schoolID, invite_code);
+        work.exec(psqlMethods::invites::archive, {schoolID, invite_code});
         work.commit();
         res.code = 204;
     }
@@ -740,11 +744,11 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
         auto token_user_id = decoded_token.get_subject();
         auto token_school_id = decoded_token.get_payload_claim("aud").as_string();
 
-        const std::string& token_user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
-        const std::string& token_school_id_decoded = rtx.exec_prepared1("decode", token_school_id).front().as<std::string>();
+        const std::string& token_user_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_user_id).one_field().as<std::string>();
+        const std::string& token_school_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_school_id).one_field().as<std::string>();
         // * check org_id
         {
-            auto school_id = rtx.exec_prepared1("school_id_get", token_user_id_decoded).front().as<std::string>();
+            auto school_id = rtx.exec(psqlMethods::userData::getSchoolId, token_user_id_decoded).one_field().as<std::string>();
 
             if (token_school_id_decoded != school_id)
                 throw jwt::token_verification_exception();
@@ -754,9 +758,9 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
         {
             picojson::array token_roles = decoded_token.get_payload_claim("roles").as_array();
 
-            const std::string& user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
+            const std::string& user_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_user_id).one_field().as<std::string>();
             picojson::array available_roles;
-            auto roles = rtx.exec_prepared("user_roles_get", token_school_id_decoded, user_id_decoded);
+            auto roles = rtx.exec(psqlMethods::userData::getRoles, {token_school_id_decoded, user_id_decoded});
 
             if (!roles.empty()) {
                 for (auto role : roles) {
@@ -770,9 +774,9 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
         {
             picojson::array token_classes = decoded_token.get_payload_claim("classes").as_array();
 
-            const std::string& user_id_decoded = rtx.exec_prepared1("decode", token_user_id).front().as<std::string>();
+            const std::string& user_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_user_id).one_field().as<std::string>();
             picojson::array available_classes;
-            auto classes = rtx.exec_prepared("user_classes_get", token_school_id_decoded, user_id_decoded);
+            auto classes = rtx.exec(psqlMethods::userData::getClasses, {token_school_id_decoded, user_id_decoded});
             if (!classes.front().front().is_null()) {
                 for (auto class_v : classes) {
                     available_classes.emplace_back(class_v.front().as<std::string>());
@@ -802,14 +806,46 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
 
 std::string Server::hashSHA256(const std::string& input) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, input.c_str(), input.length());
-    SHA256_Final(hash, &sha256);
+    EVP_MD_CTX* mdCtx;
+    const EVP_MD* md;
+
+    // Initialize the message digest context
+    mdCtx = EVP_MD_CTX_new();
+    if (mdCtx == nullptr) {
+        // Handle memory allocation failure
+        throw std::runtime_error("Failed to allocate EVP_MD_CTX");
+    }
+
+    // Select the SHA256 algorithm
+    md = EVP_get_digestbyname("SHA-256");
+    if (md == nullptr) {
+        EVP_MD_CTX_free(mdCtx);
+        throw std::invalid_argument("Failed to get SHA-256 digest");
+    }
+
+    // Initialize the digest operation
+    if (EVP_DigestInit_ex(mdCtx, md, nullptr)!= 1) {
+        EVP_MD_CTX_free(mdCtx);
+        throw std::runtime_error("Failed to initialize digest");
+    }
+
+    // Update the digest with the input string
+    if (EVP_DigestUpdate(mdCtx, input.c_str(), input.length())!= 1) {
+        EVP_MD_CTX_free(mdCtx);
+        throw std::runtime_error("Failed to update digest");
+    }
+
+    // Finalize the digest
+    if (EVP_DigestFinal_ex(mdCtx, hash, nullptr)!= 1) {
+        EVP_MD_CTX_free(mdCtx);
+        throw std::runtime_error("Failed to finalize digest");
+    }
+
+    EVP_MD_CTX_free(mdCtx); // Clean up
 
     std::stringstream ss;
-    for(unsigned char i : hash) {
-        ss << std::hex << std::setw(2) << std::setfill('0') << (int)i;
+    for (unsigned char byteValue : hash) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)byteValue;
     }
 
     return ss.str();

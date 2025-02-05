@@ -111,12 +111,7 @@ protected:
      * @param date date value
      * @throw api::exceptions::wrongRequest("Input date is not valid format");
      */
-    void isInputIsDateType(const std::string& date) {
-        bool isDate = work->exec_prepared1("is_date", date).front().as<bool>();
-
-        if (!isDate)
-            throw api::exceptions::wrongRequest("Input date is not valid format");
-    };
+    void isInputIsDateType(const std::string& date);
     void priviliageWorkerToWrite() {
         delete this->work;
         this->work = new pqxx::work(*_connection);
@@ -161,26 +156,9 @@ class schoolManager : Request {
     void isInviteExists(const std::string& inviteID);
     void isDataExists(const std::string& date);
 
-    // bool isDataTodayExists();
-
 public:
     schoolManager(ConnectionPool* cp,
                   const crow::request& req);
-
-    struct url_params {
-        bool isWithDate;
-        bool isWithRoles;
-        bool isWithClasses;
-        bool isWithOwner;
-
-        url_params() :
-            isWithDate(false),
-            isWithRoles(false),
-            isWithClasses(false),
-            isWithOwner(false) {};
-
-    };
-    url_params urlParams;
 
     //Region Getters
 
