@@ -107,14 +107,6 @@ protected:
     std::string _org_id;
     std::string _user_id;
 
-    // Vectors with types
-    std::vector<std::string> _stud_types{"students", "fstudents"};
-    std::vector<std::string> _actions {"add", "remove"}; //? maybe 'set' as well?
-    std::vector<std::string> _cause_types {"global",
-                                           "ORVI",
-                                           "not_respectful",
-                                           "respectful",
-                                           "fstudents"};
     /**
      * @param date date value
      * @throw api::exceptions::wrongRequest("Input date is not valid format");
