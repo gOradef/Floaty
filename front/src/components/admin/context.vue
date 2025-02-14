@@ -80,8 +80,8 @@ export default {
             _variant: "info",
           },
           {
-            label: "Сбросить запись - В разработке",
-            foo: () => this.openModal(dataInterface, "delete"),
+            label: "Сбросить запись",
+            foo: () => this.openModal(dataInterface, "reset", "Сбросить запись"),
             _variant: "danger",
           },
         ],

@@ -103,6 +103,15 @@
 
       </b-form>
     </div>
+    <div v-if="action === 'reset'">
+      <b-form title="Редактировать отсутств.">
+        <h4>Класс: {{ updatedClass.name }}</h4>
+        <b-container>
+          <p>Вы уверены, что хотите <b>сбросить</b> данные за этот класс? </p>
+          <p>При продолжении список отсутствующих будет безвовратно <b>обнулён</b>.</p>
+        </b-container>
+      </b-form>
+    </div>
   </div>
 </template>
 
@@ -232,11 +241,17 @@ export default {
         url = '/api/org/classes/' + this.entity.id + '/data/' + this.calendarDate;
       }
       else {
-        msg = 'Вы уверены? Данные будут изменены для акутальной даты';
+        msg = 'Вы уверены? Данные будут изменены для актуальной даты';
         url = '/api/org/classes/' + this.entity.id + '/data';
       }
 
       if (confirm(msg)) {
+        if (this.action === "reset") {
+          let causesList = ["ORVI", "respectful", "not_respectful", "global", "fstudents"];
+          for (let el in causesList) {
+            this.updatedClass.absent[causesList[el]] = [];
+          }
+        }
         const res = await this.$root.$makeApiRequest(url,
             'PUT',
             {
