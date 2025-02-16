@@ -487,28 +487,35 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
 void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue& userBody) {
     isUserExists(userID);
 
-    this->priviliageWorkerToWrite();
-    if (userBody.has("roles") &&
-        userBody["roles"].t() == crow::json::type::List) {
+    auto setRoles = [&]() {
         std::vector<std::string> roles;
         for (auto& role : userBody["roles"]) {
             roles.emplace_back(role.s());
         }
         work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, roles});
-    }
-    if (userBody.has("classes") &&
-        userBody["classes"].t() == crow::json::type::List) {
+    };
+    auto setClasses = [&]() {
         std::vector<std::string> classes;
         for (auto& classt : userBody["classes"]) {
             classes.emplace_back(classt.s());
         }
         work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, classes});
-    }
-    if (userBody.has("name") &&
-        userBody["name"].t() == crow::json::type::String &&
-        userBody["name"].s() != "") {
+    };
+    auto setName = [&]() {
         const std::string& newUserName = userBody["name"].s();
         work->exec(psqlMethods::schoolManager::users::setName,{ _org_id, userID, newUserName});
+    };
+
+
+    this->priviliageWorkerToWrite();
+    if (userBody.has("roles") && userBody["roles"].t() == crow::json::type::List) {
+        setRoles();
+    }
+    if (userBody.has("classes") && userBody["classes"].t() == crow::json::type::List) {
+        setClasses();
+    }
+    if (userBody.has("name") && userBody["name"].t() == crow::json::type::String && userBody["name"].s() != "") {
+        setName();
     }
     work->commit();
 }
