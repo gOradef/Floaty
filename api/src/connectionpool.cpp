@@ -66,6 +66,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::classes::updateStudentList, "call class_students_set($1::uuid, $2::uuid, $3)");
         c->prepare(psqlMethods::schoolManager::classes::drop, "call class_drop($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::rename, "call class_rename($1::uuid, $2::uuid, $3::text)");
+        c->prepare(psqlMethods::schoolManager::classes::setOwners, "call school_class_users_set($1::uuid, $2::uuid, $3::uuid[])");
 
         //* Users interface
         c->prepare(psqlMethods::schoolManager::users::getAll, "select * from school_users_get($1::uuid)");

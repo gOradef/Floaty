@@ -67,8 +67,9 @@ namespace psqlMethods {
             inline prepped getStudents{"school_class_students_get"}; //school_id, class_id
 
             inline prepped create{"class_create"}; //school_id, user_id (can be null), class_name
-            inline prepped updateStudentList{"class_students_update"};
             inline prepped rename{"class_rename"}; //school_id, class_id, new_class_name
+            inline prepped setOwners{"class_owners_set"};
+            inline prepped updateStudentList{"class_students_update"};
             inline prepped drop{"class_drop"}; //school_id, class_id
         }
         namespace users {
