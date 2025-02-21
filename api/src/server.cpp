@@ -586,6 +586,15 @@ void Server::routes_admin::resetPasswordOfUser(const crow::request& req, crow::r
     return verifier(req, res, f);
 }
 
+void Server::routes_admin::deleteUser(const crow::request& req, crow::response& res, const std::string& userID) {
+    auto f = [&](const crow::request& req, crow::response& res){
+        schoolManager schoolManager(_connectionPool, req);
+        schoolManager.userDrop(userID);
+        res.code = 204;
+    };
+    return verifier(req, res, f);
+}
+
 void Server::routes_admin::genDataForToday(const crow::request& req, crow::response& res) {
     auto f = [](const crow::request& req, crow::response& res){
         schoolManager schoolManager(_connectionPool, req);
@@ -685,7 +694,6 @@ void Server::routes_admin::getAllInvites(const crow::request& req, crow::respons
         schoolManager user(_connectionPool, req);
         auto invites = user.getAllInvites();
         res.body = invites.dump();
-        return res.end();
     };
     return verifier(req,res, f);
 }

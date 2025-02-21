@@ -7,6 +7,8 @@
 
 
 ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_size) {
+    connections.resize(pool_size);
+
     for (int i = 0; i < pool_size; ++i) {
         auto c = std::make_unique<pqxx::connection>(connection_string);
 

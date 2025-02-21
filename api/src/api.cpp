@@ -148,19 +148,18 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
  */
 
 void classHandler::insertData(const std::string &changes) {
-    if (changes.empty())
-        throw api::exceptions::wrongRequest("Empty request");
 
-    crow::json::rvalue jsonRoot = crow::json::load(changes);
-    if (!jsonRoot)
-        throw api::exceptions::parseErr("Can not read body request. Is is json format?");
+    const crow::json::rvalue& jsonRoot = crow::json::load(changes);
 
-    if (!jsonRoot.has("absent") || jsonRoot["absent"].t() != crow::json::type::Object)
-        throw api::exceptions::wrongRequest("Can not read body request. Is is has absent as object?");
+    if (!jsonRoot.has("absent"))
+        throw api::exceptions::MissingRequiredField("absent");
 
-    for (const auto& type : jsonRoot["absent"]) {
-        if (type.t() != crow::json::type::List)
-            throw api::exceptions::wrongRequest("Can not parse lists. Is key:" + std::string(type.s()) + " list?");
+    if (jsonRoot["absent"].t() != crow::json::type::Object)
+        throw api::exceptions::InvalidJsonSchema("absent", "Object");
+
+    for (const auto& field : jsonRoot["absent"]) {
+        if (field.t() != crow::json::type::List)
+            throw api::exceptions::InvalidJsonSchema(field.s(), "list");
     }
 
     this->priviliageWorkerToWrite();
@@ -223,11 +222,9 @@ void schoolManager::isDataExists(const std::string& date) {
 //Region Data
 
 void schoolManager::genDataForToday() {
-    // if (!isDataTodayExists()) {
     this->priviliageWorkerToWrite();
     work->exec(psqlMethods::schoolManager::data::genNewForToday, _org_id);
     work->commit();
-    // }
 }
 
 
@@ -508,6 +505,7 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
 
 
     this->priviliageWorkerToWrite();
+    //todo Suspiciously maybe move checks to router.cpp
     if (userBody.has("roles") && userBody["roles"].t() == crow::json::type::List) {
         setRoles();
     }

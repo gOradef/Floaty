@@ -4,6 +4,22 @@
 // ReSharper disable CppDeclarationHidesLocal
 #pragma once
 
+#define v(function, ...) \
+[](const auto& req, auto& res, ##__VA_ARGS__) { \
+    verifier(req, res, [&](const auto& req, auto& res) { \
+        function; \
+    }); \
+}
+
+/**
+ *
+ * @param request crow::request
+ */
+#define checkRequestBodyForJson(request) \
+    if (!crow::json::load(request.body)) \
+        throw api::exceptions::parseErr("Is request body is json format?");
+
+
 #include "api.h"
 #include "crow/app.h"
 #include "crow/middlewares/session.h"
@@ -77,6 +93,21 @@ class Server {
                 res.body = json.dump();
                 res.code = 403;
             }
+            catch (api::exceptions::MissingRequiredField& e) {
+                crow::json::wvalue json;
+                json["type"] = "Json parse error";
+                json["context"] = "Json doesnt have needed field: " + std::string(e.what());
+                res.body = json.dump();
+                res.code = 403;
+            }
+            catch (api::exceptions::InvalidJsonSchema& e) {
+                crow::json::wvalue json;
+                json["type"] = "Json Schema error";
+                json["context"] = "Json field type is different from expections: " + std::string(e.field()) +
+                    " is not: " + std::string(e.getExpectedFieldType());
+                res.body = json.dump();
+                res.code = 403;
+            }
             catch (api::exceptions::conflict& e)
             {
                 crow::json::wvalue json;
@@ -118,6 +149,12 @@ class Server {
     };
     static std::string hashSHA256(const std::string& input);
 
+    constexpr static void baseChecks(const crow::json::rvalue& jsonRoot, const std::string& fieldName, const crow::json::type& expectedType) {
+        if (!jsonRoot.has(fieldName))
+            throw api::exceptions::MissingRequiredField(fieldName);
+        if (jsonRoot[fieldName].t() != expectedType)
+            throw api::exceptions::InvalidJsonSchema(fieldName, get_type_str(expectedType));
+    }
     //* API methods
     struct routes_auth {
         static void login(const crow::request& req, crow::response& res);

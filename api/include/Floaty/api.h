@@ -93,6 +93,39 @@
         private:
             std::string msg_;
         };
+
+        struct MissingRequiredField : public std::exception {
+            /**
+             * @b Needed json field doesnt exists
+             * @param message name of filed
+            */
+            MissingRequiredField(const std::string &message) : msg_(message) {}
+
+            const char *what() const noexcept override {
+                return msg_.c_str();
+            }
+
+        private:
+            std::string msg_;
+        };
+
+        // Invalid type of objects
+        struct InvalidJsonSchema : public std::exception {
+            InvalidJsonSchema(const std::string &message, const std::string& expectedType) : msg_(message) {
+                this->expectedType_ = expectedType;
+            }
+
+            const char *field() const noexcept {
+                return msg_.c_str();
+            }
+            const char *getExpectedFieldType() const noexcept {
+                return expectedType_.c_str();
+            }
+
+        private:
+            std::string msg_;
+            std::string expectedType_;
+        };
     }
 
 
