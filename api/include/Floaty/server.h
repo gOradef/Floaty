@@ -168,57 +168,6 @@ class Server {
 
         static void signupUsingInvite(const crow::request& req, crow::response& res, const std::string& schoolID);
     };
-    struct routes_user
-    {
-
-        static void getUserRoles(const crow::request& req, crow::response& res);
-
-        static void getUserClasses(const crow::request& req, crow::response& res);;
-    };
-    struct routes_classHandler
-    {
-        static void getClassProps(const crow::request& req, crow::response& res, const std::string& classID);
-
-        static void getStudents (const crow::request& req, crow::response& res, const std::string& classID);
-
-        static void insertStudents(const crow::request &req, crow::response &res, const std::string& classID);
-
-        static void getDataForToday(const crow::request& req, crow::response& res, const std::string& classID);
-
-        static void getDataForDate(const crow::request& req, crow::response& res, const std::string& classID, const std::string& userDate);
-
-        static void insertData(const crow::request& req, crow::response& res, const std::string& classID);;
-    };
-    struct routes_admin
-    {
-        //* Classes section
-        static void getAllClasses(const crow::request& req, crow::response& res);
-        static void createNewClass(const crow::request& req, crow::response& res);
-        static void getStudentsForClass(const crow::request& req, crow::response& res, const std::string& classID);
-        static void updateStudetsForClass(const crow::request& req, crow::response& res, const std::string& classID);
-        static void renameClass(const crow::request& req, crow::response& res, const std::string& urlClassID);
-        static void deleteClass(const crow::request& req, crow::response& res, const std::string& classID);
-
-        //* Users section
-        static void getAllUsers(const crow::request& req, crow::response& res);
-        static void createNewUser(const crow::request& req, crow::response& res);
-        static void editUser(const crow::request& req, crow::response& res, const std::string& userID);
-        static void resetPasswordOfUser(const crow::request& req, crow::response& res, const std::string& userID);
-        static void deleteUser(const crow::request& req, crow::response& res, const std::string& userID);
-
-        //* Data section
-        static void genDataForToday(const crow::request& req, crow::response& res);
-        static void getDataForToday(const crow::request& req, crow::response& res);
-        static void getDataForDate(const crow::request& req, crow::response& res, const std::string& date);
-        static void getDataSummary(const crow::request& req, crow::response& res);
-        static void updateDataAbsent(const crow::request& req, crow::response& res, const std::string& classID);
-        static void updateDataAbsentForDate(const crow::request& req, crow::response& res, const std::string& classID, const std::string& date);
-
-        //* Invites
-        static void getAllInvites(const crow::request& req, crow::response& res);
-        static void createInvite(const crow::request& req, crow::response& res);
-        static void dropInvite(const crow::request& req, crow::response& res, const std::string& inviteID);
-    };
 
     //* Routing api methods
     static void route_auth();
