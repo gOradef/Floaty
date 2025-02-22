@@ -187,7 +187,7 @@ inline void Server::route_admin() {
     }));
 
     // Rename class
-    CROW_ROUTE(app, "/api/org/classes/<string>")
+    CROW_ROUTE(app, "/api/org/classes/<string>/name")
     .methods(crow::HTTPMethod::PATCH)
     (v({
         schoolManager schoolManager(_connectionPool, req);

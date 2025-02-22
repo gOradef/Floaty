@@ -343,7 +343,7 @@ export default {
     },
     async renameClass() {
       const status = await this.$root.$makeApiRequest(
-          '/api/org/classes/' + this.entity.id,
+          '/api/org/classes/' + this.entity.id + '/name',
           'PATCH',
           {
             name: this.newClassName
