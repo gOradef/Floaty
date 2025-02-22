@@ -55,10 +55,13 @@ export default {
                                 return this.$makeApiRequest(url, method, data);
                             } else {
                                 console.warn('Ключ доступа истёк, пожалуйста, войдите снова');
-                                // await router.push('/login');
+                                // if (router.currentRoute.fullPath === '/org') {
+                                //     alert('Ваш ключ доступа не актуален. Пожалуйста, войдите в систему заново')
+                                //     await router.push('/login');
+                                // }
                             }
                         } catch (refreshError) {
-                            console.warn('Unexpected error from api server:', refreshError)
+                            console.error('Unexpected error from api server:', refreshError)
                             // await router.push('/login'); // Redirect if unable to refresh
                         }
                     } else {
@@ -102,11 +105,13 @@ export default {
             }
             isAPIInitialized = true;
 
-            Vue.prototype.$callNotificationEvent = function (isAllGood = false, customMsg = "Что-то пошло не так :(  Чтобы решить проблему как можно быстрее, пожалуйста, свяжитесь с нами:  ") {
-                isAllGood ?
+            Vue.prototype.$callNotificationEvent = function (isAllGood = false, customMsg = "Что-то пошло не так :(  Чтобы решить проблему как можно быстрее, пожалуйста, свяжитесь с нами") {
+                if (isAllGood) {
                     this.$root.$emit('notification', 'success')
-            :
-                this.$root.$emit('notification', 'error', customMsg);
+                }
+                else {
+                    this.$root.$emit('notification', 'error', customMsg);
+                }
             }
         }
     }
