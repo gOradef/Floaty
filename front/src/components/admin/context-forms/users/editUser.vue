@@ -122,7 +122,7 @@ export default {
   <b-tabs v-model="currentTabIndex" nav-class="mb-4">
 
     <!--    Region Rename -->
-    <b-tab title="Переименовать"> <!--! DISABLED -->
+    <b-tab title="Переименовать">
       <div>
         <b-input
           v-model="newUserName"
