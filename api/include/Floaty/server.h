@@ -149,7 +149,7 @@ class Server {
     };
     static std::string hashSHA256(const std::string& input);
 
-    constexpr static void baseChecks(const crow::json::rvalue& jsonRoot, const std::string& fieldName, const crow::json::type& expectedType) {
+    static void baseChecks(const crow::json::rvalue& jsonRoot, const std::string& fieldName, const crow::json::type& expectedType) {
         if (!jsonRoot.has(fieldName))
             throw api::exceptions::MissingRequiredField(fieldName);
         if (jsonRoot[fieldName].t() != expectedType)
