@@ -554,16 +554,6 @@ void Server::routes_admin::editUser(const crow::request& req, crow::response& re
     return verifier(req, res, f);
 }
 
-
-void Server::routes_admin::deleteUser(const crow::request& req, crow::response& res, const std::string& userID) {
-    auto f = [&](const crow::request& req, crow::response& res){
-        schoolManager schoolManager(_connectionPool, req);
-        schoolManager.userDrop(userID);
-        res.code = 204;
-    };
-    return verifier(req, res, f);
-}
-
 /**
  *
  * @param req - {"password": ""}
