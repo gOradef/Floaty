@@ -18,7 +18,7 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
         //* Chechers
         c->prepare(psqlMethods::userChecks::isLoginOccupied, "select EXISTS(select 1 from users where login = $1)");
-        c->prepare(psqlMethods::userChecks::isExists, "select exists (select 1 from users where school_id = $1::uuid and id = $2::uuid)");
+        c->prepare(psqlMethods::userChecks::isExists, "select exists (select 1 from users where school_id = $1::uuid and id = uuid_or_null($2))");
         c->prepare(psqlMethods::userChecks::isValid, "SELECT * from is_valid_user($1::text, $2::text)"); //return bool and user_id in different rows
         c->prepare(psqlMethods::userChecks::hasRole, "select is_user_has_role($1::uuid, $2::uuid, $3::text)");
 

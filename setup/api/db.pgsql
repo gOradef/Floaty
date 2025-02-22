@@ -741,6 +741,36 @@ $$;
 ALTER FUNCTION public.school_class_students_get(_school_id uuid, _class_id uuid) OWNER TO postgres;
 
 --
+-- Name: school_class_users_set(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.school_class_users_set(IN _schoolref uuid, IN _classid uuid, IN _userrefs uuid[])
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Remove classes that are not in the new class_ids
+    DELETE
+    FROM schools_classes_ownership
+    WHERE school_id = _schoolref
+      AND class_id = _classid
+      AND user_id NOT IN (SELECT unnest(_userrefs) AS user_id);
+
+    -- Insert classes that are in the new class_ids
+    INSERT INTO schools_classes_ownership(school_id, class_id, user_id)
+    SELECT _schoolref, _classid, user_id
+    FROM (SELECT unnest(_userrefs) AS user_id) AS user_ids
+    WHERE user_id NOT IN (SELECT user_id
+                           FROM schools_classes_ownership
+                           WHERE school_id = _schoolref
+                             AND class_id = _classid);
+
+END;
+$$;
+
+
+ALTER PROCEDURE public.school_class_users_set(IN _schoolref uuid, IN _classid uuid, IN _userrefs uuid[]) OWNER TO postgres;
+
+--
 -- Name: school_classes_get(uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 

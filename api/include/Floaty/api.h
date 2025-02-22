@@ -210,6 +210,7 @@ public:
     void classCreate(const crow::json::rvalue& json);
     void classRename(const std::string& classID, const std::string& className);
     void updateClassStudents(const std::string& classID, const std::string& studentsBranch);
+        void classSetOwners(const std::string& classID, const std::vector<std::string>& newOwners);
     void classDrop(const std::string& classID);
 
     //Region Users

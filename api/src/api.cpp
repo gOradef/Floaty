@@ -411,6 +411,19 @@ void schoolManager::updateClassStudents(const std::string& classID, const std::s
     work->commit();
 }
 
+void schoolManager::classSetOwners(const std::string& classID, const std::vector<std::string>& newOwners) {
+    isClassExists(classID);
+
+    for (const auto& new_owner : newOwners ) {
+        isUserExists(new_owner);
+    }
+
+    this->priviliageWorkerToWrite();
+
+    work->exec(psqlMethods::schoolManager::classes::setOwners, {_org_id, classID, newOwners});
+    work->commit();
+}
+
 //Region Users
 /**
     *

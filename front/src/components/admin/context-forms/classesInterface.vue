@@ -49,10 +49,11 @@
           </b-dropdown-form>
 
           <b-dropdown-item
-              v-for="owner in availableOwners"
+              v-for="owner in usersList"
               :key="owner.id"
               @click="selectOwner(owner)"
               :class="{ 'text-muted': owner.disabled }"
+              :disabled="owner.isInList"
           >
             {{ owner.name }}
             <span v-if="owner.disabled" class="text-muted">
@@ -140,8 +141,82 @@
         Текущий список имеет повторяющиеся элементы, пожалуйста, исправьте это
       </b-alert>
     </div>
+    <div v-if="action === 'updateOwners'">
+      <b-form title="Редактировать владельцев" @submit.prevent="setClassOwners">
+        <h5>
+          Класс: <i>{{entity.name}}</i>
+        </h5>
+        <!--    <b-container>-->
+
+        <!-- Dropdown for selecting owner of class -->
+        <b-dropdown
+            class="mb-3"
+            size="sm"
+            variant="outline-secondary"
+            block
+            menu-class="dropdown-scrollable w-100"
+        >
+          <template #button-content>
+            <b-icon icon="person-fill"></b-icon> {{ selectedOwnerText }}
+          </template>
+
+          <b-dropdown-form @submit.stop.prevent="createClass">
+            <b-form-group
+                label="Поиск владельца:"
+                label-for="student-search-input"
+                label-cols-md="auto"
+                class="mb-0"
+                label-size="sm"
+            >
+              <b-form-input
+                  v-model="searchQuery"
+                  id="student-search-input"
+                  type="search"
+                  size="sm"
+                  autocomplete="off"
+              ></b-form-input>
+            </b-form-group>
+          </b-dropdown-form>
+
+          <b-dropdown-item
+              v-for="owner in availableOwners"
+              :key="owner.id"
+              @click="selectOwner(owner)"
+              :class="{ 'text-muted': owner.isHasClasses }"
+              :disabled="owner.isInList"
+          >
+            {{ owner.name }}
+            <span v-if="owner.isHasClasses" class="text-muted">
+          (Имеет класс: {{ owner.classes.map((cls) => cls.name).join(", ") }})
+        </span>
+          </b-dropdown-item>
+        </b-dropdown>
+
+        <b-button class="w-100"
+                  @click.stop="addSelectedOwnerToLocalList"
+                  variant="primary"
+                  :disabled="!this.selectedOwner"
+
+        > <b-icon icon="plus-lg"></b-icon></b-button>
+        <b-list-group
+            v-for="(owner, index) in selectedOwnersList"
+            :key="index"
+        >
+          <b-list-group-item
+              class="d-flex justify-content-between align-items-center">
+            {{owner.name}}
+            <span v-if="owner.classes && owner.classes.length !== 0" class="text-muted">
+              (Имеет класс: {{ owner.classes.map((cls) => cls.name).join(", ") }})
+            </span>
+            <b-button variant="link" @click="removeOwner(index)" class="p-0">
+              <b-icon icon="trash"></b-icon>
+            </b-button>
+          </b-list-group-item>
+        </b-list-group>
+      </b-form>
+    </div>
     <div v-if="action === 'rename'">
-      <b-form @submit.prevent="">
+      <b-form @submit.prevent="renameClass">
         <b-input v-model="newClassName" placeholder="Введите новое имя класса">
 
         </b-input>
@@ -176,7 +251,7 @@ export default {
     },
   data() {
     return {
-      formData: {...this.entity},
+      entity_buff: {...this.entity}, //class
 
       raw_data: [],
       //Region create new class
@@ -190,16 +265,19 @@ export default {
       selectedOwner: '',
       searchQuery: '', // Search term for filtering students
 
-      availableOwners: [],
 
-      //Region edit students
+      //* edit students
       editedStudents: [],
       selectedStudent: '',
       newStudentName: '',
       showEditModal: false,
       showAddModal: false,
 
-      //Region rename
+      //* owners
+      usersList: [],
+      selectedOwnersList: [],
+
+      //* rename
       newClassName: '',
     }
   },
@@ -218,6 +296,12 @@ export default {
           this.getStudents();
         this.$root.$on('form:confirm', async () => {
           await this.saveNewStudents();
+        });
+        break;
+      case "updateOwners":
+        this.getOwners();
+        this.$root.$on('form:confirm', async () => {
+          await this.setClassOwners();
         });
         break;
       case "rename":
@@ -242,6 +326,30 @@ export default {
       // console.log(this.editedStudents);
       return uniqStuds.size !== this.editedStudents.filter(stud => !stud.isDeleted).length;
     },
+    availableOwners() {
+      // console.log(this.ownersList);
+      return this.usersList
+          .map(owner => {
+            // Check if the current class is in the selected classes
+            const isInSelectedOwners = this.selectedOwnersList.some(selectedOwner => {
+              // Check if selectedClass has an id
+
+              return selectedOwner.id === owner.id;
+            });
+
+            return {
+              name: owner.name,
+              id: owner.id,
+              classes: owner.classes,
+              isHasClasses: owner.isHasClasses,
+              isInList: isInSelectedOwners, // Use a boolean directly
+            };
+          })
+          // Filter classes based on the search query
+          .filter(owner =>
+              owner.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+          );
+    },
   },
   methods: {
     //Region create class
@@ -262,23 +370,36 @@ export default {
       this.raw_data = await this.$root.$makeApiRequest('/api/org/users');
 
       // Map all users to the desired format, marking those with classes as disabled
-      this.availableOwners = this.raw_data.map(user => ({
+      this.usersList = this.raw_data.map(user => ({
         name: user.name,
         id: user.id,
         roles: user.roles,
-        disabled: user.classes && user.classes.length > 0, // Mark as disabled if classes exist
+        isHasClasses: user.classes && user.classes.length > 0, // Mark as gray if classes exist
         classes: user.classes
       }))
           // Sort the availableOwners: those without classes come first
           .sort((a, b) => {
             // Sort by 'disabled': false (no classes) should come before true (has classes)
-            return (a.disabled === b.disabled) ? 0 : a.disabled ? 1 : -1;
+            return (a.isHasClasses === b.isHasClasses) ? 0 : a.isHasClasses ? 1 : -1;
           });
+      for (let el in this.entity_buff.owners) {
+        const ownerId = this.entity_buff.owners[el].id;
+        this.selectedOwnersList.push(...this.usersList.filter(user => user.id === ownerId));
+      }
+
+      // console.log(this.selectedOwnersList);
     },
 
     selectOwner(owner) {
       this.selectedOwner = owner;
-      this.newClass.owner = owner.id;
+    },
+    // triggers on plus button
+    addSelectedOwnerToLocalList() {
+      this.selectedOwnersList.push(this.selectedOwner);
+      this.selectedOwner = '';
+    },
+    removeOwner(index) {
+      this.selectedOwnersList.splice(index, 1);
     },
     //Region edit students
     async addStudent() {
@@ -340,6 +461,15 @@ export default {
       catch (error) {
         console.error('Ошибка при сохранении изменений:', error);
       }
+    },
+    async setClassOwners() {
+      const status = await this.$root.$makeApiRequest(
+          '/api/org/classes/' + this.entity.id + '/owners',
+          'PATCH',
+          {
+            owners: this.selectedOwnersList.map(owner => (owner.id))
+          });
+      this.$root.$callNotificationEvent(status === 204);
     },
     async renameClass() {
       const status = await this.$root.$makeApiRequest(

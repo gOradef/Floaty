@@ -210,6 +210,26 @@ inline void Server::route_admin() {
 
     }, const std::string& classID));
 
+    CROW_ROUTE(app, "/api/org/classes/<string>/owners")
+        .methods(crow::HTTPMethod::PATCH)
+        (v({
+            schoolManager schoolManager(_connectionPool, req);
+
+            checkRequestBodyForJson(req);
+
+            const crow::json::rvalue& json = crow::json::load(req.body);
+
+            baseChecks(json, "owners", crow::json::type::List);
+
+            std::vector<std::string> newOwners;
+            for (const auto& el : json["owners"]) {
+                newOwners.emplace_back(el.s());
+            }
+
+            schoolManager.classSetOwners(classID, newOwners);
+            res.code = 204;
+        }, const std::string& classID));
+
     // Delete class
     CROW_ROUTE(app, "/api/org/classes/<string>")
     .methods(crow::HTTPMethod::DELETE)

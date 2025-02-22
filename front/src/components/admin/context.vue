@@ -105,6 +105,15 @@ export default {
               ),
           },
           {
+            label: "Редактировать владельцев класса",
+            foo: () =>
+                this.openModal(
+                    classesInterface,
+                    "updateOwners",
+                    "Редактировать владельцев класса"
+                ),
+          },
+          {
             label: "Переименовать",
             foo: () =>
               this.openModal(classesInterface, "rename", "Переименовать класс"),
