@@ -75,7 +75,8 @@ namespace psqlMethods {
         namespace users {
             inline prepped getAll{"school_users_get"};
 
-            inline prepped create{"user_create"}; //school_id, login, password, name
+            ///@deprecated use createWithContext instead
+            // inline prepped create{"user_create"}; //school_id, login, password, name
             inline prepped createWithContext{"user_create_with_context"}; //school_id, login, password, name, roles, classes
             inline prepped drop{"school_user_drop"}; //school_id, user_id
             inline prepped resetPassword{"school_user_password_reset"}; //school_id, user_id, newPassword

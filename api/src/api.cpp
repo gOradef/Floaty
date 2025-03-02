@@ -342,7 +342,6 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
      *
      * {
      *  "name": "1_А",
-     *  "amount": 0, //optional
      *  "owner": "uuid" //optional
      * }
      * @endcode
@@ -351,16 +350,16 @@ void schoolManager::classCreate(const crow::json::rvalue &json) {
     const std::string& class_name = json["name"].s();
 
     //If exists flag isWithOwner -> read value from json
-    std::unique_ptr<std::string> owner_id;
-    if (json.has("owner") &&
-        json["owner"].t() == crow::json::type::String &&
-        json["owner"].s() != "")
-    {
-        owner_id = std::make_unique<std::string>(json["owner"].s());
-        isUserExists(*owner_id);
-    }
-    else
-        owner_id = nullptr;
+    // std::unique_ptr<std::string> owner_id;
+    // if (json["owner"].s() != "")
+    // {
+    //     owner_id = std::make_unique<std::string>(json["owner"].s());
+    //     isUserExists(*owner_id);
+    // }
+    // else
+    //     owner_id = nullptr;
+
+    const std::optional<std::string> owner_id = json["owner"].s();
 
     this->priviliageWorkerToWrite();
 

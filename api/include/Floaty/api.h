@@ -126,6 +126,18 @@
             std::string msg_;
             std::string expectedType_;
         };
+
+        /// @brief field is exists, but its should be empty
+        struct requiredFieldIsEmpty : public std::exception {
+            requiredFieldIsEmpty(const std::string &message) : msg_(message) { }
+
+            const char *field() const noexcept{
+                return msg_.c_str();
+            }
+
+        private:
+            std::string msg_;
+        };
     }
 
 

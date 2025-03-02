@@ -178,12 +178,14 @@ inline void Server::route_admin() {
 
         checkRequestBodyForJson(req);
 
-        //todo move checks?
-        if (!crow::json::load(req.body).has("class") ||
-            !crow::json::load(req.body)["class"].has("name"))
+        const crow::json::rvalue& json = crow::json::load(req.body);
 
-            schoolManager.classCreate(crow::json::load(req.body));
-            res.code = 204;
+        checkFieldForExistingAndType(json, "name", crow::json::type::String);
+        checkFieldForEmptiness(json, "name");
+        checkFieldForExistingAndType(json, "owner", crow::json::type::String);
+
+        schoolManager.classCreate(json);
+        res.code = 204;
     }));
 
     // Rename class
@@ -196,14 +198,9 @@ inline void Server::route_admin() {
         const crow::json::rvalue& json = crow::json::load(req.body);
 
         // Checks for validality of req.body
-        if (!json.has("name"))
-            throw api::exceptions::MissingRequiredField("name");
+        checkFieldForExistingAndType(json, "name", crow::json::type::String);
 
-        if (json["name"].t() != crow::json::type::String)
-            throw api::exceptions::InvalidJsonSchema("name", "String");
-
-        if (json["name"].s() == "")
-            throw api::exceptions::wrongRequest("No name field");
+        checkFieldForEmptiness(json, "name");
 
         schoolManager.classRename(classID, json["name"].s());
         res.code = 204;
@@ -219,7 +216,7 @@ inline void Server::route_admin() {
 
             const crow::json::rvalue& json = crow::json::load(req.body);
 
-            baseChecks(json, "owners", crow::json::type::List);
+            checkFieldForExistingAndType(json, "owners", crow::json::type::List);
 
             std::vector<std::string> newOwners;
             for (const auto& el : json["owners"]) {

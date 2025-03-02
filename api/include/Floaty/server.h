@@ -19,6 +19,9 @@
     if (!crow::json::load(request.body)) \
         throw api::exceptions::parseErr("Is request body is json format?");
 
+#define checkFieldForEmptiness(json, fieldName) \
+    if (json[fieldName].s() == "") \
+        throw api::exceptions::requiredFieldIsEmpty(fieldName);
 
 #include "api.h"
 #include "crow/app.h"
@@ -108,6 +111,13 @@ class Server {
                 res.body = json.dump();
                 res.code = 403;
             }
+            catch (api::exceptions::requiredFieldIsEmpty& e) {
+                crow::json::wvalue json;
+                json["type"] = "Request error";
+                json["context"] = "Json field type should not be empty: " + std::string(e.field());
+                res.body = json.dump();
+                res.code = 400;
+            }
             catch (api::exceptions::conflict& e)
             {
                 crow::json::wvalue json;
@@ -149,7 +159,7 @@ class Server {
     };
     static std::string hashSHA256(const std::string& input);
 
-    static void baseChecks(const crow::json::rvalue& jsonRoot, const std::string& fieldName, const crow::json::type& expectedType) {
+    static void checkFieldForExistingAndType(const crow::json::rvalue& jsonRoot, const std::string& fieldName, const crow::json::type& expectedType) {
         if (!jsonRoot.has(fieldName))
             throw api::exceptions::MissingRequiredField(fieldName);
         if (jsonRoot[fieldName].t() != expectedType)
