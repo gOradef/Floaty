@@ -95,6 +95,8 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::data::getForDate, "select * from school_data_get($1::uuid, $2::date)");
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
+        c->prepare(psqlMethods::logger::log, "call log_changes($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::uuid, $7::jsonb)");
+
         connections.push_back(std::move(c)); // Move ownership to the vector
     }
 }

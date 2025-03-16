@@ -68,6 +68,7 @@ classHandler::classHandler(ConnectionPool *connectionPool,
     }
     this->_class_id = classID;
 
+    this->_logger = std::make_unique<loggerClassHandler>(work, _org_id, _user_id, _class_id);
 }
 
 crow::json::wvalue classHandler::getClassProps() {
@@ -126,6 +127,8 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
 
         this->priviliageWorkerToWrite();
 
+        _logger->logUpdateStudentsList(studentsBranch);
+
         work->exec(psqlMethods::schoolManager::classes::updateStudentList,{ _org_id, this->_class_id, studentsBranch});
         work->commit();
 }
@@ -163,8 +166,9 @@ void classHandler::insertData(const std::string &changes) {
     }
 
     this->priviliageWorkerToWrite();
-    auto res = work->exec(psqlMethods::classes::data::insertData,{ _org_id, _class_id, changes});
+    _logger->logInsertData(changes);
 
+    work->exec(psqlMethods::classes::data::insertData,{ _org_id, _class_id, changes});
     work->commit();
 }
 
@@ -174,6 +178,7 @@ schoolManager::schoolManager(ConnectionPool *cp, const crow::request &req) : Req
     if (!res)
         throw std::invalid_argument("User doesnt have needed role. Request access from admin");
 
+    this->_logger = std::make_unique<loggerAdmin>(work, _org_id, _user_id);
 }
 
 
@@ -349,30 +354,18 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 void schoolManager::classCreate(const crow::json::rvalue &json) {
     const std::string& class_name = json["name"].s();
 
-    //If exists flag isWithOwner -> read value from json
-    // std::unique_ptr<std::string> owner_id;
-    // if (json["owner"].s() != "")
-    // {
-    //     owner_id = std::make_unique<std::string>(json["owner"].s());
-    //     isUserExists(*owner_id);
-    // }
-    // else
-    //     owner_id = nullptr;
+    std::optional<std::string> owner_id;
 
-    const std::optional<std::string> owner_id = json["owner"].s();
+
+    if (json["owner"].s() != "") {
+        owner_id = json["owner"].s();
+        isUserExists(owner_id.value());
+    }
 
     this->priviliageWorkerToWrite();
+    _logger->logClassCreate(class_name, owner_id);
 
     work->exec(psqlMethods::schoolManager::classes::create, {_org_id, owner_id, class_name});
-    work->commit();
-}
-
-void schoolManager::classDrop(const std::string& classID) {
-
-    isClassExists(classID);
-
-    this->priviliageWorkerToWrite();
-    work->exec(psqlMethods::schoolManager::classes::drop, {_org_id, classID});
     work->commit();
 }
 
@@ -386,6 +379,7 @@ void schoolManager::classRename(const std::string& classID, const std::string& c
     isClassExists(classID);
 
     this->priviliageWorkerToWrite();
+    _logger->logClassSetNewName(classID, className);
 
     work->exec(psqlMethods::schoolManager::classes::rename, {_org_id, classID, className});
     work->commit();
@@ -405,6 +399,7 @@ void schoolManager::updateClassStudents(const std::string& classID, const std::s
     isClassExists(classID);
 
     this->priviliageWorkerToWrite();
+    _logger->logClassSetStudentsList(classID, studentsBranch);
 
     work->exec(psqlMethods::schoolManager::classes::updateStudentList, {_org_id, classID, studentsBranch});
     work->commit();
@@ -418,8 +413,21 @@ void schoolManager::classSetOwners(const std::string& classID, const std::vector
     }
 
     this->priviliageWorkerToWrite();
+    _logger->logClassSetOwners(classID, newOwners);
 
     work->exec(psqlMethods::schoolManager::classes::setOwners, {_org_id, classID, newOwners});
+    work->commit();
+}
+
+void schoolManager::classDrop(const std::string& classID) {
+
+    isClassExists(classID);
+
+    this->priviliageWorkerToWrite();
+    work->exec(psqlMethods::schoolManager::classes::drop, {_org_id, classID});
+
+    _logger->logClassDelete(classID);
+
     work->commit();
 }
 
@@ -465,14 +473,11 @@ crow::json::wvalue schoolManager::getUsers() {
 void schoolManager::userCreate(const crow::json::rvalue &creds) {
 
     // Extract credentials
-    const std::string login = creds["login"].s();
-    const std::string pwd = creds["password"].s();
-    const std::string name = creds["name"].s();
+    const std::string& login = creds["login"].s();
+    const std::string& pwd = creds["password"].s();
+    const std::string& name = creds["name"].s();
 
     isLoginOccupied(login);
-
-    this->priviliageWorkerToWrite();
-
     // Prepare the SQL query based on URL parameters
     std::unique_ptr<std::vector<std::string>> roles;
     std::unique_ptr<std::vector<std::string>> classes;
@@ -488,7 +493,9 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
     else
         classes = nullptr;
 
-    // Execute the prepared query
+    this->priviliageWorkerToWrite();
+    _logger->logUserCreate(crow::json::wvalue(creds).dump());
+
     work->exec(psqlMethods::schoolManager::users::createWithContext, {_org_id, login, pwd, name, roles, classes});
     work->commit();
 }
@@ -501,6 +508,7 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
         for (auto& role : userBody["roles"]) {
             roles.emplace_back(role.s());
         }
+        _logger->logUserSetRoles(userID, roles);
         work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, roles});
     };
     auto setClasses = [&]() {
@@ -508,13 +516,14 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
         for (auto& classt : userBody["classes"]) {
             classes.emplace_back(classt.s());
         }
+        _logger->logUserSetOwnedClasses(userID, classes);
         work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, classes});
     };
     auto setName = [&]() {
         const std::string& newUserName = userBody["name"].s();
+        _logger->logUserSetName(userID, newUserName);
         work->exec(psqlMethods::schoolManager::users::setName,{ _org_id, userID, newUserName});
     };
-
 
     this->priviliageWorkerToWrite();
     //todo Suspiciously maybe move checks to router.cpp
@@ -530,6 +539,21 @@ void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue
     work->commit();
 }
 
+///@param userID - uuid of user
+///@param newPassword - already hashed
+void schoolManager::userResetPassword(const std::string& userID, const std::string& newPassword) {
+    isUserExists(userID);
+
+    this->priviliageWorkerToWrite();
+    _logger->logUserSetPassword(userID);
+
+    work->exec(psqlMethods::schoolManager::users::resetPassword, {
+        _org_id,
+        userID,
+        newPassword});
+    work->commit();
+}
+
 void schoolManager::userDrop(const std::string &userID) {
 
     isUserExists(userID);
@@ -538,22 +562,11 @@ void schoolManager::userDrop(const std::string &userID) {
     this->priviliageWorkerToWrite();
 
     work->exec(psqlMethods::schoolManager::users::drop, {_org_id, userID});
-    work->commit();
-}
-///@param userID - uuid of user
-///@param newPassword - already hashed
-void schoolManager::userResetPassword(const std::string& userID, const std::string& newPassword) {
-    isUserExists(userID);
 
-    this->priviliageWorkerToWrite();
-    work->exec(psqlMethods::schoolManager::users::resetPassword, {
-        _org_id,
-        userID,
-        newPassword});
+    _logger->logUserDelete(userID);
 
     work->commit();
 }
-
 
 
 // Region invites
@@ -571,6 +584,7 @@ void schoolManager::userResetPassword(const std::string& userID, const std::stri
 void schoolManager::inviteCreate(const std::string& invite_body) {
     // Check if login is alredy is use
     this->priviliageWorkerToWrite();
+    _logger->logInviteCreate(invite_body);
 
     work->exec(psqlMethods::invites::create, {_org_id, invite_body});
     work->commit();
@@ -588,7 +602,9 @@ crow::json::wvalue schoolManager::getAllInvites() {
 void schoolManager::inviteDrop(const std::string& reqID) {
     isInviteExists(reqID);
 
-    this->priviliageWorkerToWrite();
+    this->priviliageWorkerToWrite(); 
+    _logger->logInviteDelete(reqID);
+
     work->exec(psqlMethods::invites::drop, {_org_id, reqID});
     work->commit();
 }
@@ -601,6 +617,7 @@ void schoolManager::dataAbsentUpdate(const std::string& classID,const std::strin
     isClassExists(classID);
 
     this->priviliageWorkerToWrite();
+    _logger->logEditDataForToday(classID, changes);
 
     work->exec(psqlMethods::classes::data::insertData,{ _org_id, classID, changes});
     work->commit();
@@ -615,6 +632,8 @@ void schoolManager::dataAbsentUpdateForDate(const std::string& classID, const st
     isDataExists(date);
 
     this->priviliageWorkerToWrite();
+    _logger->logEditDataForDate(classID, changes, date);
+
     work->exec(psqlMethods::classes::data::insertDataForDate, {_org_id, classID, changes, date});
     work->commit();
 }
