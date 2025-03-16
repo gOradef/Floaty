@@ -1,4 +1,3 @@
-
 <template>
   <div>
     <div v-if="action === 'edit'">
@@ -9,42 +8,52 @@
 
         <b-container>
           <!-- Dropdown for selecting students -->
-          <b-dropdown class="mb-3"  size="sm" variant="outline-secondary" block menu-class="dropdown-scrollable w-100">
+          <b-dropdown
+            class="mb-3"
+            size="sm"
+            variant="outline-secondary"
+            block
+            menu-class="dropdown-scrollable w-100"
+          >
             <template #button-content>
               <b-icon icon="person-fill"></b-icon> {{ selectedStudentText }}
             </template>
 
             <b-dropdown-form>
               <b-form-group
-                  label="Поиск ученика:"
-                  label-for="student-search-input"
-                  label-cols-md="auto"
-                  class="mb-0"
-                  label-size="sm"
+                label="Поиск ученика:"
+                label-for="student-search-input"
+                label-cols-md="auto"
+                class="mb-0"
+                label-size="sm"
               >
                 <b-form-input
-                    v-model="searchQuery"
-                    id="student-search-input"
-                    type="search"
-                    size="sm"
-                    autocomplete="off"
+                  v-model="searchQuery"
+                  id="student-search-input"
+                  type="search"
+                  size="sm"
+                  autocomplete="off"
                 ></b-form-input>
               </b-form-group>
             </b-dropdown-form>
 
             <b-dropdown-item
-                v-for="student in availableStudents"
-                :key="student.value"
-                :disabled="student.disabled"
-                @click="!student.disabled && selectStudent(student.value)"
-                :class="{'text-danger': student.fstudent,
-                  'text-muted': student.disabled}"
+              v-for="student in availableStudents"
+              :key="student.value"
+              :disabled="student.disabled"
+              @click="!student.disabled && selectStudent(student.value)"
+              :class="{
+                'text-danger': student.fstudent,
+                'text-muted': student.disabled,
+              }"
             >
               {{ student.text }}
               <span v-if="student.disabled" class="text-muted">
-            (Уже в списке {{ student.list }})
-          </span>
-              <span v-if="student.fstudent" class="text-warning">(Бесплатник)</span>
+                (Уже в списке {{ student.list }})
+              </span>
+              <span v-if="student.fstudent" class="text-warning"
+                >(Бесплатник)</span
+              >
             </b-dropdown-item>
           </b-dropdown>
 
@@ -53,62 +62,81 @@
             <b-col>
               <h6>Список ОРВИ учеников:</h6>
               <b-list-group-item
-                  v-for="(tag, index) in updatedClass.absent.ORVI"
-                  :key="index"
-                  class="d-flex justify-content-between align-items-center"
+                v-for="(tag, index) in updatedClass.absent.ORVI"
+                :key="index"
+                class="d-flex justify-content-between align-items-center"
               >
                 {{ tag }}
-                <b-button variant="link" @click="removeORVITag(index)" class="p-0">
+                <b-button
+                  variant="link"
+                  @click="removeORVITag(index)"
+                  class="p-0"
+                >
                   <b-icon icon="trash"></b-icon>
                 </b-button>
               </b-list-group-item>
 
-              <b-button @click="addORVIStudent" variant="primary">Добавить ученика</b-button>
-
+              <b-button @click="addORVIStudent" variant="primary"
+                >Добавить ученика</b-button
+              >
             </b-col>
             <!--   Resp     -->
             <b-col>
               <h6>Список уваж. прич. учеников:</h6>
               <b-list-group-item
-                  v-for="(tag, index) in updatedClass.absent.respectful"
-                  :key="index"
-                  class="d-flex justify-content-between align-items-center"
+                v-for="(tag, index) in updatedClass.absent.respectful"
+                :key="index"
+                class="d-flex justify-content-between align-items-center"
               >
                 {{ tag }}
-                <b-button variant="link" @click="removeRespTag(index)" class="p-0">
+                <b-button
+                  variant="link"
+                  @click="removeRespTag(index)"
+                  class="p-0"
+                >
                   <b-icon icon="trash"></b-icon>
                 </b-button>
               </b-list-group-item>
 
-              <b-button @click="addRespStudent" variant="primary">Добавить ученика</b-button>
+              <b-button @click="addRespStudent" variant="primary"
+                >Добавить ученика</b-button
+              >
             </b-col>
             <!--   NotResp     -->
             <b-col>
               <h6>Список неуваж. прич. учеников:</h6>
               <b-list-group-item
-                  v-for="(tag, index) in updatedClass.absent.not_respectful"
-                  :key="index"
-                  class="d-flex justify-content-between align-items-center"
+                v-for="(tag, index) in updatedClass.absent.not_respectful"
+                :key="index"
+                class="d-flex justify-content-between align-items-center"
               >
                 {{ tag }}
-                <b-button variant="link" @click="removeNotRespTag(index)" class="p-0">
+                <b-button
+                  variant="link"
+                  @click="removeNotRespTag(index)"
+                  class="p-0"
+                >
                   <b-icon icon="trash"></b-icon>
                 </b-button>
               </b-list-group-item>
 
-              <b-button @click="addNotRespStudent" variant="primary">Добавить ученика</b-button>
+              <b-button @click="addNotRespStudent" variant="primary"
+                >Добавить ученика</b-button
+              >
             </b-col>
           </b-row>
         </b-container>
-
       </b-form>
     </div>
     <div v-if="action === 'reset'">
       <b-form title="Редактировать отсутств.">
         <h4>Класс: {{ updatedClass.name }}</h4>
         <b-container>
-          <p>Вы уверены, что хотите <b>сбросить</b> данные за этот класс? </p>
-          <p>При продолжении список отсутствующих будет безвовратно <b>обнулён</b>.</p>
+          <p>Вы уверены, что хотите <b>сбросить</b> данные за этот класс?</p>
+          <p>
+            При продолжении список отсутствующих будет безвовратно
+            <b>обнулён</b>.
+          </p>
         </b-container>
       </b-form>
     </div>
