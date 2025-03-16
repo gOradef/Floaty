@@ -65,6 +65,7 @@ namespace psqlMethods {
         namespace classes {
             inline prepped getAll{"school_classes_get"}; //school_id
             inline prepped getStudents{"school_class_students_get"}; //school_id, class_id
+            inline prepped getClassBody{"schools_class_body_get"};
 
             inline prepped create{"class_create"}; //school_id, user_id (can be null), class_name
             inline prepped rename{"class_rename"}; //school_id, class_id, new_class_name
@@ -74,7 +75,7 @@ namespace psqlMethods {
         }
         namespace users {
             inline prepped getAll{"school_users_get"};
-
+            inline prepped getUserBody{"school_user_body_get"};
             ///@deprecated use createWithContext instead
             // inline prepped create{"user_create"}; //school_id, login, password, name
             inline prepped createWithContext{"user_create_with_context"}; //school_id, login, password, name, roles, classes
@@ -95,6 +96,9 @@ namespace psqlMethods {
         }
 
     }
+        namespace logger {
+            inline prepped log{"logs_log"};
+        }
 
 }
 

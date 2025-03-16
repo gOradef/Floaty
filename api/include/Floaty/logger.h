@@ -245,14 +245,16 @@ public:
     }
 
     void logClassDelete(const std::string& classID) const {
+        const auto& class_body = work->exec(psqlMethods::schoolManager::classes::getClassBody, {baseUserDataCreds->_org_id, classID}).one_field().as<std::string>();
+
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
-            "data",
+            "classes",
             "delete",
             nullptr,
             classID,
-            nullptr
+            class_body
         });
     }
 
@@ -327,6 +329,8 @@ public:
         });
     }
     void logUserDelete(const std::string& userID) const {
+        const auto& user_body = work->exec(psqlMethods::schoolManager::users::getUserBody, {baseUserDataCreds->_org_id, userID}).one_field().as<std::string>();
+
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
@@ -334,7 +338,7 @@ public:
             "delete",
             nullptr,
             userID,
-            nullptr
+            user_body
         });
     }
 

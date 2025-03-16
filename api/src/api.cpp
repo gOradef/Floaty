@@ -126,7 +126,6 @@ crow::json::wvalue classHandler::getInsertedDataForDate(const std::string& date)
     void classHandler::updateClassStudents(const std::string &studentsBranch) {
 
         this->priviliageWorkerToWrite();
-
         _logger->logUpdateStudentsList(studentsBranch);
 
         work->exec(psqlMethods::schoolManager::classes::updateStudentList,{ _org_id, this->_class_id, studentsBranch});
@@ -424,9 +423,9 @@ void schoolManager::classDrop(const std::string& classID) {
     isClassExists(classID);
 
     this->priviliageWorkerToWrite();
-    work->exec(psqlMethods::schoolManager::classes::drop, {_org_id, classID});
-
     _logger->logClassDelete(classID);
+
+    work->exec(psqlMethods::schoolManager::classes::drop, {_org_id, classID});
 
     work->commit();
 }
@@ -560,11 +559,9 @@ void schoolManager::userDrop(const std::string &userID) {
     isUserHasntClassesInOwning(userID);
 
     this->priviliageWorkerToWrite();
-
-    work->exec(psqlMethods::schoolManager::users::drop, {_org_id, userID});
-
     _logger->logUserDelete(userID);
 
+    work->exec(psqlMethods::schoolManager::users::drop, {_org_id, userID});
     work->commit();
 }
 
