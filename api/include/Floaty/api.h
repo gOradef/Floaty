@@ -241,7 +241,8 @@ public:
     void inviteDrop(const std::string& reqID);
 
 
-    void classMoveToNextYear(); //update
+    [[maybe_unused]]
+    void classMoveToNextYear() = delete; //update
 
     //Region Data
     void dataAbsentUpdate(const std::string& classID, const std::string& changes);
