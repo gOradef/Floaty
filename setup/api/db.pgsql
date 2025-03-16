@@ -1294,26 +1294,24 @@ $$;
 ALTER FUNCTION public.school_invite_get(_orgref uuid) OWNER TO postgres;
 
 --
--- Name: school_invite_props_get(uuid, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: school_invite_props_get(uuid, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text, _req_secret text) RETURNS jsonb
+CREATE FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text) RETURNS jsonb
     LANGUAGE plpgsql
     AS $$begin
-	if (select exists (select 1 from schools_invites
-		where school_id = _orgref
-		and req_id = _req_id
-		and req_secret = _req_secret)) then
-		return req_body from schools_invites
-		where school_id = _orgref
-		and req_id = _req_id
-		and req_secret = _req_secret;
-	end if;
-	return null;
+    if (select exists (select 1 from schools_invites
+                       where school_id = _orgref
+                         and req_id = _req_id)) then
+        return req_body from schools_invites
+            where school_id = _orgref
+            and req_id = _req_id;
+    end if;
+    return null;
 end;$$;
 
 
-ALTER FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text, _req_secret text) OWNER TO postgres;
+ALTER FUNCTION public.school_invite_props_get(_orgref uuid, _req_id text) OWNER TO postgres;
 
 --
 -- Name: school_invite_req_id_gen(uuid); Type: FUNCTION; Schema: public; Owner: postgres

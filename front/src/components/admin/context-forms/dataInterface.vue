@@ -255,7 +255,11 @@ export default {
         const res = await this.$root.$makeApiRequest(url,
             'PUT',
             {
-              absent: this.updatedClass.absent
+              absent: {
+                ORVI: this.updatedClass.absent.ORVI,
+                respectful: this.updatedClass.absent.respectful,
+                not_respectful: this.updatedClass.absent.not_respectful
+              }
             }
         );
         if (res === 200 || res === 204)

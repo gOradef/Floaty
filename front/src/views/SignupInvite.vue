@@ -109,9 +109,7 @@
               id="password"
               type="text"
               required
-              :state="isInviteValid"
               v-model="invite.secret"
-              @input="checkInvite"
               placeholder="Введите секрет"
           >
           </b-form-input>
@@ -264,15 +262,6 @@
           class="btn btn-default"
           role="button">
     <b-icon class="fa" icon="chevron-left" aria-hidden="true"/> </button>
-  <button v-if="stepper.currentStep < stepper.steps.length"
-          v-on:click="moveStep(stepper.currentStep+1)"
-          class="btn btn-default pull-right"
-  role="button">Next <i class="fa fa-chevron-right" aria-hidden="true"></i></button>
-  </div>
-  <div v-else>
-  <button v-on:click="moveStep(1)"
-          class="btn btn-default btn-block"
-          role="button">Reset <i class="fa fa-refresh" aria-hidden="true"></i></button>
   </div>
 </div>
 
@@ -421,8 +410,8 @@ export default {
         }
       },
       async checkInvite() {
-        if (this.invite.id !== '' && this.invite.secret !== '') {
-          const data = await this.$root.$makeApiRequest(`/api/invite/${this.v_orgID}/${this.invite.id}/${this.invite.secret}`);
+        if (this.invite.id !== '') {
+          const data = await this.$root.$makeApiRequest(`/api/invite/${this.v_orgID}/${this.invite.id}`);
           // console.log(data);
           if (data.status === 200) {
             this.inviteData.userName = data.invite.name;

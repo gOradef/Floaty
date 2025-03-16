@@ -29,7 +29,7 @@ inline void Server::route_auth() {
     .methods(crow::HTTPMethod::GET)
     (routes_auth::getOrgInformation);
 
-    CROW_ROUTE(app, "/api/invite/<string>/<string>/<string>")
+    CROW_ROUTE(app, "/api/invite/<string>/<string>")
     .methods(crow::HTTPMethod::GET)
     (routes_auth::getInviteProps);
 

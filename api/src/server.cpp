@@ -217,12 +217,12 @@ void Server::routes_auth::getOrgInformation(const crow::request& req, crow::resp
 
 
 void Server::routes_auth::getInviteProps(const crow::request& req, crow::response& res,
-    const std::string& schoolID, const std::string& invite_code, const std::string& invite_secret) {
+    const std::string& schoolID, const std::string& invite_code) {
 
     auto con = _connectionPool->getConnection();
     pqxx::read_transaction work(*con);
 
-    auto props = work.exec(psqlMethods::invites::getProperties,{ schoolID, invite_code, invite_secret});
+    auto props = work.exec(psqlMethods::invites::getProperties,{ schoolID, invite_code});
     crow::json::wvalue json;
     //* 50 / 50 maybe refactor todo
     if (!props[0][0].is_null()) {
@@ -278,22 +278,22 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
             throw api::exceptions::conflict("Login is already occupied. Please, try another");
 
         //* Get invite_props
-        auto invite_props = work.exec(psqlMethods::invites::getProperties, {schoolID, invite_code, invite_secret}).one_field().as<std::string>();
+        auto invite_props = work.exec(psqlMethods::invites::getProperties, {schoolID, invite_code}).one_field().as<std::string>();
 
-        crow::json::rvalue json_props = crow::json::load(invite_props);
-        if (!json_props) {
+        crow::json::rvalue invite_body_json = crow::json::load(invite_props);
+        if (!invite_body_json) {
             throw api::exceptions::conflict("Wrong format of invite_body created by administrator");
         }
         std::vector<std::string> roles;
         std::vector<std::string> classes;
 
-        for (const auto& el : json_props["roles"]) {
+        for (const auto& el : invite_body_json["roles"]) {
             roles.emplace_back(el.s());
         }
-        for (const auto& el : json_props["classes"]) {
+        for (const auto& el : invite_body_json["classes"]) {
             classes.emplace_back(el["id"].s());
         }
-        const std::string& name = json_props["name"].s();
+        const std::string& name = invite_body_json["name"].s();
 
         //* Create user
         work.exec(psqlMethods::schoolManager::users::createWithContext,{
