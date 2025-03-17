@@ -43,18 +43,21 @@ namespace psqlMethods {
         inline prepped getName{"user_name_get"};
         inline prepped getRoles{"user_roles_get"};
         inline prepped getClasses{"user_classes_get"};
-        inline prepped getClassProps{"class_props_get"};
-        inline prepped getClassStudents{"class_students_get"};
+        inline prepped getClassProps{"class_props_get"}; //name and students, fstudents
+        inline prepped getClassStudents{"class_students_get"}; //ids: org, user, class
         inline prepped getSchoolId{"school_id_get"};
     };
 
     namespace classes {
-            namespace checks {
-                inline prepped isOwned{"is_class_owned"};
-                inline prepped isExists{"is_class_exists"};
-            }
+        namespace getters {
+            inline prepped getClassName{"class_name_get"};
+        }
+        namespace checks {
+            inline prepped isOwned{"is_class_owned"};
+            inline prepped isExists{"is_class_exists"};
+        }
 
-            namespace data {
+        namespace data {
             inline prepped getInsertedData{"class_data_get"};
             inline prepped insertData{"class_data_insert"};
             inline prepped insertDataForDate{"class_data_insert_for_date"};
@@ -64,8 +67,8 @@ namespace psqlMethods {
     namespace schoolManager {
         namespace classes {
             inline prepped getAll{"school_classes_get"}; //school_id
-            inline prepped getStudents{"school_class_students_get"}; //school_id, class_id
             inline prepped getClassBody{"schools_class_body_get"};
+            inline prepped getOwners{"school_class_owners_get"};
 
             inline prepped create{"class_create"}; //school_id, user_id (can be null), class_name
             inline prepped rename{"class_rename"}; //school_id, class_id, new_class_name
@@ -96,9 +99,14 @@ namespace psqlMethods {
         }
 
     }
-        namespace logger {
-            inline prepped log{"logs_log"};
-        }
+    namespace logger {
+        inline prepped getLogsToday{"logs_get_today"};
+        inline prepped getLogsForDate{"logs_get_date"};
+        inline prepped getLogsForPeriod{"logs_get_period"};
+
+        inline prepped log{"logs_log"};
+
+    }
 
 }
 

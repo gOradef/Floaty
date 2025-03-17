@@ -9,45 +9,8 @@
 #include "connectionpool.h"
 
 
-// class loggerData {
-      //     void foo() {
-      //
-      //     }
-      //     // update data for date
-      // };
-      // class loggerClasses {
-      //     pqxx::params user_data{_org_id, _user_id};
-      //     /*
-      //      * create
-      //      * edit
-      //      *  name
-      //      *  students
-      //      *  owners
-      //      * delete
-      //      */
-      //     void logCreateClass(const std::string& classconst std::string& className) {
-      //         pqxx::params updated {"", ""};
-      //         pqxx::params p = {user_data, updated};
-      //
-      //     }
-      // };
-      // class loggerUsers {
-      //     /*
-      //      * create
-      //      * edit
-      //      *  name
-      //      *  roles
-      //      *  password
-      //      *  classes
-      //      * delete
-      //      */
-      // };
-      // class loggerInvites {
-      //     /*
-      //      * create
-      //      * delete
-      //      */
-      // };
+// #define getUserName(id) \
+work->exec(psqlMethods::userData::getName, {baseUserDataCreds->_org_id, baseUserDataCreds->_user_id}).one_field().as<std::string>()
 
 struct baseUserData {
     std::string _org_id;
@@ -61,7 +24,7 @@ struct baseUserData {
     };
 };
 
-class psqlLogger {
+class baseLogger {
 
 protected:
     /// @warning expects to be writeble
@@ -70,23 +33,23 @@ protected:
     baseUserData *baseUserDataCreds;
 
 public:
-    explicit psqlLogger(pqxx::transaction_base *work, const std::string& _org_id, const std::string& _user_id, const std::string& _object_id = "") {
+    explicit baseLogger(pqxx::transaction_base *work, const std::string& _org_id, const std::string& _user_id, const std::string& _object_id = "") {
         this->work = work;
 
         baseUserDataCreds = new baseUserData(_org_id, _user_id, _object_id);
     }
-    ~psqlLogger() {
+    ~baseLogger() {
         delete baseUserDataCreds;
     }
 };
 
 
 
-class loggerClassHandler : psqlLogger {
+class loggerClassHandler : baseLogger {
 
 public:
     explicit loggerClassHandler(pqxx::transaction_base* work, const std::string& _org_id, const std::string& _user_id, const std::string& _object_id) :
-        psqlLogger(work, _org_id, _user_id, _object_id) {}
+        baseLogger(work, _org_id, _user_id, _object_id) {}
 
 
     void logInsertData(const std::string& insertedData) const {
@@ -132,11 +95,11 @@ public:
 };
 
 
-class loggerAdmin : psqlLogger {
+class loggerAdmin : baseLogger {
 
 public:
     explicit loggerAdmin(pqxx::transaction_base* work, const std::string& _org_id, const std::string& _user_id) :
-        psqlLogger(work, _org_id, _user_id) {}
+        baseLogger(work, _org_id, _user_id) {}
 
     //* data
 
@@ -183,10 +146,14 @@ public:
 
         crow::json::wvalue json;
         json["name"] = className;
-        if (owner_id.has_value())
-            json["owner_id"] = owner_id.value();
-        else
-            json["owner_id"] = nullptr;
+        if (owner_id.has_value()) {
+            json["owner"]["id"] = owner_id.value();
+            json["owner"]["name"] = work->exec(psqlMethods::userData::getName, {baseUserDataCreds->_org_id, owner_id.value()}).one_field().as<std::string>();
+        }
+        else {
+            json["owner"]["id"] = nullptr;
+            json["owner"]["name"] = nullptr;
+        }
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -203,7 +170,8 @@ public:
         void logClassSetNewName(const std::string& classID, const std::string& newName) const {
 
         crow::json::wvalue json;
-        json["name"] = newName;
+        json["old"]["name"] = work->exec(psqlMethods::classes::getters::getClassName, {baseUserDataCreds->_org_id, classID}).one_field().as<std::string>();
+        json["new"]["name"] = newName;
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -217,6 +185,10 @@ public:
 
     }
     void logClassSetStudentsList(const std::string& classID, const std::string& studentsBranch) const {
+        crow::json::wvalue json;
+        json["old"] = crow::json::load(work->exec(psqlMethods::userData::getClassStudents, {baseUserDataCreds->_org_id, classID}).one_field().as<std::string>());
+        json["new"] = crow::json::load(studentsBranch);
+
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
@@ -224,13 +196,30 @@ public:
             "edit",
             "students",
             classID,
-            studentsBranch
+            json.dump()
         });
     }
+    ///@param  newOwners - users are exists
     void logClassSetOwners(const std::string& classID, const std::vector<std::string>& newOwners) const {
 
         crow::json::wvalue json;
-        json["owners"] = newOwners;
+
+        json["old"]["owners"] = crow::json::load(work->exec(psqlMethods::schoolManager::classes::getOwners, {baseUserDataCreds->_org_id, classID}).one_field().as<std::string>());
+
+        // Preparing new owners into vector
+        std::vector<crow::json::rvalue> newOwnersArray;
+        for (auto& new_ownerID : newOwners) {
+            crow::json::wvalue owner_root;
+            owner_root["id"] = new_ownerID;
+            owner_root["name"] = work->exec(psqlMethods::userData::getName, {baseUserDataCreds->_org_id, new_ownerID}).one_field().as<std::string>();
+            newOwnersArray.emplace_back(crow::json::load(owner_root.dump()));
+        }
+
+        // Inserting new owners into result by array indexes
+        for (size_t i = 0; i < newOwnersArray.size(); ++i) {
+            json["new"]["owners"][i] = newOwnersArray[i];
+        }
+
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -258,8 +247,24 @@ public:
         });
     }
 
-    //todo creds in api.cpp is in crow::json::RVALUE fix it to string
     void logUserCreate(const std::string& userData) const {
+        crow::json::wvalue json = crow::json::load(userData);
+        crow::json::rvalue json_rvalue = crow::json::load(userData);
+
+        // Preparing new owners into vector
+        std::vector<crow::json::rvalue> newClassesArray;
+        for (const auto& new_classID : json_rvalue["classes"]) {
+            crow::json::wvalue class_root;
+            class_root["id"] = new_classID.s();
+            class_root["name"] = work->exec(psqlMethods::classes::getters::getClassName, {baseUserDataCreds->_org_id, std::string(new_classID.s())}).one_field().as<std::string>();
+            newClassesArray.emplace_back(crow::json::load(class_root.dump()));
+        }
+
+        // Inserting new owners into result by array indexes
+        for (size_t i = 0; i < newClassesArray.size(); ++i) {
+            json["classes"][i] = newClassesArray[i];
+        }
+
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
@@ -267,12 +272,13 @@ public:
             "create",
             nullptr,
             nullptr,
-            userData
+            json.dump()
         });
     }
     void logUserSetName(const std::string& userID, const std::string& newUserName) const {
         crow::json::wvalue json;
-        json["name"] = newUserName;
+        json["old"]["name"] = work->exec(psqlMethods::userData::getName, {baseUserDataCreds->_org_id, userID}).one_field().as<std::string>();
+        json["new"]["name"] = newUserName;
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -286,7 +292,8 @@ public:
     }
     void logUserSetRoles(const std::string& userID, const std::vector<std::string>& roles) const {
         crow::json::wvalue json;
-        json["roles"] = roles;
+        json["old"]["roles"] = crow::json::load(work->exec(psqlMethods::userData::getRoles, {baseUserDataCreds->_org_id, userID}).one_field().as<std::string>());
+        json["new"]["roles"] = roles;
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -301,7 +308,22 @@ public:
     }
     void logUserSetOwnedClasses(const std::string& userID, const std::vector<std::string>& classes) const {
         crow::json::wvalue json;
-        json["classes"] = classes;
+        json["old"]["classes"] = crow::json::load(work->exec(psqlMethods::userData::getClasses, {baseUserDataCreds->_org_id, userID}).one_field().as<std::string>());
+
+        // Preparing new owners into vector
+        std::vector<crow::json::rvalue> newClassesArray;
+        for (const auto& new_classID : classes) {
+            crow::json::wvalue class_root;
+            class_root["id"] = new_classID;
+            class_root["name"] = work->exec(psqlMethods::classes::getters::getClassName, {baseUserDataCreds->_org_id, new_classID}).one_field().as<std::string>();
+            newClassesArray.emplace_back(crow::json::load(class_root.dump()));
+        }
+
+        // Inserting new owners into result by array indexes
+        for (size_t i = 0; i < newClassesArray.size(); ++i) {
+            json["new"]["classes"][i] = newClassesArray[i];
+        }
+
 
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
@@ -315,9 +337,6 @@ public:
     }
     ///@brief DOES NOT saves  password of user
     void logUserSetPassword(const std::string& userID) const {
-        // crow::json::wvalue json;
-        // json["password"] = password;
-
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
@@ -343,7 +362,26 @@ public:
     }
 
 
-    void logInviteCreate(const std::string& inviteProps) const { 
+    void logInviteCreate(const std::string& inviteProps) const {
+        crow::json::wvalue json = crow::json::load(inviteProps);
+        crow::json::rvalue json_rvalue = crow::json::load(inviteProps);
+
+
+        // Preparing new owners into vector
+        std::vector<crow::json::rvalue> newClassesArray;
+        for (const auto& new_classID : json_rvalue["classes"]) {
+            crow::json::wvalue class_root;
+            class_root["id"] = new_classID;
+            class_root["name"] = work->exec(psqlMethods::classes::getters::getClassName, {baseUserDataCreds->_org_id, std::string(new_classID.s())}).one_field().as<std::string>();
+            newClassesArray.emplace_back(crow::json::load(class_root.dump()));
+        }
+
+        // Inserting new owners into result by array indexes
+        for (size_t i = 0; i < newClassesArray.size(); ++i) {
+            json["classes"][i] = newClassesArray[i];
+        }
+
+
         work->exec(psqlMethods::logger::log, {
             baseUserDataCreds->_org_id,
             baseUserDataCreds->_user_id,
@@ -360,8 +398,8 @@ public:
         const auto& invite_body = work->exec(psqlMethods::invites::getProperties, {baseUserDataCreds->_org_id, inviteID}).one_field();
 
         crow::json::wvalue json;
-        json["invite_id"] = inviteID;
-        json["invite_body"] = crow::json::load(invite_body.as<std::string>());
+        json["invite"]["id"] = inviteID;
+        json["invite"]["body"] = crow::json::load(invite_body.as<std::string>());
 
 
         work->exec(psqlMethods::logger::log, {

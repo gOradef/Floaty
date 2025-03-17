@@ -27,9 +27,9 @@ void Request::isInputIsDateType(const std::string& date) {
 
 std::vector<std::string> Request::getRoles() {
     std::vector<std::string> roles;
-    auto res = work->exec(psqlMethods::userData::getRoles, {_org_id, _user_id});
-    for (auto role : res) {
-        roles.emplace_back(role.front().as<std::string>());
+    auto res = crow::json::load(work->exec(psqlMethods::userData::getRoles, {_org_id, _user_id}).one_field().as<std::string>());
+    for (const auto& role : res) {
+        roles.emplace_back(std::string(role.s()));
     }
     return roles;
 }
@@ -90,7 +90,6 @@ crow::json::wvalue classHandler::getClassStudents() {
 
     auto studs = work->exec(psqlMethods::userData::getClassStudents, {
         _org_id,
-        _user_id,
         _class_id});
 
     crow::json::wvalue json = crow::json::load(studs.one_field().as<std::string>());
@@ -330,13 +329,8 @@ crow::json::wvalue schoolManager::getClassStudents(const std::string &classID) {
 
     isClassExists(classID);
 
-    auto res = work->exec(psqlMethods::schoolManager::classes::getStudents, {_org_id, classID});
-    pqxx::params p;
-    crow::json::wvalue json;
-    for (auto row : res) {
-        auto class_body = row.front().as<std::string>();
-        json = crow::json::load(class_body);
-    }
+    const auto& res = work->exec(psqlMethods::userData::getClassStudents, {_org_id, classID}).one_field().as<std::string>();
+    crow::json::wvalue json = crow::json::load(res);
     return json;
 };
 
@@ -633,4 +627,34 @@ void schoolManager::dataAbsentUpdateForDate(const std::string& classID, const st
 
     work->exec(psqlMethods::classes::data::insertDataForDate, {_org_id, classID, changes, date});
     work->commit();
+}
+
+crow::json::wvalue schoolManager::getLogsToday() {
+    auto res = work->exec(psqlMethods::logger::getLogsToday, _org_id);
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.one_field().as<std::string>());
+    else
+        json = crow::json::load("[]");
+    return json;
+}
+
+crow::json::wvalue schoolManager::getLogsForDate(const std::string& date) {
+    auto res = work->exec(psqlMethods::logger::getLogsForDate, {_org_id, date});
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.one_field().as<std::string>());
+    else
+        json = crow::json::load("[]");
+    return json;
+}
+
+crow::json::wvalue schoolManager::getLogsForPeriod(const std::string& dateStart, const std::string& dateEnd) {
+    auto res = work->exec(psqlMethods::logger::getLogsForPeriod, {_org_id, dateStart, dateEnd});
+    crow::json::wvalue json;
+    if (!res[0][0].is_null())
+        json = crow::json::load(res.one_field().as<std::string>());
+    else
+        json = crow::json::load("[]");
+    return json;
 }

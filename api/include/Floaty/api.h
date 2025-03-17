@@ -247,4 +247,9 @@ public:
     //Region Data
     void dataAbsentUpdate(const std::string& classID, const std::string& changes);
     void dataAbsentUpdateForDate(const std::string& classID, const std::string& changes, const std::string& date);
+
+    crow::json::wvalue getLogsToday();
+    crow::json::wvalue getLogsForDate(const std::string& date);
+    crow::json::wvalue getLogsForPeriod(const std::string& dateStart, const std::string& dateEnd);
+
 };

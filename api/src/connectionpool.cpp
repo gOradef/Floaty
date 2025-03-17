@@ -45,8 +45,10 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::userData::getSchoolId, "select school_id_get($1::uuid)");
         c->prepare(psqlMethods::userData::getClasses, "select * from user_classes_get($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::userData::getClassProps, "select class_props_get($1::uuid, $2::uuid)");
-        c->prepare(psqlMethods::userData::getClassStudents, "select class_students_get($1::uuid, $2::uuid, $3::uuid)");
+        c->prepare(psqlMethods::userData::getClassStudents, "select class_students_get($1::uuid, $2::uuid)");
 
+
+        c->prepare(psqlMethods::classes::getters::getClassName, "select class_body->>'name' from schools_classes where school_id = $1::uuid and class_id = $2::uuid");
 
         // * Class Handler
         c->prepare(psqlMethods::classes::checks::isOwned, "select is_class_owned($1::uuid, $2::uuid, uuid_or_null($3))");
@@ -64,8 +66,8 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
 
         //* Classes interface
         c->prepare(psqlMethods::schoolManager::classes::getAll,"select * from school_classes_get($1::uuid)");
-        c->prepare(psqlMethods::schoolManager::classes::getStudents, "select * from school_class_students_get($1::uuid, $2::uuid)");
         c->prepare(psqlMethods::schoolManager::classes::getClassBody, "select school_class_body_get($1::uuid, $2::uuid)");
+        c->prepare(psqlMethods::schoolManager::classes::getOwners, "select school_class_owners_get($1::uuid, $2::uuid)");
 
         c->prepare(psqlMethods::schoolManager::classes::create, "call class_create($1::uuid, $2::uuid, $3::text)");
         c->prepare(psqlMethods::schoolManager::classes::rename, "call class_rename($1::uuid, $2::uuid, $3::text)");
@@ -98,6 +100,9 @@ ConnectionPool::ConnectionPool(const std::string& connection_string, int pool_si
         c->prepare(psqlMethods::schoolManager::data::getSummarized, "select * from school_data_summarized_get($1::uuid, jsonb_build_object('start_date', $2::date, 'end_date', $3::date ))");
 
         c->prepare(psqlMethods::logger::log, "call log_changes($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::uuid, $7::jsonb)");
+        c->prepare(psqlMethods::logger::getLogsToday, "select school_logs_get($1::uuid, CURRENT_DATE)");
+        c->prepare(psqlMethods::logger::getLogsForDate, "select school_logs_get($1::uuid, $2::date)");
+        c->prepare(psqlMethods::logger::getLogsForPeriod, "select school_logs_period_get($1::uuid, $2::date, $3::date)");
 
         connections.push_back(std::move(c)); // Move ownership to the vector
     }

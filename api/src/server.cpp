@@ -55,13 +55,13 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         const std::string& schoolUUID = readTransaction.exec(psqlMethods::userData::getSchoolId, userUUID).one_field().as<std::string>();
 
         // Get roles from postgres
-        auto roles = readTransaction.exec(psqlMethods::userData::getRoles,{ schoolUUID, userUUID});
+        auto roles = crow::json::load(readTransaction.exec(psqlMethods::userData::getRoles,{ schoolUUID, userUUID}).one_field().as<std::string>());
         picojson::array available_roles;
-        for (auto role : roles) {
-            picojson::value role_v(role.front().as<std::string>());
+        for (const auto& role : roles) {
+            picojson::value role_v(std::string(role.s()));
             available_roles.push_back(role_v);
         }
-        if (roles.capacity() == 0) {
+        if (available_roles.capacity() == 0) {
             throw api::exceptions::requirmentsDoesntMeeted("U r doesnt have any available roles. "
                 "Contact with admin for granting privileges");
         }
@@ -369,11 +369,11 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
 
             const std::string& user_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_user_id).one_field().as<std::string>();
             picojson::array available_roles;
-            auto roles = rtx.exec(psqlMethods::userData::getRoles, {token_school_id_decoded, user_id_decoded});
+            auto roles = crow::json::load(rtx.exec(psqlMethods::userData::getRoles, {token_school_id_decoded, user_id_decoded}).one_field().as<std::string>());
 
-            if (!roles.empty()) {
-                for (auto role : roles) {
-                    available_roles.emplace_back(role.front().as<std::string>());
+            if (roles.size() != 0) {
+                for (const auto& role : roles) {
+                    available_roles.emplace_back(std::string(role.s()));
                 }
             }
             if (token_roles != available_roles)
