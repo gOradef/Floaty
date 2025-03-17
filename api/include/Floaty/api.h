@@ -220,14 +220,20 @@ public:
 
     //Region Events - Classes
     void classCreate(const crow::json::rvalue& json);
+    // void classEdit(const std::string& classID, const crow::json::rvalue& newProps);
     void classRename(const std::string& classID, const std::string& className);
     void updateClassStudents(const std::string& classID, const std::string& studentsBranch);
-        void classSetOwners(const std::string& classID, const std::vector<std::string>& newOwners);
+    void classSetOwners(const std::string& classID, const std::vector<std::string>& newOwners);
     void classDrop(const std::string& classID);
 
     //Region Users
     void userCreate(const crow::json::rvalue& creds);
-    void userEdit(const std::string& userID, const crow::json::rvalue& userBody);
+    // void userEdit(const std::string& userID, const crow::json::rvalue& userBody);
+    void userRename(const std::string& userID, const std::string& newUserName);
+    void userSetRoles(const std::string& userID, const std::vector<std::string>& newUserRoles);
+    void userSetClasses(const std::string& userID, const std::vector<std::string>& newUserClasses);
+    
+    
     void userResetPassword(const std::string& userID, const std::string& newPassword);
     void userDrop(const std::string& userID);
 

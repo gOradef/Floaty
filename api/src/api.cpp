@@ -547,6 +547,40 @@ void schoolManager::userResetPassword(const std::string& userID, const std::stri
     work->commit();
 }
 
+void schoolManager::userRename(const std::string& userID, const std::string& newUserName) {
+    isUserExists(userID);
+
+    this->priviliageWorkerToWrite();
+    _logger->logUserSetName(userID, newUserName);
+
+    work->exec(psqlMethods::schoolManager::users::setName, {_org_id, userID, newUserName});
+    work->commit();
+}
+
+void schoolManager::userSetRoles(const std::string& userID, const std::vector<std::string>& newUserRoles) {
+    isUserExists(userID);
+
+    this->priviliageWorkerToWrite();
+    _logger->logUserSetRoles(userID, newUserRoles);
+
+    work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, newUserRoles});
+    work->commit();
+}
+
+void schoolManager::userSetClasses(const std::string& userID, const std::vector<std::string>& newUserClasses) {
+    isUserExists(userID);
+
+    for (const auto& el : newUserClasses) {
+        isClassExists(el);
+    }
+
+    this->priviliageWorkerToWrite();
+    _logger->logUserSetOwnedClasses(userID, newUserClasses);
+
+    work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, newUserClasses});
+    work->commit();
+}
+
 void schoolManager::userDrop(const std::string &userID) {
 
     isUserExists(userID);

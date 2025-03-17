@@ -38,14 +38,16 @@ export default {
   computed: {
     availableClasses() {
       // console.log(this.entity_buff.classes)
-      return this.availableClassesList
-          .map(classt => {
+      return (
+        this.availableClassesList.map(classt => {
             // Check if the current class is in the selected classes
-            const isInSelectedClasses = this.entity_buff.classes.some(selectedClass => {
-              // Check if selectedClass has an id
+            const isInSelectedClasses = this.entity_buff.classes.some(
+              (selectedClass) => {
+                // Check if selectedClass has an id
 
-              return selectedClass.id === classt.id;
-            });
+                return selectedClass.id === classt.id;
+              }
+            );
 
             return {
               name: classt.name,
@@ -53,68 +55,91 @@ export default {
               owners: classt.owners,
               isHasOwners: classt.isHasOwners,
               isInList: isInSelectedClasses, // Use a boolean directly
-            };
-          })
+            }
+        })
           // Filter classes based on the search query
           .filter(classt =>
               classt.name.toLowerCase().includes(this.searchQuery.toLowerCase())
-          );
+        )
+      )
     }
   },
   methods: {
     async handleEditConfirm() {
-      if (this.isTeacher)
-        this.roles.push('teacher')
-      if (this.isAdmin)
-        this.roles.push('admin')
+      let url;
+      let bodyRequest = {};
 
-      let classes_ids = [];
-      this.entity_buff.classes.map(classt => {
-        classes_ids.push(classt.id);
-      })
+      // Declare variables outside the switch
+      let isNameInvalid;
+      let classes_ids;
 
-      const requestBody = {
-        classes: classes_ids,
-        roles: this.roles,
-      };
+      switch (this.currentTabIndex) {
+        case 0:
+          url = "/api/org/users/" + this.entity.id + "/name";
 
-      // Add the name field if this.newUserName is not empty
-      if (this.newUserName && this.newUserName.trim() !== '') {
-        requestBody.name = this.newUserName;
+          isNameInvalid =
+              !this.newUserName ||
+              this.newUserName.trim() === "" ||
+              this.entity.name === this.newUserName;
+          if (isNameInvalid) {
+            this.$root.$callNotificationEvent(
+                false,
+                "Пожалуйста, введите новое имя пользователя"
+            );
+            return;
+          }
+          bodyRequest.name = this.newUserName;
+          break;
+        case 1:
+          url = "/api/org/users/" + this.entity.id + "/classes";
+
+          // Process classes ids
+          classes_ids = [];
+          this.entity_buff.classes.map((classt) => {
+            classes_ids.push(classt.id);
+          });
+
+          bodyRequest.classes = classes_ids;
+          break;
+        case 2:
+          url = "/api/org/users/" + this.entity.id + "/roles";
+
+          if (this.isTeacher) this.roles.push("teacher");
+          if (this.isAdmin) this.roles.push("admin");
+
+          bodyRequest.roles = this.roles;
+          break;
       }
 
       const status = await this.$root.$makeApiRequest(
-          '/api/org/users/' + this.entity.id,
-          'PUT',
-          requestBody
+          url,
+          "PATCH",
+          bodyRequest
       );
 
-      if (status === 204)
-        this.$root.$emit('notification', 'success');
-      else
-        this.$root.$emit('notification', 'error');
-
+      if (status === 204) this.$root.$emit("notification", "success");
+      else this.$root.$emit("notification", "error");
     },
     async getClasses() {
-      this.raw_data = await this.$root.$makeApiRequest('/api/org/classes');
-      this.availableClassesList = this.raw_data.map(classt => ({
-        name: classt.name,
-        id: classt.id,
-        owners: classt.owners,
-        isHasOwners: classt.owners && classt.owners.length > 0, // Mark as disabled if classes exist
-      }))
-          // Sort the availableOwners: those without classes come first
-          .sort((a, b) => {
-            // Sort by 'disabled': false (no classes) should come before true (has classes)
-            return (a.isHasOwners === b.isHasOwners) ? 0 : a.isHasOwners ? 1 : -1;
-          });
+      this.raw_data = await this.$root.$makeApiRequest("/api/org/classes");
+      this.availableClassesList = this.raw_data
+        .map((classt) => ({
+          name: classt.name,
+          id: classt.id,
+          owners: classt.owners,
+          isHasOwners: classt.owners && classt.owners.length > 0, // Mark as disabled if classes exist
+        }))
+        // Sort the availableOwners: those without classes come first
+        .sort((a, b) => {
+          // Sort by 'disabled': false (no classes) should come before true (has classes)
+          return a.isHasOwners === b.isHasOwners ? 0 : a.isHasOwners ? 1 : -1;
+        });
       // console.log(this.availableClassesList);
     },
     removeTag(index) {
       this.entity_buff.classes.splice(index, 1);
     },
-
-  }
+  },
 };
 </script>
 

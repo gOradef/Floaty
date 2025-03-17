@@ -215,8 +215,7 @@
               <div v-else-if="row.item.context.category === 'classes' &&
               row.item.context.operation === 'create'">
                 Имя класса: <i>{{row.item.log_data.name}} </i><br>
-                Владелец:  <i>{{row.item.log_data.owner.name}} </i><br>
-                id: ({{row.item.log_data.owner.id}})
+                Владелец:  <i>{{row.item.log_data.owner.name || '-'}} </i><br>
               </div>
 
               <div v-else-if="

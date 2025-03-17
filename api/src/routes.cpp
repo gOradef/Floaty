@@ -43,7 +43,7 @@ inline void Server::route_user() {
     .methods(crow::HTTPMethod::GET)
     (v({
       Request user(_connectionPool, req);
-      auto roles = user.getRoles();
+      const auto& roles = user.getRoles();
       crow::json::wvalue json;
       json["roles"] = roles;
       res.body = json.dump();
@@ -284,15 +284,69 @@ inline void Server::route_admin() {
 
     }));
 
-    // Global edit user (classes, roles)
-    CROW_ROUTE(app, "/api/org/users/<string>")
-    .methods(crow::HTTPMethod::PUT)
-    (v({
-        schoolManager schoolManager(_connectionPool, req);
+    //! Global edit user (classes, roles) @deprecated()
+    // CROW_ROUTE(app, "/api/org/users/<string>")
+    // .methods(crow::HTTPMethod::PUT)
+    // (v({
+    //     schoolManager schoolManager(_connectionPool, req);
+    //
+    //     checkRequestBodyForJson(req);
+    //
+    //     schoolManager.userEdit(userID, crow::json::load(req.body));
+    //     res.code = 204;
+    // }, const std::string& userID));
 
+    CROW_ROUTE(app, "/api/org/users/<string>/name")
+    .methods(crow::HTTPMethod::PATCH)
+    (v({
+        schoolManager school_manager(_connectionPool, req);
         checkRequestBodyForJson(req);
 
-        schoolManager.userEdit(userID, crow::json::load(req.body));
+        const crow::json::rvalue& json = crow::json::load(req.body);
+
+        checkFieldForExistingAndType(json, "name", crow::json::type::String);
+
+        checkFieldForEmptiness(json, "name");
+
+        school_manager.userRename(userID, json["name"].s());
+        res.code = 204;
+    }, const std::string& userID));
+
+    CROW_ROUTE(app, "/api/org/users/<string>/classes")
+    .methods(crow::HTTPMethod::PATCH)
+    (v({
+        schoolManager school_manager(_connectionPool, req);
+        checkRequestBodyForJson(req);
+
+        const crow::json::rvalue& json = crow::json::load(req.body);
+
+        checkFieldForExistingAndType(json, "classes", crow::json::type::List);
+
+        std::vector<std::string> newClasses;
+        for (const auto& el : json["classes"]) {
+            newClasses.emplace_back(el.s());
+        }
+
+        school_manager.userSetClasses(userID, newClasses);
+        res.code = 204;
+    }, const std::string& userID));
+
+    CROW_ROUTE(app, "/api/org/users/<string>/roles")
+    .methods(crow::HTTPMethod::PATCH)
+    (v({
+        schoolManager school_manager(_connectionPool, req);
+        checkRequestBodyForJson(req);
+
+        const crow::json::rvalue& json = crow::json::load(req.body);
+
+        checkFieldForExistingAndType(json, "roles", crow::json::type::List);
+
+        std::vector<std::string> newRoles;
+        for (const auto& el : json["roles"]) {
+            newRoles.emplace_back(el.s());
+        }
+
+        school_manager.userSetRoles(userID, newRoles);
         res.code = 204;
     }, const std::string& userID));
 
