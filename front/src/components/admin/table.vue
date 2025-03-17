@@ -109,6 +109,213 @@
           <template #cell(roles)="row">
              {{row.item.roles.join(", ")}}
           </template>
+
+            <template #cell(changed_at)="row">
+              {{row.item.changed_at.time}} <br>
+              {{row.item.changed_at.date}}
+            </template>
+
+            <template #cell(context)="row">
+              {{row.item.context.category === 'data' && row.item.context.operation === 'edit' ? 'Заполнение журнала' : ''}}
+
+              <!--*               Classes              -->
+              {{
+                row.item.context.category === 'classes'
+                && row.item.context.operation === 'create' ? 'Создание класса' : ''}}
+              {{
+                row.item.context.category === 'classes'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'name'
+                ? 'Редактировать имя класса' : ''}}
+
+              {{
+                row.item.context.category === 'classes'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'owners'
+                    ? 'Редактировать владельцев класса' : ''}}
+
+              {{
+                row.item.context.category === 'classes'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'students'
+                    ? 'Редактировать список учащихся в классе' : ''}}
+
+              {{
+                row.item.context.category === 'classes'
+                && row.item.context.operation === 'delete'
+                    ? 'Удаление класса' : ''}}
+
+              <!--*               Users              -->
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'create'
+                    ? 'Создание пользователя' : ''}}
+
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'name'
+                    ? 'Редактировать имя пользователя' : ''}}
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'roles'
+                    ? 'Редактировать роли пользователя' : ''}}
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'classes'
+                    ? 'Редактировать классы пользователя' : ''}}
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'edit'
+                && row.item.context.changed_property	=== 'password'
+                    ? 'Редактировать пароль пользователя' : ''}}
+              {{
+                row.item.context.category === 'users'
+                && row.item.context.operation === 'delete'
+                    ? 'Удалить пользователя' : ''}}
+
+
+              {{
+                row.item.context.category === 'invites'
+                && row.item.context.operation === 'create'
+                    ? 'Создать приглашение' : ''}}
+              {{
+                row.item.context.category === 'invites'
+                && row.item.context.operation === 'delete'
+                    ? 'Удалить приглашение' : ''}}
+            </template>
+
+            <template #cell(log_data)="row">
+              <div v-if="row.item.context.category === 'data' &&
+              row.item.context.operation === 'edit'">
+                <b-collapse
+                    visible
+                    style="display: flex; justify-content: flex-start;"
+                >
+                  <b-list-group class="b-list-group-causes">
+                    <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-nums">
+                    <b-list-group-item >{{row.item.log_data.absent.ORVI.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.log_data.absent.respectful.length}} </b-list-group-item>
+                    <b-list-group-item >{{row.item.log_data.absent.not_respectful.length}} </b-list-group-item>
+                  </b-list-group>
+                  <b-list-group class="b-list-group-lists">
+                    <b-list-group-item>{{ row.item.log_data.absent.ORVI.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.log_data.absent.respectful.join(", ") || '-'}}</b-list-group-item>
+                    <b-list-group-item>{{ row.item.log_data.absent.not_respectful.join(", ") || '-' }}</b-list-group-item>
+                  </b-list-group>
+
+                </b-collapse>
+              </div>
+              <div v-else-if="row.item.context.category === 'classes' &&
+              row.item.context.operation === 'create'">
+                Имя класса: <i>{{row.item.log_data.name}} </i><br>
+                Владелец:  <i>{{row.item.log_data.owner.name}} </i><br>
+                id: ({{row.item.log_data.owner.id}})
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'classes' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'students'">
+
+                <b>До: </b>
+                Учащиеся: {{(row.item.log_data.old.students).join(', ')}} - ({{row.item.log_data.old.students.length}})<br>
+                Учащиеся-бесплатники: {{(row.item.log_data.old.fstudents).join(', ')}} - ({{row.item.log_data.old.fstudents.length}})
+
+                <br>
+                <b>После: </b>
+                Учащиеся: {{(row.item.log_data.new.students).join(', ')}} - ({{row.item.log_data.new.students.length}})<br>
+                Учащиеся-бесплатники: {{(row.item.log_data.new.fstudents).join(', ')}} - ({{row.item.log_data.new.fstudents.length}})
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'classes' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'name'">
+                <strike>{{row.item.log_data.old.name}}</strike> <b-icon icon="arrow-right"/> {{row.item.log_data.new.name}}
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'classes' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'owners'">
+                <strike>{{row.item.log_data.old.owners.map(owner => owner.name).join(', ')}} </strike> <b-icon icon="arrow-right"/> {{row.item.log_data.new.owners.map(owner => owner.name).join(', ') || '-'}}
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'classes' &&
+              row.item.context.operation === 'delete'">
+                Имя класса: <i>{{row.item.log_data.name}} </i><br>
+                Владелецы: <i>{{row.item.log_data.owners.map(owner => owner.name).join(', ') || '-'}}</i>
+              </div>
+
+
+              <div v-else-if="
+              row.item.context.category === 'users' &&
+              row.item.context.operation === 'create'">
+                Имя пользователя: <i>{{row.item.log_data.name}}</i> <br>
+                Роли: <i>{{row.item.log_data.roles.join(', ')}}</i> <br>
+                Классы: <i>{{row.item.log_data.classes.map(classt => classt.name).join(', ') || '-'}} </i>
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'users'
+              && row.item.context.operation === 'edit'
+              && row.item.context.changed_property === 'name'">
+                <strike>{{row.item.log_data.old.name}}</strike> <b-icon icon="arrow-right"/> {{row.item.log_data.new.name}}
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'users' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'roles'">
+                <strike>{{row.item.log_data.old.roles.join(', ') || '-'}}</strike> <b-icon icon="arrow-right"/> {{row.item.log_data.new.roles.join(', ') || '-'}}
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'users' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'classes'">
+                <strike>{{row.item.log_data.old.classes.map(classt => classt.name).join(', ') || '-'}}</strike> <b-icon icon="arrow-right"/> {{row.item.log_data.new.classes.map(classt => classt.name).join(', ') || '-'}}
+              </div>
+              <div v-else-if="
+              row.item.context.category === 'users' &&
+              row.item.context.operation === 'edit' &&
+              row.item.context.changed_property === 'password'
+">
+                {{row.item.log_data}}
+              </div>
+              <div v-else-if="row.item.context.category === 'users' &&
+              row.item.context.operation === 'delete'">
+                {{row.item.log_data}}
+              </div>
+
+              <div v-else-if="
+              row.item.context.category === 'invites' &&
+              row.item.context.operation === 'create'
+">
+                Имя пользователя: <i>{{row.item.log_data.name}}</i> <br>
+                Роли пользователя: <i>{{row.item.log_data.roles.join(', ')}}</i> <br>
+                Классы пользователя: <i>{{row.item.log_data.classes.map(classt => classt.name).join(', ')}}</i>
+              </div>
+              <div v-else-if="
+              row.item.context.category === 'invites' &&
+              row.item.context.operation === 'delete'
+">
+                ID: <i>{{row.item.log_data.invite.id}}</i> <br>
+                Имя пользователя: <i>{{row.item.log_data.invite.body.name}}</i> <br>
+                Роли: <i>{{row.item.log_data.invite.body.roles.join(', ') || '-'}}</i> <br>
+                Классы: <i>{{row.item.log_data.invite.body.classes.map(classt => classt.name).join(', ') || '-'}}</i>
+              </div>
+
+            </template>
+
           <!-- Footer for Global Calculations -->
           <template #custom-foot v-if="isActiveSectionData() && isDataLoaded">
             <tr>
@@ -273,14 +480,35 @@ export default {
             label: 'Пользователь',
             sortable: true
           },
-       {
+          {
             key: 'id',
             label: 'ID'
-          },{
+          },
+          {
             key: 'secret',
             label: 'Секрет'
           }
         ],
+        logs: [
+          {
+            key: 'changed_at',
+            label: 'Время',
+            sortable: true
+          },
+          {
+            key: 'user.name',
+            label: 'Пользователь',
+          },
+          {
+            key: 'context',
+            label: 'Действие',
+          },
+          {
+            key: 'log_data',
+            label: 'Данные'
+          }
+
+        ]
       },
 
       //Data from request
@@ -294,7 +522,8 @@ export default {
         data: this.getData,
         classes: this.getClasses,
         users: this.getUsers,
-        invites: this.getInvites
+        invites: this.getInvites,
+        logs: this.getLogs
       },
       tableDataDates: '', //data or period for dates
       calendarDate: '',
@@ -304,6 +533,7 @@ export default {
     this.$root.$off('renderContentSection', this.handleRenderContentSection);
     this.$root.$off('calendar:call');
     this.$root.$off('exportData');
+    this.$root.$off('applyFilter', this.applyFilter)
   },
   async mounted() {
     // Define the event handler
@@ -312,7 +542,7 @@ export default {
       this.isDataLoaded = false;
       this.tableDataDates = '';
 
-      // console.log(section, '-', dates);
+      console.log(section, '-', dates);
 
       if (this.sectionDataMethods[section]) {
         this.raw_data = await this.sectionDataMethods[section](...dates);
@@ -343,7 +573,7 @@ export default {
     this.$root.$on('exportData', () => {
       this.exportExcel();
     });
-
+    this.$root.$on('applyFilter', this.applyFilter)
   },
   methods: {
      getCurrentDateFormatted() {
@@ -386,6 +616,23 @@ export default {
     },
     async getInvites() {
       return await this.$root.$makeApiRequest('/api/org/invites');
+    },
+    async getLogs(date = null, date_2 = null) {
+      let url = '/api/org/logs';
+      if (date) {
+        if (date_2) {
+          url = '/api/org/logs/period/' + date + '/' + date_2;
+          this.tableDataDates = date + '-' + date_2;
+        } else {
+          url += '/date/' + date;
+          this.tableDataDates = date;
+        }
+        this.calendarDate = date;
+      } else {
+        this.tableDataDates = this.getCurrentDateFormatted();
+        this.calendarDate = null;
+      }
+      return (await this.$root.$makeApiRequest(url));
     },
 
     //Updates fields for table
@@ -519,8 +766,42 @@ export default {
       XLSX.utils.sheet_to_formulae(wb);
 
       XLSX.writeFile(wb, `${this.tableDataDates}.xlsx`);
-    }
-  },
+    },
+    applyFilter(filter) {
+      console.log(this.raw_data);
+
+      // Initialize filtered items with all raw data
+      let filtered_items = [...this.raw_data];
+
+      // Filter categories
+      if (!filter.categories.data) {
+        filtered_items = filtered_items.filter(item => item.context.category !== 'data');
+      }
+      if (!filter.categories.classes) {
+        filtered_items = filtered_items.filter(item => item.context.category !== 'classes');
+      }
+      if (!filter.categories.users) {
+        filtered_items = filtered_items.filter(item => item.context.category !== 'users');
+      }
+      if (!filter.categories.invites) {
+        filtered_items = filtered_items.filter(item => item.context.category !== 'invites');
+      }
+
+      // Filter operations
+      if (!filter.operations.create) {
+        filtered_items = filtered_items.filter(item => item.context.operation !== 'create');
+      }
+      if (!filter.operations.edit) {
+        filtered_items = filtered_items.filter(item => item.context.operation !== 'edit');
+      }
+      if (!filter.operations.delete) {
+        filtered_items = filtered_items.filter(item => item.context.operation !== 'delete');
+      }
+
+      // Apply the filtered items to the table
+      this.table.items = filtered_items;
+    },
+  }
 }
 </script>
 <style>

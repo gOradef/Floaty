@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Floaty/connectionpool.h"
+#include "Floaty/logger.h"
 
 #include "vector"
 
@@ -171,12 +172,9 @@ public:
 };
 
 
-
-
-
 class classHandler : Request {
     std::string _class_id;
-
+    std::unique_ptr<loggerClassHandler> _logger;
 public:
     classHandler(ConnectionPool *connectionPool,
                  const crow::request &req, const std::string& classID);
@@ -194,6 +192,8 @@ public:
 
 
 class schoolManager : Request {
+    std::unique_ptr<loggerAdmin> _logger;
+
     void isLoginOccupied(const std::string& login);
     void isUserExists(const std::string& userID);
     void isUserHasntClassesInOwning(const std::string& userID);
@@ -241,9 +241,15 @@ public:
     void inviteDrop(const std::string& reqID);
 
 
-    void classMoveToNextYear(); //update
+    [[maybe_unused]]
+    void classMoveToNextYear() = delete; //update
 
     //Region Data
     void dataAbsentUpdate(const std::string& classID, const std::string& changes);
     void dataAbsentUpdateForDate(const std::string& classID, const std::string& changes, const std::string& date);
+
+    crow::json::wvalue getLogsToday();
+    crow::json::wvalue getLogsForDate(const std::string& date);
+    crow::json::wvalue getLogsForPeriod(const std::string& dateStart, const std::string& dateEnd);
+
 };

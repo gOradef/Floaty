@@ -391,6 +391,7 @@ export default {
     },
 
     selectOwner(owner) {
+      this.newClass.owner = owner.id;
       this.selectedOwner = owner;
     },
     // triggers on plus button

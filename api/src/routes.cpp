@@ -29,7 +29,7 @@ inline void Server::route_auth() {
     .methods(crow::HTTPMethod::GET)
     (routes_auth::getOrgInformation);
 
-    CROW_ROUTE(app, "/api/invite/<string>/<string>/<string>")
+    CROW_ROUTE(app, "/api/invite/<string>/<string>")
     .methods(crow::HTTPMethod::GET)
     (routes_auth::getInviteProps);
 
@@ -472,7 +472,29 @@ inline void Server::route_admin() {
         res.code = 204;
     }, const std::string& inviteID));
 
+    CROW_ROUTE(app, "/api/org/logs")
+    .methods(crow::HTTPMethod::GET)
+    (v({
+        schoolManager user(_connectionPool, req);
+        const auto& logs = user.getLogsToday();
+        res.body = logs.dump();
+    }));
 
+    CROW_ROUTE(app, "/api/org/logs/date/<string>")
+    .methods(crow::HTTPMethod::GET)
+    (v({
+        schoolManager user(_connectionPool, req);
+        const auto& logs = user.getLogsForDate(date);
+        res.body = logs.dump();
+    }, const std::string& date));
+
+    CROW_ROUTE(app, "/api/org/logs/period/<string>/<string>")
+    .methods(crow::HTTPMethod::GET)
+    (v({
+        schoolManager user(_connectionPool, req);
+        const auto& logs = user.getLogsForPeriod(dateStart, dateEnd);
+        res.body = logs.dump();
+    }, const std::string& dateStart, const std::string& dateEnd));
 }
 
 

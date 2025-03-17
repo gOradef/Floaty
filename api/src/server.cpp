@@ -55,13 +55,13 @@ void Server::routes_auth::login(const crow::request& req, crow::response& res) {
         const std::string& schoolUUID = readTransaction.exec(psqlMethods::userData::getSchoolId, userUUID).one_field().as<std::string>();
 
         // Get roles from postgres
-        auto roles = readTransaction.exec(psqlMethods::userData::getRoles,{ schoolUUID, userUUID});
+        auto roles = crow::json::load(readTransaction.exec(psqlMethods::userData::getRoles,{ schoolUUID, userUUID}).one_field().as<std::string>());
         picojson::array available_roles;
-        for (auto role : roles) {
-            picojson::value role_v(role.front().as<std::string>());
+        for (const auto& role : roles) {
+            picojson::value role_v(std::string(role.s()));
             available_roles.push_back(role_v);
         }
-        if (roles.capacity() == 0) {
+        if (available_roles.capacity() == 0) {
             throw api::exceptions::requirmentsDoesntMeeted("U r doesnt have any available roles. "
                 "Contact with admin for granting privileges");
         }
@@ -217,12 +217,12 @@ void Server::routes_auth::getOrgInformation(const crow::request& req, crow::resp
 
 
 void Server::routes_auth::getInviteProps(const crow::request& req, crow::response& res,
-    const std::string& schoolID, const std::string& invite_code, const std::string& invite_secret) {
+    const std::string& schoolID, const std::string& invite_code) {
 
     auto con = _connectionPool->getConnection();
     pqxx::read_transaction work(*con);
 
-    auto props = work.exec(psqlMethods::invites::getProperties,{ schoolID, invite_code, invite_secret});
+    auto props = work.exec(psqlMethods::invites::getProperties,{ schoolID, invite_code});
     crow::json::wvalue json;
     //* 50 / 50 maybe refactor todo
     if (!props[0][0].is_null()) {
@@ -278,22 +278,22 @@ void Server::routes_auth::signupUsingInvite(const crow::request& req, crow::resp
             throw api::exceptions::conflict("Login is already occupied. Please, try another");
 
         //* Get invite_props
-        auto invite_props = work.exec(psqlMethods::invites::getProperties, {schoolID, invite_code, invite_secret}).one_field().as<std::string>();
+        auto invite_props = work.exec(psqlMethods::invites::getProperties, {schoolID, invite_code}).one_field().as<std::string>();
 
-        crow::json::rvalue json_props = crow::json::load(invite_props);
-        if (!json_props) {
+        crow::json::rvalue invite_body_json = crow::json::load(invite_props);
+        if (!invite_body_json) {
             throw api::exceptions::conflict("Wrong format of invite_body created by administrator");
         }
         std::vector<std::string> roles;
         std::vector<std::string> classes;
 
-        for (const auto& el : json_props["roles"]) {
+        for (const auto& el : invite_body_json["roles"]) {
             roles.emplace_back(el.s());
         }
-        for (const auto& el : json_props["classes"]) {
+        for (const auto& el : invite_body_json["classes"]) {
             classes.emplace_back(el["id"].s());
         }
-        const std::string& name = json_props["name"].s();
+        const std::string& name = invite_body_json["name"].s();
 
         //* Create user
         work.exec(psqlMethods::schoolManager::users::createWithContext,{
@@ -369,11 +369,11 @@ bool Server::isValidJWT(const std::string& userjwt, const std::string& _jwtSecre
 
             const std::string& user_id_decoded = rtx.exec(psqlMethods::encoding::decode, token_user_id).one_field().as<std::string>();
             picojson::array available_roles;
-            auto roles = rtx.exec(psqlMethods::userData::getRoles, {token_school_id_decoded, user_id_decoded});
+            auto roles = crow::json::load(rtx.exec(psqlMethods::userData::getRoles, {token_school_id_decoded, user_id_decoded}).one_field().as<std::string>());
 
-            if (!roles.empty()) {
-                for (auto role : roles) {
-                    available_roles.emplace_back(role.front().as<std::string>());
+            if (roles.size() != 0) {
+                for (const auto& role : roles) {
+                    available_roles.emplace_back(std::string(role.s()));
                 }
             }
             if (token_roles != available_roles)
