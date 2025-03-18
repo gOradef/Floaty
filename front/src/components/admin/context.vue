@@ -28,7 +28,7 @@
       <!--    Button group -->
       <b-button-group vertical class="mt-2">
         <div v-for="(option, index) in contextOptions" :key="index">
-          <b-button class="w-100" :variant="option._variant" :disabled="!option.isActiveWithoutEntity && !isEntitySelected" @click="option.foo">
+          <b-button class="w-100" :variant="option._variant" :disabled="!option.isActiveWithoutEntity && !isEntitySelected || option._disabled" @click="option.foo">
             {{ option.label }}
           </b-button>
         </div>
@@ -78,6 +78,7 @@ export default {
             label: "Напомнить клас. рук.",
             foo: () => this.openModal(dataInterface, "remind"),
             _variant: "info",
+            _disabled: true
           },
           {
             label: "Сбросить запись",
@@ -178,6 +179,16 @@ export default {
             _variant: "danger",
           },
         ],
+        logs: [
+          // {
+          //   label: "Создать приглашение",
+          //   isActiveWithoutEntity: true,
+          //   foo: () =>
+          //       this.openModal(invitesInterface,
+          //           "create",
+          //           "Создать приглашение"),
+          // },
+        ]
       },
     };
   },
