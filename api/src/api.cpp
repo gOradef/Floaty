@@ -493,44 +493,44 @@ void schoolManager::userCreate(const crow::json::rvalue &creds) {
     work->commit();
 }
 
-void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue& userBody) {
-    isUserExists(userID);
-
-    auto setRoles = [&]() {
-        std::vector<std::string> roles;
-        for (auto& role : userBody["roles"]) {
-            roles.emplace_back(role.s());
-        }
-        _logger->logUserSetRoles(userID, roles);
-        work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, roles});
-    };
-    auto setClasses = [&]() {
-        std::vector<std::string> classes;
-        for (auto& classt : userBody["classes"]) {
-            classes.emplace_back(classt.s());
-        }
-        _logger->logUserSetOwnedClasses(userID, classes);
-        work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, classes});
-    };
-    auto setName = [&]() {
-        const std::string& newUserName = userBody["name"].s();
-        _logger->logUserSetName(userID, newUserName);
-        work->exec(psqlMethods::schoolManager::users::setName,{ _org_id, userID, newUserName});
-    };
-
-    this->priviliageWorkerToWrite();
-    //todo Suspiciously maybe move checks to router.cpp
-    if (userBody.has("roles") && userBody["roles"].t() == crow::json::type::List) {
-        setRoles();
-    }
-    if (userBody.has("classes") && userBody["classes"].t() == crow::json::type::List) {
-        setClasses();
-    }
-    if (userBody.has("name") && userBody["name"].t() == crow::json::type::String && userBody["name"].s() != "") {
-        setName();
-    }
-    work->commit();
-}
+// void schoolManager::userEdit(const std::string& userID, const crow::json::rvalue& userBody) {
+//     isUserExists(userID);
+//
+//     auto setRoles = [&]() {
+//         std::vector<std::string> roles;
+//         for (auto& role : userBody["roles"]) {
+//             roles.emplace_back(role.s());
+//         }
+//         _logger->logUserSetRoles(userID, roles);
+//         work->exec(psqlMethods::schoolManager::users::setRoles, {_org_id, userID, roles});
+//     };
+//     auto setClasses = [&]() {
+//         std::vector<std::string> classes;
+//         for (auto& classt : userBody["classes"]) {
+//             classes.emplace_back(classt.s());
+//         }
+//         _logger->logUserSetOwnedClasses(userID, classes);
+//         work->exec(psqlMethods::schoolManager::users::setClasses, {_org_id, userID, classes});
+//     };
+//     auto setName = [&]() {
+//         const std::string& newUserName = userBody["name"].s();
+//         _logger->logUserSetName(userID, newUserName);
+//         work->exec(psqlMethods::schoolManager::users::setName,{ _org_id, userID, newUserName});
+//     };
+//
+//     this->priviliageWorkerToWrite();
+//     //todo Suspiciously maybe move checks to router.cpp
+//     if (userBody.has("roles") && userBody["roles"].t() == crow::json::type::List) {
+//         setRoles();
+//     }
+//     if (userBody.has("classes") && userBody["classes"].t() == crow::json::type::List) {
+//         setClasses();
+//     }
+//     if (userBody.has("name") && userBody["name"].t() == crow::json::type::String && userBody["name"].s() != "") {
+//         setName();
+//     }
+//     work->commit();
+// }
 
 ///@param userID - uuid of user
 ///@param newPassword - already hashed
