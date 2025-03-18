@@ -224,7 +224,7 @@
 
       <b-row style="display: flex; flex-grow: 1;" class="m-0">
 <!--        TABLE -->
-        <b-col style="display: flex;" class="colPreTable">
+        <b-col cols="12" style="display: flex;" class="colPreTable">
           <div class="table" style="display: block;" v-if="hasAccess">
             <AdminContent :activeSection="contentSection" />
           </div>
@@ -232,10 +232,10 @@
 <!--        INTERACTION -->
         <b-col cols="pl-0DO NOT REMOVE" id="interface">
           <div class="sidebar-r" v-if="hasAccess">
-              <b-calendar
-                :start-weekday="1"
-                class="emptyCalendar"
-              ></b-calendar>
+<!--              <b-calendar-->
+<!--                :start-weekday="1"-->
+<!--                class="emptyCalendar"-->
+<!--              ></b-calendar>-->
               <AdminContextMenu />
             </div>
         </b-col>
@@ -280,7 +280,7 @@ export default {
 
       // Calendar data
       calendarDataDate: '',
-      calendarLogsDate: null,
+      calendarLogsDate: '',
 
       showDataCustomDateInput: false,
       showDataPeriodInput: false,
@@ -345,46 +345,32 @@ export default {
   },
   methods: {
     handleSectionClick(sectionValue, dataType) {
-      // if (this.activeSection !== sectionValue) {
-        this.activeSection = sectionValue;
-        if (sectionValue === 'data') {
+      this.activeSection = sectionValue;
 
-        if (dataType === 'date') {
-          if (!this.isDataDateChosen) {
-            alert('Выберите дату');
-            return;
-          }
-          else
-            this.$root.$emit('renderContentSection', this.activeSection, this.calendarDataDate);
-        }
-        else if (dataType === 'period') {
-          this.$root.$emit('renderContentSection', this.activeSection, this.periodDataStartDate, this.periodDataEndDate);
-        }
-        else {
-          this.$root.$emit('renderContentSection', this.activeSection);
-        }
-        }
-        else if (sectionValue === 'logs') {
+      // Determine the appropriate data based on the section
+      const sectionData = sectionValue === 'data' ? {
+        isDateChosen: this.isDataDateChosen,
+        date: this.calendarDataDate,
+        periodStart: this.periodDataStartDate,
+        periodEnd: this.periodDataEndDate
+      } : sectionValue === 'logs' ? {
+        isDateChosen: this.isLogsDateChosen,
+        date: this.calendarLogsDate,
+        periodStart: this.periodLogsStartDate,
+        periodEnd: this.periodLogsEndDate
+      } : {};
 
-          if (dataType === 'date') {
-            if (!this.isLogsDateChosen) {
-              alert('Выберите дату');
-              return;
-            }
-            else
-              this.$root.$emit('renderContentSection', this.activeSection, this.calendarLogsDate);
-          }
-          else if (dataType === 'period') {
-            this.$root.$emit('renderContentSection', this.activeSection, this.periodLogsStartDate, this.periodLogsEndDate);
-          }
-          else {
-            this.$root.$emit('renderContentSection', this.activeSection);
-          }
+      if (dataType === 'date') {
+        if (!sectionData.isDateChosen) {
+          alert('Выберите дату');
+          return;
         }
-        else {
-          this.$root.$emit('renderContentSection', this.activeSection);
-        }
-
+        this.$root.$emit('renderContentSection', this.activeSection, sectionData.date);
+      } else if (dataType === 'period') {
+        this.$root.$emit('renderContentSection', this.activeSection, sectionData.periodStart, sectionData.periodEnd);
+      } else {
+        this.$root.$emit('renderContentSection', this.activeSection);
+      }
     },
     handleWindowResize() {
       this.compactMode = window.innerWidth < 768;
