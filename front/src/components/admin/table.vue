@@ -51,8 +51,8 @@
               <b-collapse
                 visible
                 v-if="isRowExpanded(row.item.id)"
-                style="display: flex; justify-content: flex-start;"
-            >
+                class="d-flex justify-content-center"
+              >
                   <b-list-group class="b-list-group-causes">
                     <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
                     <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
@@ -189,15 +189,17 @@
 
             <template #cell(log_data)="row">
               <div v-if="row.item.context.category === 'data' &&
-              row.item.context.operation === 'edit'">
+              row.item.context.operation === 'edit'" class="align-content-center">
+
+                <div class="text-center">Для даты: <i>{{row.item.log_data.date}}</i></div>
                 <b-collapse
                     visible
-                    style="display: flex; justify-content: flex-start;"
+                    class="d-flex justify-content-center"
                 >
                   <b-list-group class="b-list-group-causes">
-                    <b-list-group-item style="min-width: 140px"><strong> ОРВИ: </strong> </b-list-group-item>
-                    <b-list-group-item style="min-width: 140px"><strong> Уваж. прич.: </strong> </b-list-group-item>
-                    <b-list-group-item style="min-width: 140px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 160px"><strong> ОРВИ: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 160px"><strong> Уваж. прич.: </strong> </b-list-group-item>
+                    <b-list-group-item style="min-width: 160px"><strong> Неуваж. прич.: </strong> </b-list-group-item>
                   </b-list-group>
                   <b-list-group class="b-list-group-nums">
                     <b-list-group-item >{{row.item.log_data.absent.ORVI.length}} </b-list-group-item>
@@ -288,11 +290,13 @@
               row.item.context.operation === 'edit' &&
               row.item.context.changed_property === 'password'
 ">
-                {{row.item.log_data}}
+                -
               </div>
               <div v-else-if="row.item.context.category === 'users' &&
               row.item.context.operation === 'delete'">
-                {{row.item.log_data}}
+                Имя: <i>{{row.item.log_data.name}}</i> <br>
+                Роли: <i>{{row.item.log_data.roles.join(', ') || '-'}}</i> <br>
+                Классы: <i>{{row.item.log_data.classes.map(classt => classt.name).join(', ') || '-'}}</i> <br> <!--TODO -->
               </div>
 
               <div v-else-if="
@@ -340,7 +344,7 @@
           <template #table-busy>
             <div class="text-center my-2">
               <b-spinner class="align-middle" ></b-spinner>
-              <strong>Loading...</strong>
+              <strong>Загрузка...</strong>
             </div>
           </template>
         </b-table>
@@ -526,17 +530,24 @@ export default {
       },
       tableDataDates: '', //data or period for dates
       calendarDate: '',
+
+      //? lastChosenSection: '',
+      //? lastChosenDates: null,
     }
   },
   beforeMount() {
     this.$root.$off('renderContentSection', this.handleRenderContentSection);
     this.$root.$off('calendar:call');
     this.$root.$off('exportData');
-    this.$root.$off('applyFilter', this.applyFilter)
+    this.$root.$off('applyFilter', this.applyFilter);
+    //?todo this.$root.$off('refreshTableContent');
   },
   async mounted() {
     // Define the event handler
     this.handleRenderContentSection = async (section,...dates) => {
+      //? this.lastChosenSection = section;
+      //? if (dates[0] && dates[0] !== null && !dates[0].empty())
+      //?   this.lastChosenDates = dates;
       this.activeSection = section;
       this.isDataLoaded = false;
       this.tableDataDates = '';
@@ -573,6 +584,7 @@ export default {
       this.exportExcel();
     });
     this.$root.$on('applyFilter', this.applyFilter)
+    //? this.$root.$on('refreshTableContent', this.refreshTableContent);
   },
   methods: {
      getCurrentDateFormatted() {
@@ -767,10 +779,10 @@ export default {
       XLSX.writeFile(wb, `${this.tableDataDates}.xlsx`);
     },
     applyFilter(filter) {
-      console.log(this.raw_data);
+      // console.log(this.raw_data);
 
       // Initialize filtered items with all raw data
-      let filtered_items = [...this.raw_data];
+      let filtered_items = this.raw_data;
 
       // Filter categories
       if (!filter.categories.data) {
@@ -800,6 +812,10 @@ export default {
       // Apply the filtered items to the table
       this.table.items = filtered_items;
     },
+
+    //? refreshTableContent() {
+    //?   this.$root.$emit('renderContentSection', this.lastChosenSection, this.lastChosenDates);
+    //? },
   }
 }
 </script>

@@ -108,6 +108,12 @@ export default {
             Vue.prototype.$callNotificationEvent = function (isAllGood = false, customMsg = "Что-то пошло не так :(  Чтобы решить проблему как можно быстрее, пожалуйста, свяжитесь с нами") {
                 if (isAllGood) {
                     this.$root.$emit('notification', 'success')
+                    /*? todo this.$root.$emit('refreshTableContent');
+                    * Fix in future
+                    * Problem:
+                    * - after refreshing: selected row lost its focus;
+                    * - after refreshing: modal window lost id of selected object and returning in URL undefined as id
+                    * */
                 }
                 else {
                     this.$root.$emit('notification', 'error', customMsg);
