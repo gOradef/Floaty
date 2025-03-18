@@ -251,6 +251,7 @@ public:
         crow::json::wvalue json = crow::json::load(userData);
         crow::json::rvalue json_rvalue = crow::json::load(userData);
 
+        json["classes"] = std::vector<std::string>{};
         // Preparing new owners into vector
         std::vector<crow::json::rvalue> newClassesArray;
         for (const auto& new_classID : json_rvalue["classes"]) {
@@ -309,7 +310,7 @@ public:
     void logUserSetOwnedClasses(const std::string& userID, const std::vector<std::string>& classes) const {
         crow::json::wvalue json;
         json["old"]["classes"] = crow::json::load(work->exec(psqlMethods::userData::getClasses, {baseUserDataCreds->_org_id, userID}).one_field().as<std::string>());
-
+        json["new"]["classes"] = std::vector<std::string>{};
         // Preparing new owners into vector
         std::vector<crow::json::rvalue> newClassesArray;
         for (const auto& new_classID : classes) {
