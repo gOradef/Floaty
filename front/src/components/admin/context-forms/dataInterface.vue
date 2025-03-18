@@ -290,10 +290,7 @@ export default {
               }
             }
         );
-        if (res === 200 || res === 204)
-          this.$root.$emit('notification', 'success');
-        else
-          this.$root.$emit('notification', 'error');
+        this.$root.$callNotificationEvent(res === 204);
       }
 
     });

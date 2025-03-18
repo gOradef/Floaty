@@ -59,8 +59,10 @@ export default {
             'POST',
             {...this.form,
             classes: classes_ids});
-        if (status === 204)
+        if (status === 204) {
           this.$root.$emit('notification', 'success');
+          //?todo this.$root.$emit('refreshTableContent');
+        }
         else if (status === 409)
           this.$root.$emit('notification', 'warning', 'Данный логин и пароль уже заняты');
         else

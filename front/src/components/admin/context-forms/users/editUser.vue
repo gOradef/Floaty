@@ -116,9 +116,7 @@ export default {
           "PATCH",
           bodyRequest
       );
-
-      if (status === 204) this.$root.$emit("notification", "success");
-      else this.$root.$emit("notification", "error");
+      this.$root.$callNotificationEvent(status === 204);
     },
     async getClasses() {
       this.raw_data = await this.$root.$makeApiRequest("/api/org/classes");
