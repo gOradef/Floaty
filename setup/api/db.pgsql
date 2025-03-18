@@ -373,18 +373,9 @@ CREATE FUNCTION public.class_props_get(_orgid uuid, _classid uuid) RETURNS jsonb
     LANGUAGE plpgsql
     AS $$
 begin
-	return jsonb_build_object(
-		'id', _classID,
-		'name', (select class_body->'name' from schools_classes 
-			where school_id = _orgID
-			and class_id = _classID),
-		'students', (select class_body->'students' from schools_classes 
-			where school_id = _orgID
-			and class_id = _classID),
-		'fstudents', (select class_body->'fstudents' from schools_classes 
-		where school_id = _orgID
-		and class_id = _classID)
-	);
+    return (select class_body - 'absent' from schools_classes
+            where school_id = _orgID
+              and class_id = _classID);
 end;
 $$;
 
@@ -420,26 +411,25 @@ $$;
 ALTER PROCEDURE public.class_rename(IN _orgref uuid, IN _class_id uuid, IN _new_classname text) OWNER TO postgres;
 
 --
--- Name: class_students_get(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: class_students_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.class_students_get(_school_id uuid, _user_id uuid, _class_id uuid) RETURNS jsonb
+CREATE FUNCTION public.class_students_get(_school_id uuid, _class_id uuid) RETURNS jsonb
     LANGUAGE plpgsql
     AS $$
 begin
 		return (select jsonb_build_object(
 			'students', class_body->'students',
 			'fstudents', class_body->'fstudents'
-		) from schools_classes_ownership_view where
-			school_id = _school_id
+		) from schools_classes 
+			where school_id = _school_id
 			and class_id = _class_id
-			and user_id = _user_id
 		);
 end;
 $$;
 
 
-ALTER FUNCTION public.class_students_get(_school_id uuid, _user_id uuid, _class_id uuid) OWNER TO postgres;
+ALTER FUNCTION public.class_students_get(_school_id uuid, _class_id uuid) OWNER TO postgres;
 
 --
 -- Name: class_students_set(uuid, uuid, jsonb); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -817,25 +807,59 @@ $$;
 ALTER FUNCTION public.null_to_array(_array text[]) OWNER TO postgres;
 
 --
--- Name: school_class_students_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: school_class_body_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.school_class_students_get(_school_id uuid, _class_id uuid) RETURNS jsonb
+CREATE FUNCTION public.school_class_body_get(_orgref uuid, _classid uuid) RETURNS jsonb
     LANGUAGE plpgsql
     AS $$
-begin
-		return (select jsonb_build_object(
-			'students', class_body->'students',
-			'fstudents', class_body->'fstudents'
-		) from schools_classes 
-			where school_id = _school_id
-			and class_id = _class_id
-		);
-end;
-$$;
+    DECLARE
+        data jsonb;
+    BEGIN
+        WITH ownership_data AS (
+            SELECT jsonb_agg(
+                           jsonb_build_object(
+                                   'id', ownership.user_id,
+                                   'name', (SELECT name FROM users WHERE school_id = _orgref AND id = ownership.user_id)
+                           )
+                   ) AS owners
+            FROM schools_classes_ownership ownership
+            WHERE ownership.class_id = _classid
+              AND ownership.school_id = _orgref
+        )
+        SELECT jsonb_set((select class_body - 'absent' from schools_classes where school_id = _orgref and class_id = _classid),
+                         '{owners}',
+                         COALESCE((SELECT owners FROM ownership_data), '[]'::jsonb))
+        INTO data; -- Set owners into class body, default to empty array
+        RETURN data;
+    END;
+    $$;
 
 
-ALTER FUNCTION public.school_class_students_get(_school_id uuid, _class_id uuid) OWNER TO postgres;
+ALTER FUNCTION public.school_class_body_get(_orgref uuid, _classid uuid) OWNER TO postgres;
+
+--
+-- Name: school_class_owners_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.school_class_owners_get(_orgref uuid, _classid uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+        return COALESCE( jsonb_agg(
+                           jsonb_build_object(
+                                   'id', ownership.user_id,
+                                   'name', (SELECT name FROM users WHERE school_id = _orgref AND id = ownership.user_id)
+                           )
+                   ), '[]'::jsonb)
+            FROM (select user_id FROM schools_classes_ownership
+            WHERE class_id = _classid AND school_id = _orgref) as ownership;
+
+    end;
+    $$;
+
+
+ALTER FUNCTION public.school_class_owners_get(_orgref uuid, _classid uuid) OWNER TO postgres;
 
 --
 -- Name: school_class_users_set(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1330,6 +1354,84 @@ END;$$;
 ALTER FUNCTION public.school_invite_req_id_gen(_school_id uuid) OWNER TO postgres;
 
 --
+-- Name: school_logs_get(uuid, date); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.school_logs_get(_orgref uuid, _date date) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+begin
+    return (
+        select jsonb_agg(
+                       jsonb_build_object(
+                               'id', id,
+                               'user', jsonb_build_object(
+                                       'name', (select name from users where school_id = _orgref and users.id = user_id),
+                                       'id', user_id
+                                       ),
+                               'context', jsonb_build_object(
+                                       'category', category,
+                                       'operation', operation,
+                                       'changed_property', changed_property
+                                          ),
+                               'changed_at', jsonb_build_object(
+                                       'time', changed_at::time(0),
+                                       'date', changed_at::date
+                                             ),
+                               'object_id', object_id,
+                               'log_data', row_data
+                       )
+               )
+        from schools_change_logs
+        where school_id = _orgref
+        and changed_at::date = _date
+    );
+end;
+$$;
+
+
+ALTER FUNCTION public.school_logs_get(_orgref uuid, _date date) OWNER TO postgres;
+
+--
+-- Name: school_logs_period_get(uuid, date, date); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.school_logs_period_get(_orgref uuid, _datestart date, _dateend date) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+begin
+    return (
+        select jsonb_agg(
+                       jsonb_build_object(
+                               'id', id,
+                               'user', jsonb_build_object(
+                                       'name', (select name from users where school_id = _orgref and users.id = user_id),
+                                       'id', user_id
+                                       ),
+                               'context', jsonb_build_object(
+                                       'category', category,
+                                       'operation', operation,
+                                       'changed_property', changed_property
+                                   ),
+                               'changed_at', jsonb_build_object(
+                                       'time', changed_at::time(0),
+                                       'date', changed_at::date
+                                             ),
+                               'object_id', object_id,
+                               'log_data', row_data
+                       )
+               )
+        from schools_change_logs
+        where school_id = _orgref
+          and changed_at::date between _dateStart and _dateEnd
+    );
+end;
+$$;
+
+
+ALTER FUNCTION public.school_logs_period_get(_orgref uuid, _datestart date, _dateend date) OWNER TO postgres;
+
+--
 -- Name: school_org_data_get(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1370,6 +1472,40 @@ $$;
 
 
 ALTER FUNCTION public.school_req_get(_school_id uuid) OWNER TO postgres;
+
+--
+-- Name: school_user_body_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.school_user_body_get(_orgref uuid, _userid uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    data jsonb;
+BEGIN
+    WITH ownership_data AS (
+        SELECT jsonb_agg(
+                       jsonb_build_object(
+                               'id', ownership.class_id,
+                               'name', (SELECT class_body->'name' FROM schools_classes WHERE school_id = _orgref AND class_id = ownership.class_id)
+                       )
+               ) AS owners
+        FROM schools_classes_ownership ownership
+        WHERE ownership.user_id = _userid
+          AND ownership.school_id = _orgref
+    ) select jsonb_build_object('name', t.name,
+             'roles', t.roles,
+             'classes', COALESCE(t.owners, '[]'::jsonb)
+             ) from (select
+        name, roles, owners from users u, schools_users su, ownership_data where u.school_id = _orgref and u.id = _userid
+                                                                          and su.school_id = _orgref and su.user_id = _userid) as t
+    INTO data;
+    return data;
+END;
+$$;
+
+
+ALTER FUNCTION public.school_user_body_get(_orgref uuid, _userid uuid) OWNER TO postgres;
 
 --
 -- Name: school_user_classes_set(uuid, uuid, uuid[]); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -1554,17 +1690,17 @@ CREATE FUNCTION public.user_classes_get(_orgref uuid, _teacherref uuid) RETURNS 
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	    RETURN
-    (
-		select jsonb_agg(
-			jsonb_build_object(
-				'id', classes.class_id,
-				'name', classes.class_body->'name'
-			))
-		from schools_classes_ownership_view as classes
-			where school_id = _orgref
-			and user_id = _teacherref
-	);
+    RETURN
+        (
+            select COALESCE(jsonb_agg(
+                           jsonb_build_object(
+                                   'id', classes.class_id,
+                                   'name', classes.class_body->'name'
+                           )), '[]'::jsonb)
+            from schools_classes_ownership_view as classes
+            where school_id = _orgref
+              and user_id = _teacherref
+        );
 END;
 $$;
 
@@ -1658,24 +1794,14 @@ ALTER PROCEDURE public.user_insert_in_school(IN _orgref uuid, IN _userid uuid, I
 -- Name: user_roles_get(uuid, uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.user_roles_get(_schoolref uuid, _userid uuid) RETURNS SETOF text
+CREATE FUNCTION public.user_roles_get(_schoolref uuid, _userid uuid) RETURNS jsonb
     LANGUAGE plpgsql
     AS $$
-
-DECLARE
-	userRoles text[];
 BEGIN
-	userRoles := (SELECT roles
-			FROM schools_users 
-				WHERE school_id = _schoolRef
-				AND user_id = _userID);
 
-	RETURN QUERY (select unnest(userRoles));
-
-    -- Если после выполнения запроса не было возвращено ни одной строки, возвращаем пустой набор результатов
-    IF NOT FOUND THEN
-        RETURN;
-    END IF;
+    RETURN array_to_json(roles)::jsonb
+	    FROM schools_users as su
+        WHERE su.school_id = _schoolRef AND su.user_id = _userID;
 
 END;
 
@@ -1935,32 +2061,101 @@ COPY public.schools (id, title, region, city, area, email, members) FROM stdin;
 --
 
 COPY public.schools_change_logs (id, school_id, user_id, category, operation, changed_property, object_id, changed_at, row_data) FROM stdin;
-22	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	create	\N	\N	2025-03-16 00:24:32.970654	{"name": "testesttes", "owner_id": null}
-23	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 00:25:26.966723	{"date": "2025-03-15", "absent": {"ORVI": [], "respectful": [], "not_respectful": []}}
-24	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	name	88ecc442-7e84-46e3-ac59-8888f7f3063d	2025-03-16 00:42:43.098494	{"name": "123"}
-25	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	students	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 00:45:30.594759	{"students": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич", "Голубева Валерия Романовна", "Симонова Вера Савельевна", "Львова Анастасия Фёдоровна", "Козловский Глеб Тимурович", "Никитин Егор Владимирович", "Лукин Михаил Матвеевич", "Сергеева Алиса Камильевна"], "fstudents": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Львова Анастасия Фёдоровна"]}
-26	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	owners	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 00:47:22.531351	{"owners": ["ac7d9df6-9141-461b-bd12-f59370fb9826"]}
-27	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	owners	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 00:47:31.321631	{"owners": ["ac7d9df6-9141-461b-bd12-f59370fb9826", "03bd1f7f-e140-4909-91b5-c9bf27eba530"]}
-28	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	owners	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 00:47:38.479915	{"owners": ["ac7d9df6-9141-461b-bd12-f59370fb9826"]}
-29	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	create	\N	\N	2025-03-16 01:04:25.3221	{"name": "du,,mme", "login": "c5f9eb390a108b4859979e6b4356f30d03f48d8d836596fc8b09ab8307ef03f0", "roles": ["teacher", "admin", "teacher", "admin"], "classes": ["48d873b4-f7a7-4e29-a75b-129e8657d4f3"], "password": "94f8607915dff25f013e45fc0642fb9830b0fb25ab0ab46d477eaf1061def379"}
-30	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	6115891c-9b08-467e-8399-550219addf58	2025-03-16 01:06:27.85863	{"roles": ["teacher", "admin"]}
-31	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	6115891c-9b08-467e-8399-550219addf58	2025-03-16 01:06:27.85863	{"classes": ["48d873b4-f7a7-4e29-a75b-129e8657d4f3"]}
-32	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	6115891c-9b08-467e-8399-550219addf58	2025-03-16 01:06:27.85863	{"name": "123412"}
-33	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	6115891c-9b08-467e-8399-550219addf58	2025-03-16 01:07:03.950806	{"roles": ["teacher", "admin"]}
-34	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	6115891c-9b08-467e-8399-550219addf58	2025-03-16 01:07:03.950806	{"classes": []}
-35	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	d9f9de15-5a9d-4063-b616-cc8e7cb41cfc	2025-03-16 01:11:43.092154	{"roles": ["teacher", "admin"]}
-36	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	d9f9de15-5a9d-4063-b616-cc8e7cb41cfc	2025-03-16 01:11:43.092154	{"classes": []}
-39	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	delete	\N	71966f16-4d15-486d-ab28-c379a4d37243	2025-03-16 01:12:59.70223	\N
-40	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	password	d9f9de15-5a9d-4063-b616-cc8e7cb41cfc	2025-03-16 01:13:14.67752	\N
-41	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	delete	\N	d9f9de15-5a9d-4063-b616-cc8e7cb41cfc	2025-03-16 01:13:50.804528	\N
-42	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	create	\N	\N	2025-03-16 13:01:41.950595	{"name": "testInvite", "roles": ["teacher", "admin"], "classes": ["48d873b4-f7a7-4e29-a75b-129e8657d4f3"]}
-43	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	delete	\N	\N	2025-03-16 13:02:08.750534	{"invite_id": "953507"}
-44	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	create	\N	\N	2025-03-16 13:25:13.53641	{"name": "adsfa", "roles": ["teacher", "admin"], "classes": ["64a76235-e1bf-4cfd-b8eb-2944398994dd"]}
-45	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	delete	\N	\N	2025-03-16 13:26:50.60182	{"invite_id": "406438", "invite_body": "{\\"name\\": \\"testInvite\\", \\"roles\\": [\\"teacher\\", \\"admin\\"], \\"classes\\": [{\\"id\\": \\"48d873b4-f7a7-4e29-a75b-129e8657d4f3\\", \\"name\\": \\"123\\"}]}"}
-46	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	create	\N	\N	2025-03-16 13:28:07.481693	{"name": "125125", "roles": ["teacher", "admin"], "classes": ["48d873b4-f7a7-4e29-a75b-129e8657d4f3"]}
-47	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	delete	\N	\N	2025-03-16 13:28:10.446758	{"invite_id": "335202", "invite_body": {"name": "adsfa", "roles": ["teacher", "admin"], "classes": [{"id": "64a76235-e1bf-4cfd-b8eb-2944398994dd", "name": "testesttes"}]}}
-48	00000000-0000-0000-0000-000000000000	3d20aea8-f150-485e-8969-9577cca91bf3	classes	edit	owners	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 13:46:49.528863	{"owners": ["ac7d9df6-9141-461b-bd12-f59370fb9826", "03bd1f7f-e140-4909-91b5-c9bf27eba530"]}
-49	00000000-0000-0000-0000-000000000000	3d20aea8-f150-485e-8969-9577cca91bf3	classes	edit	owners	19baa673-b8bd-4af1-af51-20c618007060	2025-03-16 13:47:08.716916	{"owners": ["ac7d9df6-9141-461b-bd12-f59370fb9826"]}
+96	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	fd3d4a52-f734-40f4-80ae-b430391e15a1	2025-03-17 18:05:17.721983	{"new": {"name": "fdsaf"}, "old": {"name": "adsf"}}
+156	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	059db160-8da8-42c6-b547-d6c852d81a32	2025-03-18 00:21:14.29734	{"name": "test", "owners": [{"id": "de41a530-0298-4f87-96aa-01e6ca805e4a", "name": "fasd"}], "students": [], "fstudents": []}
+157	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	462c1817-78d6-4514-ab6e-42c72a8ebc02	2025-03-18 00:21:16.911067	{"name": "test", "owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}], "students": [], "fstudents": []}
+118	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:31:39.13132	{"new": {"name": "ChangeNameDummy2"}, "old": {"name": "ChangeNameDummy2"}}
+158	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	0f80d9d7-4ced-4792-b01a-69ceb1a85347	2025-03-18 00:21:19.846904	{"name": "testest", "owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}], "students": [], "fstudents": []}
+161	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 12:57:30.660737	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+162	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 12:58:39.305883	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+163	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 12:59:27.884554	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+164	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 12:59:35.729513	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+165	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:01:29.148795	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+166	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:01:39.554507	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+167	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:02:12.336865	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+168	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:03:15.841936	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+169	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:03:27.644314	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+170	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:03:43.064823	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+171	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:04:00.762305	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+172	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:04:29.164146	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+173	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:04:50.535628	{"date": "2025-03-17", "absent": {"ORVI": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна"], "respectful": ["Андреев Георгий Дмитриевич"], "not_respectful": []}}
+174	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:05:28.705575	{"date": "2025-03-17", "absent": {"ORVI": [], "respectful": [], "not_respectful": []}}
+175	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:05:44.289264	{"date": "2025-03-17", "absent": {"ORVI": ["Иванов Иван Иванович"], "respectful": ["Кожевникова Алина Ивановна"], "not_respectful": []}}
+176	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:07:02.828065	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+177	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:08:23.190148	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+178	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:08:47.791944	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+179	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:10:22.965279	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+180	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:10:31.579804	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна"], "respectful": [], "not_respectful": []}}
+181	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:10:45.330691	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}}
+97	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	fd3d4a52-f734-40f4-80ae-b430391e15a1	2025-03-17 18:11:32.070689	{"new": {"students": ["adsf", "asdf", "fdf"], "fstudents": ["asdf"]}, "old": {"students": [], "fstudents": []}}
+159	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 00:29:00.748686	{"date": "2025-03-17", "absent": {"ORVI": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна"], "respectful": ["Андреев Георгий Дмитриевич"], "not_respectful": []}}
+182	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:12:06.804564	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}}
+183	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	create	\N	\N	2025-03-18 13:12:54.782854	{"name": "asdf", "owner": {"id": null, "name": null}}
+184	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	create	\N	\N	2025-03-18 13:13:08.983433	{"name": "testetsetsetes", "owner": {"id": null, "name": null}}
+185	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:13:15.530448	{"new": {"students": ["sadf"], "fstudents": []}, "old": {"students": [], "fstudents": []}}
+186	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:13:38.025675	{"new": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}, "old": {"students": ["sadf"], "fstudents": []}}
+187	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:14:19.249072	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}}
+188	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 13:14:20.874329	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}}
+189	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:14:44.230019	{"new": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}, "old": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}}
+190	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:14:45.28326	{"new": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}, "old": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}}
+191	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:14:49.976973	{"new": {"students": ["sadf"], "fstudents": []}, "old": {"students": ["sadf", "asdf"], "fstudents": ["sadf"]}}
+192	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:16:27.104804	{"new": {"name": "RENAMED"}, "old": {"name": "asdf"}}
+193	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:18:31.794047	{"new": {"name": "RENAMEDRENAMED2"}, "old": {"name": "RENAMED"}}
+194	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:18:36.807622	{"new": {"name": "RENAMEDRENAMED2"}, "old": {"name": "RENAMEDRENAMED2"}}
+195	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:18:40.407924	{"new": {"name": "RENAMEDRENAMED"}, "old": {"name": "RENAMEDRENAMED2"}}
+196	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	name	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:20:04.441076	{"new": {"name": "RENAME"}, "old": {"name": "RENAMEDRENAMED"}}
+197	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:20:28.084597	{"new": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}, "old": {"students": [], "fstudents": []}}
+198	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:20:35.656924	{"new": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}, "old": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}}
+199	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:20:36.563724	{"new": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}, "old": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}}
+160	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 00:39:22.699328	{"date": "2025-03-18", "absent": {"ORVI": ["Иванов Иван Иванович", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич"], "respectful": ["Кожевникова Алина Ивановна"], "not_respectful": []}}
+200	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:21:03.861101	{"new": {"students": ["fadsf", "fda", "asdf"], "fstudents": ["fadsf"]}, "old": {"students": ["fadsf", "fda"], "fstudents": ["fadsf"]}}
+201	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:21:12.026849	{"new": {"students": ["fadsf", "fda", "fdasf", "asdf"], "fstudents": ["fadsf"]}, "old": {"students": ["fadsf", "fda", "asdf"], "fstudents": ["fadsf"]}}
+133	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:50:29.61772	{"new": {"name": "ChangeNameDummy2"}, "old": {"name": "ChangeNameDummy2"}}
+202	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	students	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:21:17.873533	{"new": {"students": ["fadsf", "fda", "fdasf", "asdf"], "fstudents": ["fadsf", "fda", "fdasf"]}, "old": {"students": ["fadsf", "fda", "fdasf", "asdf"], "fstudents": ["fadsf"]}}
+203	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	owners	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:21:34.223096	{"new": {"owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}, {"id": "de41a530-0298-4f87-96aa-01e6ca805e4a", "name": "fasd"}]}, "old": {"owners": []}}
+204	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	owners	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	2025-03-18 13:21:36.208414	{"new": {"owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}]}, "old": {"owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}, {"id": "de41a530-0298-4f87-96aa-01e6ca805e4a", "name": "fasd"}]}}
+206	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	create	\N	\N	2025-03-18 13:22:05.130918	{"name": "afdasdf", "login": "56c5217ae98b6ce3a1929e90d9620722f39e78fb3641a55c45928b71b0e36aa8", "roles": ["teacher", "admin"], "classes": [{"id": "14eb9197-8e87-4529-89a7-53cc38000616", "name": "adf"}], "password": "2413fb3709b05939f04cf2e92f7d0897fc2596f9ad0b8a9ea855c7bfebaae892"}
+207	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	create	\N	\N	2025-03-18 13:23:47.339494	{"name": "fasdf", "login": "2413fb3709b05939f04cf2e92f7d0897fc2596f9ad0b8a9ea855c7bfebaae892", "roles": ["teacher", "admin"], "classes": [{"id": "9abff5ff-20f4-4bf9-bf18-8c1d4910d073", "name": "RENAME"}], "password": "d68eae7ede9d4d4eec5e3fc0d8393e65b4fa63e649a4377118321a4fb93fd432"}
+208	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	2d670e81-1c69-4cbf-a463-79ec48340ae3	2025-03-18 13:24:05.087428	{"new": {"name": "gfsa"}, "old": {"name": "fasdf"}}
+209	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	2d670e81-1c69-4cbf-a463-79ec48340ae3	2025-03-18 13:25:16.213137	{"new": {"name": "fda"}, "old": {"name": "gfsa"}}
+136	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:51:38.668401	{"new": {"name": "ChangeNameDummy2"}, "old": {"name": "ChangeNameDummy2"}}
+211	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	2d670e81-1c69-4cbf-a463-79ec48340ae3	2025-03-18 13:28:51.782121	{"new": {"classes": [{"id": "38ed868c-f944-46ac-974b-62b519fb47bf", "name": "testetsetsetes"}]}, "old": {"classes": []}}
+212	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	2d670e81-1c69-4cbf-a463-79ec48340ae3	2025-03-18 13:28:55.48612	{"new": {"classes": [{"id": "38ed868c-f944-46ac-974b-62b519fb47bf", "name": "testetsetsetes"}]}, "old": {"classes": [{"id": "38ed868c-f944-46ac-974b-62b519fb47bf", "name": "testetsetsetes"}]}}
+138	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:53:49.648006	{"new": {"classes": [{"id": "ab981c19-92e9-4a4c-b4df-0a14c489cced", "name": "ЕСТЬВладелец"}, {"id": "7f98040d-7619-4a92-b3be-9e21b81cfc04", "name": "asdf"}]}, "old": {"classes": [{"id": "ab981c19-92e9-4a4c-b4df-0a14c489cced", "name": "ЕСТЬВладелец"}, {"id": "7f98040d-7619-4a92-b3be-9e21b81cfc04", "name": "asdf"}]}}
+139	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:53:49.648006	{"new": {"name": "ChangeNameDummy2"}, "old": {"name": "ChangeNameDummy2"}}
+214	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	delete	\N	78addb0a-9f07-4576-b0df-e51648bc3401	2025-03-18 13:29:06.824572	{"name": "fasdf", "roles": ["teacher", "admin"], "classes": []}
+215	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	delete	\N	2d670e81-1c69-4cbf-a463-79ec48340ae3	2025-03-18 13:29:11.012283	{"name": "fda", "roles": ["teacher", "admin"], "classes": []}
+216	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	password	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-18 13:29:21.754109	\N
+101	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	owners	fd3d4a52-f734-40f4-80ae-b430391e15a1	2025-03-17 18:40:03.182076	{"new": {"owners": []}, "old": {"owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}]}}
+140	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:54:32.823972	{"new": {"roles": ["teacher", "admin"]}, "old": {"roles": ["teacher", "admin"]}}
+141	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:54:32.823972	{"new": {"classes": [{"id": "ab981c19-92e9-4a4c-b4df-0a14c489cced", "name": "ЕСТЬВладелец"}, {"id": "7f98040d-7619-4a92-b3be-9e21b81cfc04", "name": "asdf"}]}, "old": {"classes": [{"id": "ab981c19-92e9-4a4c-b4df-0a14c489cced", "name": "ЕСТЬВладелец"}, {"id": "7f98040d-7619-4a92-b3be-9e21b81cfc04", "name": "asdf"}]}}
+83	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	213501c8-76b8-4713-8e41-453f9bc35af9	2025-03-17 17:05:17.380091	{"name": "classWithoutOwner", "owners": [], "students": [], "fstudents": []}
+84	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	e159bdb6-3b76-45d3-a90f-e49b36df704d	2025-03-17 17:05:19.646195	{"name": "classWithOwner", "owners": [], "students": [], "fstudents": []}
+85	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	b577f972-5152-485e-b1b5-3f6ee14bf1d4	2025-03-17 17:05:22.526577	{"name": "rwar", "owners": [], "students": [], "fstudents": []}
+142	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	d64f9b23-4a8a-4c95-aafa-b99558a8578b	2025-03-17 20:54:32.823972	{"new": {"name": "ChangeNameDummy2"}, "old": {"name": "ChangeNameDummy2"}}
+86	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	48d873b4-f7a7-4e29-a75b-129e8657d4f3	2025-03-17 17:06:32.386658	{"name": "123", "owners": [], "students": [], "fstudents": []}
+221	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-18 13:37:29.638146	{"new": {"classes": []}, "old": {"classes": []}}
+222	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	delete	\N	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-18 13:41:58.347741	{"name": "fasd", "roles": ["teacher"], "classes": []}
+223	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	14eb9197-8e87-4529-89a7-53cc38000616	2025-03-18 13:49:05.536217	{"name": "adf", "owners": [{"id": "614b5107-b43d-483b-98cf-3b30c8c7e35b", "name": "afdasdf"}], "students": [], "fstudents": []}
+224	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	54bca87b-06f1-4636-9d0b-5c1e23fbe96a	2025-03-18 13:49:12.67385	{"name": "asdf", "owners": [], "students": [], "fstudents": []}
+225	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	1aea266a-704c-449b-b9a8-04983af9eb2d	2025-03-18 13:49:15.463236	{"name": "124", "owners": [], "students": [], "fstudents": []}
+226	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	7f98040d-7619-4a92-b3be-9e21b81cfc04	2025-03-18 13:49:18.436975	{"name": "asdf", "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "ChangeNameDummy2"}], "students": [], "fstudents": []}
+227	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	delete	\N	38ed868c-f944-46ac-974b-62b519fb47bf	2025-03-18 13:49:35.198466	{"name": "testetsetsetes", "owners": [], "students": ["sadf"], "fstudents": []}
+145	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	create	\N	\N	2025-03-17 21:31:00.713381	{"name": "asdfe", "roles": ["teacher", "admin"], "classes": ["14eb9197-8e87-4529-89a7-53cc38000616", "54bca87b-06f1-4636-9d0b-5c1e23fbe96a"]}
+146	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	invites	delete	\N	\N	2025-03-17 21:31:03.910171	{"invite": {"id": "317160", "body": {"name": "asdfe", "roles": ["teacher", "admin"], "classes": [{"id": "14eb9197-8e87-4529-89a7-53cc38000616", "name": "adf"}, {"id": "54bca87b-06f1-4636-9d0b-5c1e23fbe96a", "name": "asdf"}]}}}
+147	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	769583fe-a2cc-485c-99b8-eb2b3b9495a9	2025-03-17 22:41:03.56117	{"new": {"name": "321"}, "old": {"name": "124"}}
+148	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	769583fe-a2cc-485c-99b8-eb2b3b9495a9	2025-03-17 22:41:31.881782	{"new": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}, {"id": "14eb9197-8e87-4529-89a7-53cc38000616", "name": "adf"}]}, "old": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}]}}
+149	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	769583fe-a2cc-485c-99b8-eb2b3b9495a9	2025-03-17 22:42:14.561584	{"new": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}]}, "old": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}, {"id": "14eb9197-8e87-4529-89a7-53cc38000616", "name": "adf"}]}}
+150	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	769583fe-a2cc-485c-99b8-eb2b3b9495a9	2025-03-17 22:42:53.859939	{"new": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}]}, "old": {"classes": [{"id": "8f9598e5-e230-4576-8971-9abba430aeda", "name": "НЕТВладелец"}]}}
+151	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	769583fe-a2cc-485c-99b8-eb2b3b9495a9	2025-03-17 22:43:04.662852	{"new": {"roles": ["teacher"]}, "old": {"roles": ["teacher", "admin"]}}
+152	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	classes	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-17 23:41:12.038531	{"new": {"classes": [{"id": "059db160-8da8-42c6-b547-d6c852d81a32", "name": "test"}]}, "old": {"classes": [{"id": "059db160-8da8-42c6-b547-d6c852d81a32", "name": "test"}, {"id": "1aea266a-704c-449b-b9a8-04983af9eb2d", "name": "124"}]}}
+153	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	name	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-17 23:41:17.239752	{"new": {"name": "fasd"}, "old": {"name": "asdf"}}
+154	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	users	edit	roles	de41a530-0298-4f87-96aa-01e6ca805e4a	2025-03-17 23:41:20.151158	{"new": {"roles": ["teacher"]}, "old": {"roles": ["teacher", "admin"]}}
+155	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-18 00:00:02.925519	{"date": "2025-03-18", "absent": {"ORVI": [], "respectful": [], "not_respectful": []}}
+107	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	owners	fd3d4a52-f734-40f4-80ae-b430391e15a1	2025-03-17 19:15:14.385058	{"new": {"owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}]}, "old": {"owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}]}}
+108	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	edit	owners	fd3d4a52-f734-40f4-80ae-b430391e15a1	2025-03-17 19:15:40.318678	{"new": {"owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}, {"id": "03bd1f7f-e140-4909-91b5-c9bf27eba530", "name": "Демо Пользователь"}]}, "old": {"owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}]}}
+94	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	classes	create	\N	\N	2025-03-17 17:27:21.946055	{"name": "asdf", "owner": {"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}}
+95	00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	data	edit	absent	19baa673-b8bd-4af1-af51-20c618007060	2025-03-17 17:36:41.758688	{"date": "2025-03-17", "absent": {"ORVI": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна"], "respectful": ["Андреев Георгий Дмитриевич"], "not_respectful": ["Голубева Валерия Романовна"]}}
 \.
 
 
@@ -1970,14 +2165,12 @@ COPY public.schools_change_logs (id, school_id, user_id, category, operation, ch
 
 COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
 64e40f2f-2bba-484f-bf95-00ae047ca171	39f58698-a861-477a-b06d-56c31aa69624	{"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иваныч", "Филипп Киркоров Великий ", "Помещик Добрый", "Герой народа", "Александр Македонский", "Виктор Сочный"], "fstudents": []}
-00000000-0000-0000-0000-000000000000	48d873b4-f7a7-4e29-a75b-129e8657d4f3	{"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
+00000000-0000-0000-0000-000000000000	fd3d4a52-f734-40f4-80ae-b430391e15a1	{"name": "fdsaf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["adsf", "asdf", "fdf"], "fstudents": ["asdf"]}
 00000000-0000-0000-0000-000000000000	19baa673-b8bd-4af1-af51-20c618007060	{"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич", "Голубева Валерия Романовна", "Симонова Вера Савельевна", "Львова Анастасия Фёдоровна", "Козловский Глеб Тимурович", "Никитин Егор Владимирович", "Лукин Михаил Матвеевич", "Сергеева Алиса Камильевна"], "fstudents": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Львова Анастасия Фёдоровна"]}
-00000000-0000-0000-0000-000000000000	0f80d9d7-4ced-4792-b01a-69ceb1a85347	{"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	4cd6cb5c-cad7-4044-85d0-8453b16ec187	{"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	462c1817-78d6-4514-ab6e-42c72a8ebc02	{"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	059db160-8da8-42c6-b547-d6c852d81a32	{"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	64a76235-e1bf-4cfd-b8eb-2944398994dd	{"name": "testesttes", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
-00000000-0000-0000-0000-000000000000	88ecc442-7e84-46e3-ac59-8888f7f3063d	{"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
+00000000-0000-0000-0000-000000000000	9abff5ff-20f4-4bf9-bf18-8c1d4910d073	{"name": "RENAME", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": ["fadsf", "fda", "fdasf", "asdf"], "fstudents": ["fadsf", "fda", "fdasf"]}
+00000000-0000-0000-0000-000000000000	8f9598e5-e230-4576-8971-9abba430aeda	{"name": "НЕТВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
+00000000-0000-0000-0000-000000000000	ab981c19-92e9-4a4c-b4df-0a14c489cced	{"name": "ЕСТЬВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
+00000000-0000-0000-0000-000000000000	b17f87f0-7242-4dae-8415-78976fb2eab1	{"name": "уые", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "students": [], "fstudents": []}
 \.
 
 
@@ -1986,11 +2179,12 @@ COPY public.schools_classes (school_id, class_id, class_body) FROM stdin;
 --
 
 COPY public.schools_classes_ownership (school_id, user_id, class_id) FROM stdin;
-00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	4cd6cb5c-cad7-4044-85d0-8453b16ec187
-00000000-0000-0000-0000-000000000000	d64f9b23-4a8a-4c95-aafa-b99558a8578b	4cd6cb5c-cad7-4044-85d0-8453b16ec187
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	19baa673-b8bd-4af1-af51-20c618007060
 64e40f2f-2bba-484f-bf95-00ae047ca171	96ff9707-cdee-46e9-a0d3-e30e772cf416	39f58698-a861-477a-b06d-56c31aa69624
-00000000-0000-0000-0000-000000000000	3d20aea8-f150-485e-8969-9577cca91bf3	48d873b4-f7a7-4e29-a75b-129e8657d4f3
+00000000-0000-0000-0000-000000000000	d64f9b23-4a8a-4c95-aafa-b99558a8578b	ab981c19-92e9-4a4c-b4df-0a14c489cced
+00000000-0000-0000-0000-000000000000	03bd1f7f-e140-4909-91b5-c9bf27eba530	b17f87f0-7242-4dae-8415-78976fb2eab1
+00000000-0000-0000-0000-000000000000	03bd1f7f-e140-4909-91b5-c9bf27eba530	fd3d4a52-f734-40f4-80ae-b430391e15a1
+00000000-0000-0000-0000-000000000000	769583fe-a2cc-485c-99b8-eb2b3b9495a9	8f9598e5-e230-4576-8971-9abba430aeda
 \.
 
 
@@ -2059,7 +2253,9 @@ COPY public.schools_data (school_id, date, data) FROM stdin;
 00000000-0000-0000-0000-000000000000	2024-11-24	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович", "3124"], "global": ["4214", "Иванов Иван Иванович", "3124"], "fstudents": ["Иванов Иван Иванович"], "respectful": ["4214"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}, {"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}, "455406f7-3c06-4b83-99b7-fe22f4474ff8": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "4c0fd90f-c95f-4771-a779-7e943365c744": {"name": "testClassIfNo5Class", "absent": {"ORVI": ["123", "234"], "global": ["123", "234"], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "234", "345"], "fstudents": [], "isClassDataFilled": true}}
 00000000-0000-0000-0000-000000000000	2024-11-28	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "вьыты", "втвтч"], "global": ["влвл", "1251612", "4214", "вьыты", "5121621", "втвтч", "дмвжжы", "туцть", "Иванов Иван Иванович", "3124"], "fstudents": ["туцть", "Иванов Иван Иванович"], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}, {"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}, "455406f7-3c06-4b83-99b7-fe22f4474ff8": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "4c0fd90f-c95f-4771-a779-7e943365c744": {"name": "testClassIfNo5Class", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "234", "345"], "fstudents": [], "isClassDataFilled": false}}
 00000000-0000-0000-0000-000000000000	2024-12-29	{"19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}], "students": ["Иванов Иван Иванович", "3124", "4214", "5121621", "1251612", "влвл", "туцть", "дмвжжы", "ьввьв", "вьыты", "чьяьч", "втвтч", "ьввьвь"], "fstudents": ["Иванов Иван Иванович", "туцть"], "isClassDataFilled": true}, "21f50302-c5a3-49c6-8777-77a59dc1303a": {"name": "forbiddenClass", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Tester Floatyev Ivanich"}, {"id": "70ad236e-9894-489a-93e7-f64fcb8cb60d", "name": "testerBugUser"}], "students": ["123", "321"], "fstudents": [], "isClassDataFilled": false}, "455406f7-3c06-4b83-99b7-fe22f4474ff8": {"name": "1А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "4c0fd90f-c95f-4771-a779-7e943365c744": {"name": "testClassIfNo5Class", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": ["123", "234", "345"], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2025-03-17	{"059db160-8da8-42c6-b547-d6c852d81a32": {"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "0f80d9d7-4ced-4792-b01a-69ceb1a85347": {"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "14eb9197-8e87-4529-89a7-53cc38000616": {"name": "adf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович"], "global": ["Кожевникова Алина Ивановна", "Иванов Иван Иванович"], "fstudents": ["Кожевникова Алина Ивановна", "Иванов Иван Иванович"], "respectful": ["Кожевникова Алина Ивановна"], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Иванов Иван Иванович"}], "students": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич", "Голубева Валерия Романовна", "Симонова Вера Савельевна", "Львова Анастасия Фёдоровна", "Козловский Глеб Тимурович", "Никитин Егор Владимирович", "Лукин Михаил Матвеевич", "Сергеева Алиса Камильевна"], "fstudents": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Львова Анастасия Фёдоровна"], "isClassDataFilled": true}, "1ab99b3a-a19d-4bb1-b59e-b037eaa6ab1d": {"name": "asdf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "1aea266a-704c-449b-b9a8-04983af9eb2d": {"name": "124", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "462c1817-78d6-4514-ab6e-42c72a8ebc02": {"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "54bca87b-06f1-4636-9d0b-5c1e23fbe96a": {"name": "asdf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "7f98040d-7619-4a92-b3be-9e21b81cfc04": {"name": "asdf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "8f9598e5-e230-4576-8971-9abba430aeda": {"name": "НЕТВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "ab981c19-92e9-4a4c-b4df-0a14c489cced": {"name": "ЕСТЬВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "b17f87f0-7242-4dae-8415-78976fb2eab1": {"name": "уые", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "03bd1f7f-e140-4909-91b5-c9bf27eba530", "name": "Демо Пользователь"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "fd3d4a52-f734-40f4-80ae-b430391e15a1": {"name": "adsf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}}
 00000000-0000-0000-0000-000000000000	2025-03-15	{"0f80d9d7-4ced-4792-b01a-69ceb1a85347": {"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Иванов Иван Иванович"}], "students": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич", "Голубева Валерия Романовна", "Симонова Вера Савельевна", "Львова Анастасия Фёдоровна", "Козловский Глеб Тимурович", "Никитин Егор Владимирович", "Лукин Михаил Матвеевич", "Сергеева Алиса Камильевна"], "fstudents": ["Иванов Иван Иванович", "Львова Анастасия Фёдоровна"], "isClassDataFilled": true}, "48d873b4-f7a7-4e29-a75b-129e8657d4f3": {"name": "123", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "4cd6cb5c-cad7-4044-85d0-8453b16ec187": {"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Иванов Иван Иванович"}, {"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "DummyUser"}], "students": [], "fstudents": [], "isClassDataFilled": false}}
+00000000-0000-0000-0000-000000000000	2025-03-18	{"059db160-8da8-42c6-b547-d6c852d81a32": {"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "de41a530-0298-4f87-96aa-01e6ca805e4a", "name": "fasd"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "0f80d9d7-4ced-4792-b01a-69ceb1a85347": {"name": "testest", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "14eb9197-8e87-4529-89a7-53cc38000616": {"name": "adf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "19baa673-b8bd-4af1-af51-20c618007060": {"name": "8А", "absent": {"ORVI": ["Иванов Иван Иванович"], "global": ["Иванов Иван Иванович"], "fstudents": ["Иванов Иван Иванович"], "respectful": [], "not_respectful": []}, "owners": [{"id": "ac7d9df6-9141-461b-bd12-f59370fb9826", "name": "Иванов Иван Иванович"}], "students": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Рябова Полина Михайловна", "Андреев Георгий Дмитриевич", "Голубева Валерия Романовна", "Симонова Вера Савельевна", "Львова Анастасия Фёдоровна", "Козловский Глеб Тимурович", "Никитин Егор Владимирович", "Лукин Михаил Матвеевич", "Сергеева Алиса Камильевна"], "fstudents": ["Иванов Иван Иванович", "Кожевникова Алина Ивановна", "Львова Анастасия Фёдоровна"], "isClassDataFilled": true}, "1aea266a-704c-449b-b9a8-04983af9eb2d": {"name": "124", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "462c1817-78d6-4514-ab6e-42c72a8ebc02": {"name": "test", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "78addb0a-9f07-4576-b0df-e51648bc3401", "name": "fasdf"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "54bca87b-06f1-4636-9d0b-5c1e23fbe96a": {"name": "asdf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [], "students": [], "fstudents": [], "isClassDataFilled": false}, "7f98040d-7619-4a92-b3be-9e21b81cfc04": {"name": "asdf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "ChangeNameDummy2"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "8f9598e5-e230-4576-8971-9abba430aeda": {"name": "НЕТВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "769583fe-a2cc-485c-99b8-eb2b3b9495a9", "name": "321"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "ab981c19-92e9-4a4c-b4df-0a14c489cced": {"name": "ЕСТЬВладелец", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "d64f9b23-4a8a-4c95-aafa-b99558a8578b", "name": "ChangeNameDummy2"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "b17f87f0-7242-4dae-8415-78976fb2eab1": {"name": "уые", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "03bd1f7f-e140-4909-91b5-c9bf27eba530", "name": "Демо Пользователь"}], "students": [], "fstudents": [], "isClassDataFilled": false}, "fd3d4a52-f734-40f4-80ae-b430391e15a1": {"name": "fdsaf", "absent": {"ORVI": [], "global": [], "fstudents": [], "respectful": [], "not_respectful": []}, "owners": [{"id": "03bd1f7f-e140-4909-91b5-c9bf27eba530", "name": "Демо Пользователь"}], "students": ["adsf", "asdf", "fdf"], "fstudents": ["asdf"], "isClassDataFilled": false}}
 \.
 
 
@@ -2117,8 +2313,9 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 00000000-0000-0000-0000-000000000000	ac7d9df6-9141-461b-bd12-f59370fb9826	{teacher,admin}
 64e40f2f-2bba-484f-bf95-00ae047ca171	96ff9707-cdee-46e9-a0d3-e30e772cf416	{teacher,admin}
 00000000-0000-0000-0000-000000000000	03bd1f7f-e140-4909-91b5-c9bf27eba530	{teacher,admin}
-00000000-0000-0000-0000-000000000000	d64f9b23-4a8a-4c95-aafa-b99558a8578b	{}
-00000000-0000-0000-0000-000000000000	3d20aea8-f150-485e-8969-9577cca91bf3	{teacher,admin}
+00000000-0000-0000-0000-000000000000	d64f9b23-4a8a-4c95-aafa-b99558a8578b	{teacher,admin}
+00000000-0000-0000-0000-000000000000	769583fe-a2cc-485c-99b8-eb2b3b9495a9	{teacher}
+00000000-0000-0000-0000-000000000000	614b5107-b43d-483b-98cf-3b30c8c7e35b	{teacher,admin}
 \.
 
 
@@ -2128,10 +2325,11 @@ COPY public.schools_users (school_id, user_id, roles) FROM stdin;
 
 COPY public.users (id, school_id, login, password, name) FROM stdin;
 ac7d9df6-9141-461b-bd12-f59370fb9826	00000000-0000-0000-0000-000000000000	2d8c6239b1c794eb508bcee1ecce75eb8c32ff05d23e611c8fc67c35c6df5719	$2a$06$L6lwzXIDBBUXTCmQC4a44e50xg8mtjf9COw/i0ZfgIqbN9KVKSIuK	Иванов Иван Иванович
-d64f9b23-4a8a-4c95-aafa-b99558a8578b	00000000-0000-0000-0000-000000000000	1a71f4efd61c5759ce2fde1ac0cdb830128270ee8355727ba698c2487c588a47	$2a$06$XDxswnCpidnGsJBFzXJBhObmY.h8g4n2wseN1iSbTl6OSHeAt2dly	DummyUser
 96ff9707-cdee-46e9-a0d3-e30e772cf416	64e40f2f-2bba-484f-bf95-00ae047ca171	0f8ef3377b30fc47f96b48247f463a726a802f62f3faa03d56403751d2f66c67	$2a$06$JLnrBveP8DJKIeASUlt.nOtXNf5oI4K5esv4iafD8zjL0I/dkDkFm	Юлия Александровна
 03bd1f7f-e140-4909-91b5-c9bf27eba530	00000000-0000-0000-0000-000000000000	a0c84f99015cbd714fe2e58ec9eb9e8f4e93a02a058b34ac368ec09fd4be0c59	$2a$06$OJ3JHBgJAF/vW/EUeiI1seJIhJd4VqtYAtoDRIh8f3n0mu8HFRczi	Демо Пользователь
-3d20aea8-f150-485e-8969-9577cca91bf3	00000000-0000-0000-0000-000000000000	428821350e9691491f616b754cd8315fb86d797ab35d843479e732ef90665324	$2a$06$LwHMFxkdSzp6Lj3uIIuGKe1MQ8oxbqxCHHWYhrx3I9pWsz1pgeC7.	125125
+d64f9b23-4a8a-4c95-aafa-b99558a8578b	00000000-0000-0000-0000-000000000000	1a71f4efd61c5759ce2fde1ac0cdb830128270ee8355727ba698c2487c588a47	$2a$06$XDxswnCpidnGsJBFzXJBhObmY.h8g4n2wseN1iSbTl6OSHeAt2dly	ChangeNameDummy2
+769583fe-a2cc-485c-99b8-eb2b3b9495a9	00000000-0000-0000-0000-000000000000	043066daf2109523a7490d4bfad4766da5719950a2b5f96d192fc0537e84f32a	$2a$06$mMgW5VMQbm47vwZ9GxtYh.L3T17fcT6TeD3NMWW.rFKOObodskS4u	321
+614b5107-b43d-483b-98cf-3b30c8c7e35b	00000000-0000-0000-0000-000000000000	56c5217ae98b6ce3a1929e90d9620722f39e78fb3641a55c45928b71b0e36aa8	$2a$06$uwpMt9Q/q9T3DfG5TbCGjeYnhh1.xG.zcR1kIAJHS6CphQ3H3XM..	afdasdf
 \.
 
 
@@ -2147,7 +2345,8 @@ ac7d9df6-9141-461b-bd12-f59370fb9826	$2a$06$L6lwzXIDBBUXTCmQC4a44e
 03bd1f7f-e140-4909-91b5-c9bf27eba530	$2a$06$OJ3JHBgJAF/vW/EUeiI1se
 d64f9b23-4a8a-4c95-aafa-b99558a8578b	$2a$06$XDxswnCpidnGsJBFzXJBhO
 96ff9707-cdee-46e9-a0d3-e30e772cf416	$2a$06$JLnrBveP8DJKIeASUlt.nO
-3d20aea8-f150-485e-8969-9577cca91bf3	$2a$06$LwHMFxkdSzp6Lj3uIIuGKe
+769583fe-a2cc-485c-99b8-eb2b3b9495a9	$2a$06$mMgW5VMQbm47vwZ9GxtYh.
+614b5107-b43d-483b-98cf-3b30c8c7e35b	$2a$06$uwpMt9Q/q9T3DfG5TbCGje
 \.
 
 
@@ -2155,7 +2354,7 @@ d64f9b23-4a8a-4c95-aafa-b99558a8578b	$2a$06$XDxswnCpidnGsJBFzXJBhO
 -- Name: schools_change_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.schools_change_logs_id_seq', 49, true);
+SELECT pg_catalog.setval('public.schools_change_logs_id_seq', 227, true);
 
 
 --
