@@ -144,7 +144,7 @@
     <div v-if="action === 'updateOwners'">
       <b-form title="Редактировать владельцев" @submit.prevent="setClassOwners">
         <h5>
-          Класс: <i>{{entity.name}}</i>
+          Класс: <i>{{entity_buff.name}}</i>
         </h5>
         <!--    <b-container>-->
 
@@ -220,16 +220,16 @@
         <b-input v-model="newClassName" placeholder="Введите новое имя класса">
 
         </b-input>
-          <b-card-text class="text-center mt-21"> {{entity.name}} -> {{newClassName}}</b-card-text>
+          <b-card-text class="text-center mt-21"> {{entity_buff.name}} -> {{newClassName}}</b-card-text>
       </b-form>
     </div>
 <!--   Region delete -->
     <div v-if="action === 'delete'">
       <p>
-        При продолжении, класс <b>{{this.entity.name}}</b> будет <b> безвовратно</b> удалён. <br>
+        При продолжении, класс <b>{{this.entity_buff.name}}</b> будет <b> безвовратно</b> удалён. <br>
         <ul>
-          <li>Владелец: <i>{{ this.entity.owners ? this.entity.owners.map(owner => owner.name || '').join(', ') : 'отсутствует' }}</i></li>
-          <li>Кол-во учеников: {{this.entity.students.length}}</li>
+          <li>Владелец: <i>{{ this.entity_buff.owners ? this.entity_buff.owners.map(owner => owner.name || '').join(', ') : 'отсутствует' }}</i></li>
+          <li>Кол-во учеников: {{this.entity_buff.students.length}}</li>
         </ul>
       </p>
     </div>
@@ -285,6 +285,8 @@ export default {
     this.$root.$off('form:confirm');
   },
   mounted() {
+    this.entity_buff = {...this.entity}
+
     switch(this.action) {
       case "create":
         this.getOwners();
@@ -355,7 +357,7 @@ export default {
     //Region create class
     async getStudents() {
       // Получаем данные студентов
-      this.raw_data = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students');
+      this.raw_data = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity_buff.id + '/students');
 
       const { fstudents, students } = this.raw_data;
 
@@ -456,7 +458,7 @@ export default {
       };
 
       try {
-        const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity.id + '/students', 'PUT', dataToSend);
+        const status = await this.$root.$makeApiRequest('/api/org/classes/' + this.entity_buff.id + '/students', 'PUT', dataToSend);
         this.$root.$callNotificationEvent(status === 204);
       }
       catch (error) {
@@ -465,7 +467,7 @@ export default {
     },
     async setClassOwners() {
       const status = await this.$root.$makeApiRequest(
-          '/api/org/classes/' + this.entity.id + '/owners',
+          '/api/org/classes/' + this.entity_buff.id + '/owners',
           'PATCH',
           {
             owners: this.selectedOwnersList.map(owner => (owner.id))
@@ -474,7 +476,7 @@ export default {
     },
     async renameClass() {
       const status = await this.$root.$makeApiRequest(
-          '/api/org/classes/' + this.entity.id + '/name',
+          '/api/org/classes/' + this.entity_buff.id + '/name',
           'PATCH',
           {
             name: this.newClassName
@@ -483,7 +485,7 @@ export default {
     },
     async deleteClass() {
       const status = await this.$root.$makeApiRequest(
-          '/api/org/classes/' + this.entity.id,
+          '/api/org/classes/' + this.entity_buff.id,
           'DELETE')
       this.$root.$callNotificationEvent(status === 204);
     }
